@@ -6,6 +6,7 @@
 //
 
 import DataStream
+import MAPI
 
 internal struct PropertyValueHeader {
     public static var dataSize: UInt32 = 16
@@ -63,14 +64,14 @@ internal struct PropertiesList {
 
             var value: Any
             switch header.dataType {
-            case PropertyDataType.integer32.rawValue:
+            case PropertyType.integer32.rawValue:
                 // Data stored inline.
                 value = Int(header.data2)
                 break
-            case PropertyDataType.errorCode.rawValue:
+            case PropertyType.errorCode.rawValue:
                 value = Int(header.data2)
                 break
-            case PropertyDataType.string.rawValue:
+            case PropertyType.string.rawValue:
                 // Data stored in data block.
                 let offset = Int(header.data2)
                 assert(offset >= 0 && offset < endPosition)
@@ -82,7 +83,7 @@ internal struct PropertiesList {
                 
                 dataStream.position = position
                 break
-            case PropertyDataType.binary.rawValue:
+            case PropertyType.binary.rawValue:
                 // Data stored in data block.
                 let offset = Int(header.data2)
                 assert(offset >= 0 && offset < endPosition)

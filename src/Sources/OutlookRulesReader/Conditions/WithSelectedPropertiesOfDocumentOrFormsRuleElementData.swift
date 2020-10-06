@@ -7,6 +7,7 @@
 
 import DataStream
 import Foundation
+import MAPI
 
 public enum DocumentPropertyStringMatchType: UInt32 {
     case contains = 0
@@ -36,9 +37,9 @@ public struct DocumentProperty {
 
     public var field: String
     public var propertyId: UInt16
-    public var rawPropertyDataType: UInt16
-    public var propertyDataType: PropertyDataType {
-        return PropertyDataType(rawValue: rawPropertyDataType)!
+    public var rawPropertyType: UInt16
+    public var propertyType: PropertyType {
+        return PropertyType(rawValue: rawPropertyType)!
     }
     public var rawStringMatchType: UInt32
     public var stringMatchType: DocumentPropertyStringMatchType {
@@ -67,10 +68,10 @@ public struct DocumentProperty {
     }
     public var unknown4: UInt32 = 0
 
-    public init(field: String, propertyId: PropertyId, propertyDataType: PropertyDataType, matchType: DocumentPropertyStringMatchType, stringValue: String) {
+    public init(field: String, propertyId: PropertyId, PropertyType: PropertyType, matchType: DocumentPropertyStringMatchType, stringValue: String) {
         self.field = field
         self.propertyId = propertyId.rawValue
-        self.rawPropertyDataType = propertyDataType.rawValue
+        self.rawPropertyType = PropertyType.rawValue
         self.rawStringMatchType = matchType.rawValue
         self.stringValue = stringValue
         
@@ -81,10 +82,10 @@ public struct DocumentProperty {
         self.rawDateValue = 0
     }
 
-    public init(field: String, propertyId: PropertyId, propertyDataType: PropertyDataType, matchType: DocumentPropertyNumberMatchType, numberValue: Int32) {
+    public init(field: String, propertyId: PropertyId, PropertyType: PropertyType, matchType: DocumentPropertyNumberMatchType, numberValue: Int32) {
         self.field = field
         self.propertyId = propertyId.rawValue
-        self.rawPropertyDataType = propertyDataType.rawValue
+        self.rawPropertyType = PropertyType.rawValue
         self.rawNumberMatchType = matchType.rawValue
         self.numberValue = numberValue
         
@@ -95,10 +96,10 @@ public struct DocumentProperty {
         self.rawDateValue = 0
     }
 
-    public init(field: String, propertyId: PropertyId, propertyDataType: PropertyDataType, matchType: DocumentPropertyNumberMatchType, boolValue: Bool) {
+    public init(field: String, propertyId: PropertyId, PropertyType: PropertyType, matchType: DocumentPropertyNumberMatchType, boolValue: Bool) {
         self.field = field
         self.propertyId = propertyId.rawValue
-        self.rawPropertyDataType = propertyDataType.rawValue
+        self.rawPropertyType = PropertyType.rawValue
         self.boolValue = boolValue ? 0 : 1 // Inverted
         
         self.rawStringMatchType = 0
@@ -114,7 +115,7 @@ public struct DocumentProperty {
         field = try UTF16String(dataStream: &dataStream).value
 
         // Property Data Type (4 bytes)
-        rawPropertyDataType = try dataStream.read(endianess: .littleEndian)
+        rawPropertyType = try dataStream.read(endianess: .littleEndian)
 
         // Property Id (2 bytes)
         propertyId = try dataStream.read(endianess: .littleEndian)

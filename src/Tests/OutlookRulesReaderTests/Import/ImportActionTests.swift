@@ -1,4 +1,5 @@
 import XCTest
+import MAPI
 @testable import OutlookRulesReader
 
 final class ImportActionTests: XCTestCase {

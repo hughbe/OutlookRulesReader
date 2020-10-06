@@ -6,13 +6,14 @@
 //
 
 import DataStream
+import MAPI
 
 public struct ImportanceRuleElementData: RuleElementData {
     public let dataSize: UInt32 = 12
 
     public var unknown1: UInt32 = 1
     public var unknown2: UInt32 = 0
-    public var rawImportance: Int32
+    public var rawImportance: UInt32
     public var importance: MessageImportance {
         get {
             return MessageImportance(rawValue: rawImportance)!

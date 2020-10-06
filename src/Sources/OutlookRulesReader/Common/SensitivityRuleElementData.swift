@@ -6,13 +6,14 @@
 //
 
 import DataStream
+import MAPI
 
 public struct SensitivityRuleElementData: RuleElementData {
     public let dataSize: UInt32 = 12
 
     public var unknown1: UInt32 = 1
     public var unknown2: UInt32 = 0
-    public var rawSensitivity: Int32
+    public var rawSensitivity: UInt32
 
     public var sensitivity: MessageSensitivity {
         get {
