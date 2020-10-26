@@ -37,7 +37,7 @@ public struct Rule: CustomDebugStringConvertible {
         name = header.name
         enabled = header.enabled
         
-        for i in 1...header.numberOfElements {
+        for i in 0..<header.numberOfElements {
             // Identifier (4 bytes)
             let rawIdentifier = try dataStream.read(endianess: .littleEndian) as UInt32
             guard let identifier = RuleElementIdentifier(rawValue: rawIdentifier) else {
@@ -245,7 +245,7 @@ public struct Rule: CustomDebugStringConvertible {
             }
 
             // Separator (2 bytes)
-            if i != header.numberOfElements {
+            if i != header.numberOfElements - 1 {
                 let separator = try dataStream.read(endianess: .littleEndian) as UInt16
                 if separator != 0x8001 {
                     throw OutlookRulesFileError.invalidSeparator(separator: separator)

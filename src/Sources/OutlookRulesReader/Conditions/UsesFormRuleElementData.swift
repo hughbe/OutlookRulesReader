@@ -72,7 +72,7 @@ public struct UsesFormRuleElementData: RuleElementData {
         // Forms (variable)
         forms = []
         forms.reserveCapacity(Int(numberOfForms))
-        for _ in 1...numberOfForms {
+        for _ in 0..<numberOfForms {
             let form = try Form(dataStream: &dataStream)
             forms.append(form)
         }

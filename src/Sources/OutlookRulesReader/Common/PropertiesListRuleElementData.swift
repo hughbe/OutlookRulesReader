@@ -11,27 +11,23 @@ import MAPI
 internal struct PropertyValueHeader {
     public static var dataSize: UInt32 = 16
     
-    public var id: UInt16
-    public var dataType: UInt16
+    public var tag: PropertyTag
     public var data1: UInt32
     public var data2: UInt32
     public var data3: UInt32
     
     public init(dataStream: inout DataStream) throws {
-        // Data Type (2 bytes)
-        dataType = try dataStream.read(endianess: .littleEndian)
-
-        // Id (2 bytes)
-        id = try dataStream.read(endianess: .littleEndian)
+        // Tag (4 bytes)
+        self.tag = try PropertyTag(dataStream: &dataStream)
 
         // Data 1 (4 bytes)
-        data1 = try dataStream.read(endianess: .littleEndian)
+        self.data1 = try dataStream.read(endianess: .littleEndian)
         
         // Data 2 (4 bytes)
-        data2 = try dataStream.read(endianess: .littleEndian)
+        self.data2 = try dataStream.read(endianess: .littleEndian)
         
         // Data 3 (4 bytes)
-        data3 = try dataStream.read(endianess: .littleEndian)
+        self.data3 = try dataStream.read(endianess: .littleEndian)
     }
 }
 
@@ -58,32 +54,32 @@ internal struct PropertiesList {
         
         properties = [:]
         properties.reserveCapacity(Int(numberOfProperties))
-        for _ in 1...numberOfProperties {
+        for _ in 0..<numberOfProperties {
             let header = try PropertyValueHeader(dataStream: &dataStream)
             let position = dataStream.position
 
             var value: Any
-            switch header.dataType {
-            case PropertyType.integer32.rawValue:
+            switch header.tag.type {
+            case PropertyType.integer32:
                 // Data stored inline.
                 value = Int(header.data2)
                 break
-            case PropertyType.errorCode.rawValue:
+            case PropertyType.errorCode:
                 value = Int(header.data2)
                 break
-            case PropertyType.string.rawValue:
+            case PropertyType.string:
                 // Data stored in data block.
                 let offset = Int(header.data2)
                 assert(offset >= 0 && offset < endPosition)
                 dataStream.position = startPosition + offset
 
                 // Continue reading until null terminator.
-                value = try dataStream.readUTF16LEString() as Any
+                value = try dataStream.readUnicodeString(endianess: .littleEndian)!
                 assert(dataStream.position <= endPosition, "Can't read binary data beyond the length of the data stream")
                 
                 dataStream.position = position
                 break
-            case PropertyType.binary.rawValue:
+            case PropertyType.binary:
                 // Data stored in data block.
                 let offset = Int(header.data2)
                 assert(offset >= 0 && offset < endPosition)
@@ -97,10 +93,10 @@ internal struct PropertiesList {
                 dataStream.position = position
                 break
             default:
-                fatalError("Unknown data type \(header.dataType.hexString)")
+                fatalError("NYI: \(header.tag.type.stringRepresentation)")
             }
             
-            properties[header.id] = value
+            properties[header.tag.id] = value
         }
 
         dataStream.position = endPosition

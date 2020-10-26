@@ -41,7 +41,7 @@ public struct PeopleOrPublicGroupListRuleElementData: RuleElementData {
         // Values (variable)
         values = []
         values.reserveCapacity(Int(numberOfValues))
-        for _ in 1...numberOfValues {
+        for _ in 0..<numberOfValues {
             let list = try PropertiesList(dataStream: &dataStream)
             values.append(list.properties)
         }
