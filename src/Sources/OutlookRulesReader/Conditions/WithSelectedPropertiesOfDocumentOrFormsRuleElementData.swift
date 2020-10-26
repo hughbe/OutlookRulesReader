@@ -204,7 +204,7 @@ public struct WithSelectedPropertiesOfDocumentOrFormsRuleElementData: RuleElemen
         // Document Properties (variable)
         documentProperties = []
         documentProperties.reserveCapacity(Int(numberOfDocumentProperties))
-        for _ in 1...numberOfDocumentProperties {
+        for _ in 0..<numberOfDocumentProperties {
             let documentProperty = try DocumentProperty(dataStream: &dataStream)
             documentProperties.append(documentProperty)
         }
