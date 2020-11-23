@@ -61,11 +61,10 @@ internal struct PropertiesList {
             var value: Any
             switch header.tag.type {
             case PropertyType.integer32:
-                // Data stored inline.
-                value = Int(header.data2)
+                value = UInt32(header.data2)
                 break
             case PropertyType.errorCode:
-                value = Int(header.data2)
+                value = UInt32(header.data2)
                 break
             case PropertyType.string:
                 // Data stored in data block.
@@ -88,7 +87,7 @@ internal struct PropertiesList {
                 // Read length number of bytes.
                 let length = Int(header.data3)
                 assert(length >= 0 && dataStream.position + length <= endPosition, "Can't read binary data beyond the length of the data stream")
-                value = try dataStream.readBytes(count: length)
+                value = Data(try dataStream.readBytes(count: length))
                 
                 dataStream.position = position
                 break

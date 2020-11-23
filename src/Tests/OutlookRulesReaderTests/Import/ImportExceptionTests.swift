@@ -43,12 +43,12 @@ final class ImportExceptionTests: XCTestCase {
             let exception = file.rules[0].exceptions[0].data as! PeopleOrPublicGroupListRuleElementData
             XCTAssertEqual(1, exception.values.count)
             XCTAssertEqual(6, exception.values[0].count)
-            XCTAssertEqual(0x8004010F, exception.values[0][PropertyId.tagSmtpAddress.rawValue] as! Int)
+            XCTAssertEqual(MAPI_E.NOT_FOUND.rawValue, exception.values[0][PropertyId.tagSmtpAddress.rawValue] as! UInt32)
             XCTAssertEqual("name", exception.values[0][PropertyId.tagDisplayName.rawValue] as! String)
-            XCTAssertEqual(0x8004010F, exception.values[0][PropertyId.tagSmtpAddress.rawValue] as! Int)
-            XCTAssertEqual(0x8004010F, exception.values[0][PropertyId.tagSearchKey.rawValue] as! Int)
-            XCTAssertEqual(0x8004010F, exception.values[0][PropertyId.tagEntryId.rawValue] as! Int)
-            XCTAssertEqual(1, exception.values[0][PropertyId.tagRecipientType.rawValue] as! Int)
+            XCTAssertEqual(MAPI_E.NOT_FOUND.rawValue, exception.values[0][PropertyId.tagSmtpAddress.rawValue] as! UInt32)
+            XCTAssertEqual(MAPI_E.NOT_FOUND.rawValue, exception.values[0][PropertyId.tagSearchKey.rawValue] as! UInt32)
+            XCTAssertEqual(MAPI_E.NOT_FOUND.rawValue, exception.values[0][PropertyId.tagEntryId.rawValue] as! UInt32)
+            XCTAssertEqual(1, exception.values[0][PropertyId.tagRecipientType.rawValue] as! UInt32)
         }
         do {
             let file = try OutlookRulesFile(data: Data([
@@ -126,20 +126,20 @@ final class ImportExceptionTests: XCTestCase {
             let exception = file.rules[0].exceptions[0].data as! PeopleOrPublicGroupListRuleElementData
             XCTAssertEqual(2, exception.values.count)
             XCTAssertEqual(11, exception.values[0].count)
-            XCTAssertEqual(0x8004010F, exception.values[0][PropertyId.tagSmtpAddress.rawValue] as! Int)
+            XCTAssertEqual(MAPI_E.NOT_FOUND.rawValue, exception.values[0][PropertyId.tagSmtpAddress.rawValue] as! UInt32)
             XCTAssertEqual("First Name Middle Name Last Name Suffix (Business Fax)", exception.values[0][PropertyId.tagDisplayName.rawValue] as! String)
-            XCTAssertEqual(0x8004010F, exception.values[0][PropertyId.tagSmtpAddress.rawValue] as! Int)
-            XCTAssertTrue(exception.values[0][PropertyId.tagSearchKey.rawValue] is [UInt8])
-            XCTAssertTrue(exception.values[0][PropertyId.tagEntryId.rawValue] is [UInt8])
-            XCTAssertEqual(1, exception.values[0][PropertyId.tagRecipientType.rawValue] as! Int)
+            XCTAssertEqual(MAPI_E.NOT_FOUND.rawValue, exception.values[0][PropertyId.tagSmtpAddress.rawValue] as! UInt32)
+            XCTAssertTrue(exception.values[0][PropertyId.tagSearchKey.rawValue] is [Data])
+            XCTAssertTrue(exception.values[0][PropertyId.tagEntryId.rawValue] is [Data])
+            XCTAssertEqual(1, exception.values[0][PropertyId.tagRecipientType.rawValue] as! UInt32)
 
             XCTAssertEqual(6, exception.values[1].count)
-            XCTAssertEqual(0x8004010F, exception.values[1][PropertyId.tagSmtpAddress.rawValue] as! Int)
+            XCTAssertEqual(MAPI_E.NOT_FOUND.rawValue, exception.values[1][PropertyId.tagSmtpAddress.rawValue] as! UInt32)
             XCTAssertEqual("name", exception.values[1][PropertyId.tagDisplayName.rawValue] as! String)
-            XCTAssertEqual(0x8004010F, exception.values[1][PropertyId.tagSmtpAddress.rawValue] as! Int)
-            XCTAssertEqual(0x8004010F, exception.values[1][PropertyId.tagSearchKey.rawValue] as! Int)
-            XCTAssertEqual(0x8004010F, exception.values[1][PropertyId.tagEntryId.rawValue] as! Int)
-            XCTAssertEqual(1, exception.values[0][PropertyId.tagRecipientType.rawValue] as! Int)
+            XCTAssertEqual(MAPI_E.NOT_FOUND.rawValue, exception.values[1][PropertyId.tagSmtpAddress.rawValue] as! UInt32)
+            XCTAssertEqual(MAPI_E.NOT_FOUND.rawValue, exception.values[1][PropertyId.tagSearchKey.rawValue] as! UInt32)
+            XCTAssertEqual(MAPI_E.NOT_FOUND.rawValue, exception.values[1][PropertyId.tagEntryId.rawValue] as! UInt32)
+            XCTAssertEqual(1, exception.values[0][PropertyId.tagRecipientType.rawValue] as! UInt32)
         }
     }
 
@@ -683,12 +683,12 @@ final class ImportExceptionTests: XCTestCase {
             let exception = file.rules[0].exceptions[0].data as! PeopleOrPublicGroupListRuleElementData
             XCTAssertEqual(1, exception.values.count)
             XCTAssertEqual(6, exception.values[0].count)
-            XCTAssertEqual(0x8004010F, exception.values[0][PropertyId.tagSmtpAddress.rawValue] as! Int)
+            XCTAssertEqual(MAPI_E.NOT_FOUND.rawValue, exception.values[0][PropertyId.tagSmtpAddress.rawValue] as! UInt32)
             XCTAssertEqual("name", exception.values[0][PropertyId.tagDisplayName.rawValue] as! String)
-            XCTAssertEqual(0x8004010F, exception.values[0][PropertyId.tagSmtpAddress.rawValue] as! Int)
-            XCTAssertEqual(0x8004010F, exception.values[0][PropertyId.tagSearchKey.rawValue] as! Int)
-            XCTAssertEqual(0x8004010F, exception.values[0][PropertyId.tagEntryId.rawValue] as! Int)
-            XCTAssertEqual(1, exception.values[0][PropertyId.tagRecipientType.rawValue] as! Int)
+            XCTAssertEqual(MAPI_E.NOT_FOUND.rawValue, exception.values[0][PropertyId.tagSmtpAddress.rawValue] as! UInt32)
+            XCTAssertEqual(MAPI_E.NOT_FOUND.rawValue, exception.values[0][PropertyId.tagSearchKey.rawValue] as! UInt32)
+            XCTAssertEqual(MAPI_E.NOT_FOUND.rawValue, exception.values[0][PropertyId.tagEntryId.rawValue] as! UInt32)
+            XCTAssertEqual(1, exception.values[0][PropertyId.tagRecipientType.rawValue] as! UInt32)
         }
         do {
             let file = try OutlookRulesFile(data: Data([
@@ -766,20 +766,20 @@ final class ImportExceptionTests: XCTestCase {
             let exception = file.rules[0].exceptions[0].data as! PeopleOrPublicGroupListRuleElementData
             XCTAssertEqual(2, exception.values.count)
             XCTAssertEqual(11, exception.values[0].count)
-            XCTAssertEqual(0x8004010F, exception.values[0][PropertyId.tagSmtpAddress.rawValue] as! Int)
+            XCTAssertEqual(MAPI_E.NOT_FOUND.rawValue, exception.values[0][PropertyId.tagSmtpAddress.rawValue] as! UInt32)
             XCTAssertEqual("First Name Middle Name Last Name Suffix (Business Fax)", exception.values[0][PropertyId.tagDisplayName.rawValue] as! String)
-            XCTAssertEqual(0x8004010F, exception.values[0][PropertyId.tagSmtpAddress.rawValue] as! Int)
-            XCTAssertTrue(exception.values[0][PropertyId.tagSearchKey.rawValue] is [UInt8])
-            XCTAssertTrue(exception.values[0][PropertyId.tagEntryId.rawValue] is [UInt8])
-            XCTAssertEqual(1, exception.values[0][PropertyId.tagRecipientType.rawValue] as! Int)
+            XCTAssertEqual(MAPI_E.NOT_FOUND.rawValue, exception.values[0][PropertyId.tagSmtpAddress.rawValue] as! UInt32)
+            XCTAssertTrue(exception.values[0][PropertyId.tagSearchKey.rawValue] is [Data])
+            XCTAssertTrue(exception.values[0][PropertyId.tagEntryId.rawValue] is [Data])
+            XCTAssertEqual(1, exception.values[0][PropertyId.tagRecipientType.rawValue] as! UInt32)
 
             XCTAssertEqual(6, exception.values[1].count)
-            XCTAssertEqual(0x8004010F, exception.values[1][PropertyId.tagSmtpAddress.rawValue] as! Int)
+            XCTAssertEqual(MAPI_E.NOT_FOUND.rawValue, exception.values[1][PropertyId.tagSmtpAddress.rawValue] as! UInt32)
             XCTAssertEqual("name", exception.values[1][PropertyId.tagDisplayName.rawValue] as! String)
-            XCTAssertEqual(0x8004010F, exception.values[1][PropertyId.tagSmtpAddress.rawValue] as! Int)
-            XCTAssertEqual(0x8004010F, exception.values[1][PropertyId.tagSearchKey.rawValue] as! Int)
-            XCTAssertEqual(0x8004010F, exception.values[1][PropertyId.tagEntryId.rawValue] as! Int)
-            XCTAssertEqual(1, exception.values[0][PropertyId.tagRecipientType.rawValue] as! Int)
+            XCTAssertEqual(MAPI_E.NOT_FOUND.rawValue, exception.values[1][PropertyId.tagSmtpAddress.rawValue] as! UInt32)
+            XCTAssertEqual(MAPI_E.NOT_FOUND.rawValue, exception.values[1][PropertyId.tagSearchKey.rawValue] as! UInt32)
+            XCTAssertEqual(MAPI_E.NOT_FOUND.rawValue, exception.values[1][PropertyId.tagEntryId.rawValue] as! UInt32)
+            XCTAssertEqual(1, exception.values[0][PropertyId.tagRecipientType.rawValue] as! UInt32)
         }
     }
 

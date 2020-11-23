@@ -11,15 +11,6 @@
         }
       },
       {
-        "package": "MAPI",
-        "repositoryURL": "https://github.com/hughbe/SwiftMAPI",
-        "state": {
-          "branch": null,
-          "revision": "2cb4c54e636eb715c887dd37811be0b193cef875",
-          "version": "1.1.0"
-        }
-      },
-      {
         "package": "WindowsDataTypes",
         "repositoryURL": "https://github.com/hughbe/WindowsDataTypes",
         "state": {
