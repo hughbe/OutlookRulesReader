@@ -168,20 +168,16 @@ public struct WithSelectedPropertiesOfDocumentOrFormsRuleElementData: RuleElemen
     public var unknown1: UInt32 = 1
     public var unknown2: UInt32 = 0
     public var forms: [String]
-    public var numberOfDocumentProperties: UInt16
     public var documentProperties: [DocumentProperty]
-    public var numberOfClasses: UInt32
     public var classes: [String]
     
     public init(forms: [String], documentProperties: [DocumentProperty], classes: [String]) {
         self.forms = forms
-        self.numberOfDocumentProperties = UInt16(documentProperties.count)
         self.documentProperties = documentProperties
-        self.numberOfClasses = UInt32(classes.count)
         self.classes = classes
     }
     
-    public init(dataStream: inout DataStream) throws {
+    public init(dataStream: inout DataStream, version: OutlookRulesVersion) throws {
         /// Unknown1 (4 bytes)
         self.unknown1 = try dataStream.read(endianess: .littleEndian)
         
@@ -192,13 +188,13 @@ public struct WithSelectedPropertiesOfDocumentOrFormsRuleElementData: RuleElemen
         let forms = try UTF16String(dataStream: &dataStream).value
         self.forms = forms.count == 0 ? [] : forms.components(separatedBy: ";")
         
-        // Number of Document Properties (4 bytes)
-        self.numberOfDocumentProperties = try dataStream.read(endianess: .littleEndian)
+        /// Number of Document Properties (4 bytes)
+        let numberOfDocumentProperties: UInt16 = try dataStream.read(endianess: .littleEndian)
         
-        // Document Properties (variable)
+        /// Document Properties (variable)
         var documentProperties: [DocumentProperty] = []
-        documentProperties.reserveCapacity(Int(self.numberOfDocumentProperties))
-        for _ in 0..<self.numberOfDocumentProperties {
+        documentProperties.reserveCapacity(Int(numberOfDocumentProperties))
+        for _ in 0..<numberOfDocumentProperties {
             let documentProperty = try DocumentProperty(dataStream: &dataStream)
             documentProperties.append(documentProperty)
         }
@@ -206,12 +202,12 @@ public struct WithSelectedPropertiesOfDocumentOrFormsRuleElementData: RuleElemen
         self.documentProperties = documentProperties
         
         /// Number of Classes (4 bytes)
-        self.numberOfClasses = try dataStream.read(endianess: .littleEndian)
+        let numberOfClasses: UInt32 = try dataStream.read(endianess: .littleEndian)
         
         /// Classes (variable)
         var classes: [String] = []
-        classes.reserveCapacity(Int(self.numberOfClasses))
-        for _ in 0..<self.numberOfClasses {
+        classes.reserveCapacity(Int(numberOfClasses))
+        for _ in 0..<numberOfClasses {
             /// Message (Variable)
             classes.append(try ASCIIString(dataStream: &dataStream).value)
         }

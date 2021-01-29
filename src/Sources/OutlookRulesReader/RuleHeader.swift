@@ -8,14 +8,14 @@
 import DataStream
 
 internal struct RuleHeader {
-    public var signature: UInt32
+    public var signature: UInt32?
     public var name: String
     public var enabled: Bool
     public var unknown2: UInt32 = 0
     public var unknown3: UInt32 = 0
-    public var unknown4: UInt32 = 0
-    public var unknown5: UInt32 = 0
-    public var dataSize: UInt32
+    public var unknown4: UInt32? = 0
+    public var unknown5: UInt32? = 0
+    public var dataSize: UInt32?
     public var numberOfElements: UInt16
     
     public init(signature: UInt32 = 0x00140000, name: String, enabled: Bool = false, numberOfElements: UInt16, dataSize: UInt32) {
@@ -26,15 +26,23 @@ internal struct RuleHeader {
         self.numberOfElements = numberOfElements
     }
 
-    public init(dataStream: inout DataStream, index: Int) throws {
-        /// Signature (4 bytes)
-        self.signature = try dataStream.read(endianess: .littleEndian)
+    public init(dataStream: inout DataStream, index: Int, version: OutlookRulesVersion) throws {
+        if !version.shortHeaders {
+            /// Signature (4 bytes)
+            self.signature = try dataStream.read(endianess: .littleEndian)
+        } else {
+            self.signature = nil
+        }
         
         /// Name (variable)
-        self.name = try UTF16String(dataStream: &dataStream).value
+        if !version.isASCII {
+            self.name = try UTF16String(dataStream: &dataStream).value
+        } else {
+            self.name = try ASCIIString(dataStream: &dataStream).value
+        }
         
         /// Enabled (4 bytes)
-        enabled = try dataStream.read(endianess: .littleEndian) as UInt32 != 0x0000
+        self.enabled = try dataStream.read(endianess: .littleEndian) as UInt32 != 0x0000
         
         /// Unknown2 (4 bytes)
         self.unknown2 = try dataStream.read(endianess: .littleEndian)
@@ -43,13 +51,25 @@ internal struct RuleHeader {
         self.unknown3 = try dataStream.read(endianess: .littleEndian)
         
         /// Unknown4 (4 bytes)
-        self.unknown4 = try dataStream.read(endianess: .littleEndian)
+        if !version.shortHeaders {
+            self.unknown4 = try dataStream.read(endianess: .littleEndian)
+        } else {
+            self.unknown4 = nil
+        }
         
         /// Unknown5 (4 bytes)
-        self.unknown5 = try dataStream.read(endianess: .littleEndian)
+        if !version.shortHeaders {
+            self.unknown5 = try dataStream.read(endianess: .littleEndian)
+        } else {
+            self.unknown5 = nil
+        }
         
         /// Data Size (4 bytes)
-        self.dataSize = try dataStream.read(endianess: .littleEndian)
+        if version != .noSignature {
+            self.dataSize = try dataStream.read(endianess: .littleEndian)
+        } else {
+            self.dataSize = nil
+        }
         
         /// Rule Elements (2 bytes)
         self.numberOfElements = try dataStream.read(endianess: .littleEndian)
@@ -90,8 +110,10 @@ internal struct RuleHeader {
     }
     
     public func write(to dataStream: inout OutputDataStream, index: Int) {
-        /// Signature (4 bytes)
-        dataStream.write(signature, endianess: .littleEndian)
+        if let signature = signature {
+            /// Signature (4 bytes)
+            dataStream.write(signature, endianess: .littleEndian)
+        }
         
         /// Name (variable)
         UTF16String(value: name).write(to: &dataStream)
@@ -106,13 +128,19 @@ internal struct RuleHeader {
         dataStream.write(unknown3, endianess: .littleEndian)
         
         /// Unknown4 (4 bytes)
-        dataStream.write(unknown4, endianess: .littleEndian)
+        if let unknown4 = unknown4 {
+            dataStream.write(unknown4, endianess: .littleEndian)
+        }
         
         /// Unknown5 (4 bytes)
-        dataStream.write(unknown5, endianess: .littleEndian)
+        if let unknown5 = unknown5 {
+            dataStream.write(unknown5, endianess: .littleEndian)
+        }
         
         /// Data size (4 bytes)
-        dataStream.write(dataSize, endianess: .littleEndian)
+        if let dataSize = dataSize {
+            dataStream.write(dataSize, endianess: .littleEndian)
+        }
         
         /// Number of Rule Elements (2 bytes)
         dataStream.write(numberOfElements, endianess: .littleEndian)

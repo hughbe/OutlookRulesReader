@@ -9,6 +9,6 @@ import DataStream
 
 public protocol RuleElementData {
     var dataSize: UInt32 { get }
-    init(dataStream: inout DataStream) throws
+    init(dataStream: inout DataStream, version: OutlookRulesVersion) throws
     func write(to dataStream: inout OutputDataStream)
 }

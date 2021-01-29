@@ -20,7 +20,7 @@ public struct SizeInSpecificRangeRuleElementData: RuleElementData {
         self.maxSizeInKilobytes = maxSizeInKilobytes
     }
     
-    public init(dataStream: inout DataStream) throws {
+    public init(dataStream: inout DataStream, version: OutlookRulesVersion) throws {
         // Unknown1 (4 bytes)
         unknown1 = try dataStream.read(endianess: .littleEndian)
         

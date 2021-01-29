@@ -85,6 +85,7 @@ public enum RuleElementIdentifier: UInt32 {
     case throughSpecifiedAccountCondition = 0x000000EE
     
     /// “on this computer only”
+    /// Outlook 2003: "on this machine only"
     case onThisComputerOnlyCondition = 0x000000EF
     
     /// “sender is in <specified> Address Book”

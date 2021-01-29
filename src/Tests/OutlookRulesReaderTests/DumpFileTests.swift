@@ -4,6 +4,10 @@ import XCTest
 final class DumpFileTests: XCTestCase {
     func testDumpRwz() throws {
         for (name, fileExtension) in [
+            // Custom
+            ("Outlook2003", "rwz"),
+            ("Outlook2003All", "rwz"),
+            ("Outlook2003Multiple", "rwz"),
             ("MultipleRules", "rwz"),
             // Actions
             ("AutomaticReply", "rwz"),

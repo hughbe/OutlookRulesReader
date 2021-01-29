@@ -18,7 +18,7 @@ public struct DeferDeliveryRuleElementData: RuleElementData {
         self.minutes = minutes
     }
     
-    public init(dataStream: inout DataStream) throws {
+    public init(dataStream: inout DataStream, version: OutlookRulesVersion) throws {
         // Unknown1 (4 bytes)
         unknown1 = try dataStream.read(endianess: .littleEndian)
         

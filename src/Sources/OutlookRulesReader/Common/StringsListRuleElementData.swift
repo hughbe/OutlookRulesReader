@@ -46,31 +46,32 @@ public struct StringsListRuleElementData: RuleElementData {
         return baseSize
     }
     
-    public var numberOfEntries: UInt32
     public var entries: [String]
     
     public init(entries: [String]) {
-        self.numberOfEntries = UInt32(entries.count)
         self.entries = entries
     }
     
-    public init(dataStream: inout DataStream) throws {
-        // Number of entries (4 bytes)
-        numberOfEntries = try dataStream.read(endianess: .littleEndian)
+    public init(dataStream: inout DataStream, version: OutlookRulesVersion) throws {
+        /// Number of entries (4 bytes)
+        let numberOfEntries: UInt32 = try dataStream.read(endianess: .littleEndian)
         
-        // Entries (variable)
-        entries = []
+        /// Entries (variable)
+        var entries: [String] = []
         entries.reserveCapacity(Int(numberOfEntries))
         for _ in 0..<numberOfEntries {
             let entry = try SearchEntry(dataStream: &dataStream)
             entries.append(entry.value)
         }
+        
+        self.entries = entries
     }
 
     public func write(to dataStream: inout OutputDataStream) {
-        // Number of entries (4 bytes)
+        /// Number of entries (4 bytes)
         dataStream.write(UInt32(entries.count), endianess: .littleEndian)
         
+        /// Entries (variable)
         for entry in entries {
             SearchEntry(value: entry).write(to: &dataStream)
         }

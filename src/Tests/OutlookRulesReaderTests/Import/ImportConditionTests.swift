@@ -1471,7 +1471,7 @@ final class ImportConditionTests: XCTestCase {
             
             let condition = file.rules[0].conditions[0].data as! WithSelectedPropertiesOfDocumentOrFormsRuleElementData
             XCTAssertEqual(["Accept Meeting Response"], condition.forms)
-            XCTAssertEqual(1, condition.numberOfDocumentProperties)
+            XCTAssertEqual(1, condition.documentProperties.count)
             XCTAssertEqual("Author", condition.documentProperties[0].field)
             XCTAssertEqual(0x8222, condition.documentProperties[0].propertyId)
             XCTAssertEqual(PropertyType.string, condition.documentProperties[0].propertyType)
@@ -1513,7 +1513,7 @@ final class ImportConditionTests: XCTestCase {
             
             let condition = file.rules[0].conditions[0].data as! WithSelectedPropertiesOfDocumentOrFormsRuleElementData
             XCTAssertEqual([], condition.forms)
-            XCTAssertEqual(1, condition.numberOfDocumentProperties)
+            XCTAssertEqual(1, condition.documentProperties.count)
             XCTAssertEqual("Author", condition.documentProperties[0].field)
             XCTAssertEqual(0x8222, condition.documentProperties[0].propertyId)
             XCTAssertEqual(PropertyType.string, condition.documentProperties[0].propertyType)
@@ -1555,7 +1555,7 @@ final class ImportConditionTests: XCTestCase {
             
             let condition = file.rules[0].conditions[0].data as! WithSelectedPropertiesOfDocumentOrFormsRuleElementData
             XCTAssertEqual([], condition.forms)
-            XCTAssertEqual(1, condition.numberOfDocumentProperties)
+            XCTAssertEqual(1, condition.documentProperties.count)
             XCTAssertEqual("Author", condition.documentProperties[0].field)
             XCTAssertEqual(0x8222, condition.documentProperties[0].propertyId)
             XCTAssertEqual(PropertyType.string, condition.documentProperties[0].propertyType)
@@ -1596,7 +1596,7 @@ final class ImportConditionTests: XCTestCase {
             
             let condition = file.rules[0].conditions[0].data as! WithSelectedPropertiesOfDocumentOrFormsRuleElementData
             XCTAssertEqual([], condition.forms)
-            XCTAssertEqual(1, condition.numberOfDocumentProperties)
+            XCTAssertEqual(1, condition.documentProperties.count)
             XCTAssertEqual("Bytes", condition.documentProperties[0].field)
             XCTAssertEqual(0x8223, condition.documentProperties[0].propertyId)
             XCTAssertEqual(PropertyType.integer32, condition.documentProperties[0].propertyType)
@@ -1637,7 +1637,7 @@ final class ImportConditionTests: XCTestCase {
             
             let condition = file.rules[0].conditions[0].data as! WithSelectedPropertiesOfDocumentOrFormsRuleElementData
             XCTAssertEqual([], condition.forms)
-            XCTAssertEqual(1, condition.numberOfDocumentProperties)
+            XCTAssertEqual(1, condition.documentProperties.count)
             XCTAssertEqual("Bytes", condition.documentProperties[0].field)
             XCTAssertEqual(0x8223, condition.documentProperties[0].propertyId)
             XCTAssertEqual(PropertyType.integer32, condition.documentProperties[0].propertyType)
@@ -1678,7 +1678,7 @@ final class ImportConditionTests: XCTestCase {
             
             let condition = file.rules[0].conditions[0].data as! WithSelectedPropertiesOfDocumentOrFormsRuleElementData
             XCTAssertEqual([], condition.forms)
-            XCTAssertEqual(1, condition.numberOfDocumentProperties)
+            XCTAssertEqual(1, condition.documentProperties.count)
             XCTAssertEqual("Bytes", condition.documentProperties[0].field)
             XCTAssertEqual(0x8223, condition.documentProperties[0].propertyId)
             XCTAssertEqual(PropertyType.integer32, condition.documentProperties[0].propertyType)
@@ -1719,7 +1719,7 @@ final class ImportConditionTests: XCTestCase {
             
             let condition = file.rules[0].conditions[0].data as! WithSelectedPropertiesOfDocumentOrFormsRuleElementData
             XCTAssertEqual([], condition.forms)
-            XCTAssertEqual(1, condition.numberOfDocumentProperties)
+            XCTAssertEqual(1, condition.documentProperties.count)
             XCTAssertEqual("Bytes", condition.documentProperties[0].field)
             XCTAssertEqual(0x8223, condition.documentProperties[0].propertyId)
             XCTAssertEqual(PropertyType.integer32, condition.documentProperties[0].propertyType)
@@ -1760,7 +1760,7 @@ final class ImportConditionTests: XCTestCase {
             
             let condition = file.rules[0].conditions[0].data as! WithSelectedPropertiesOfDocumentOrFormsRuleElementData
             XCTAssertEqual([], condition.forms)
-            XCTAssertEqual(1, condition.numberOfDocumentProperties)
+            XCTAssertEqual(1, condition.documentProperties.count)
             XCTAssertEqual("Bytes", condition.documentProperties[0].field)
             XCTAssertEqual(0x8223, condition.documentProperties[0].propertyId)
             XCTAssertEqual(PropertyType.integer32, condition.documentProperties[0].propertyType)
@@ -1801,7 +1801,7 @@ final class ImportConditionTests: XCTestCase {
             
             let condition = file.rules[0].conditions[0].data as! WithSelectedPropertiesOfDocumentOrFormsRuleElementData
             XCTAssertEqual([], condition.forms)
-            XCTAssertEqual(1, condition.numberOfDocumentProperties)
+            XCTAssertEqual(1, condition.documentProperties.count)
             XCTAssertEqual("Bytes", condition.documentProperties[0].field)
             XCTAssertEqual(0x8223, condition.documentProperties[0].propertyId)
             XCTAssertEqual(PropertyType.integer32, condition.documentProperties[0].propertyType)
@@ -1842,7 +1842,7 @@ final class ImportConditionTests: XCTestCase {
             
             let condition = file.rules[0].conditions[0].data as! WithSelectedPropertiesOfDocumentOrFormsRuleElementData
             XCTAssertEqual([], condition.forms)
-            XCTAssertEqual(1, condition.numberOfDocumentProperties)
+            XCTAssertEqual(1, condition.documentProperties.count)
             XCTAssertEqual("Bytes", condition.documentProperties[0].field)
             XCTAssertEqual(0x8223, condition.documentProperties[0].propertyId)
             XCTAssertEqual(PropertyType.integer32, condition.documentProperties[0].propertyType)
@@ -1887,7 +1887,7 @@ final class ImportConditionTests: XCTestCase {
             
             let condition = file.rules[0].conditions[0].data as! WithSelectedPropertiesOfDocumentOrFormsRuleElementData
             XCTAssertEqual([], condition.forms)
-            XCTAssertEqual(1, condition.numberOfDocumentProperties)
+            XCTAssertEqual(1, condition.documentProperties.count)
             XCTAssertEqual("Creation Time", condition.documentProperties[0].field)
             XCTAssertEqual(0x8228, condition.documentProperties[0].propertyId)
             XCTAssertEqual(PropertyType.time, condition.documentProperties[0].propertyType)
@@ -1930,7 +1930,7 @@ final class ImportConditionTests: XCTestCase {
             
             let condition = file.rules[0].conditions[0].data as! WithSelectedPropertiesOfDocumentOrFormsRuleElementData
             XCTAssertEqual([], condition.forms)
-            XCTAssertEqual(1, condition.numberOfDocumentProperties)
+            XCTAssertEqual(1, condition.documentProperties.count)
             XCTAssertEqual("Creation Time", condition.documentProperties[0].field)
             XCTAssertEqual(0x8228, condition.documentProperties[0].propertyId)
             XCTAssertEqual(PropertyType.time, condition.documentProperties[0].propertyType)
@@ -1985,7 +1985,7 @@ final class ImportConditionTests: XCTestCase {
             
             let condition = file.rules[0].conditions[0].data as! WithSelectedPropertiesOfDocumentOrFormsRuleElementData
             XCTAssertEqual(["Accept Meeting Response", " Text Message", " Task"], condition.forms)
-            XCTAssertEqual(2, condition.numberOfDocumentProperties)
+            XCTAssertEqual(2, condition.documentProperties.count)
             XCTAssertEqual("Bytes", condition.documentProperties[0].field)
             XCTAssertEqual(0x8223, condition.documentProperties[0].propertyId)
             XCTAssertEqual(PropertyType.integer32, condition.documentProperties[0].propertyType)

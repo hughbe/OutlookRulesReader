@@ -29,25 +29,25 @@ public struct ApplyConditionRuleElementData: RuleElementData {
         self.flags = flags
     }
     
-    public init(dataStream: inout DataStream) throws {
-        // Unknown (4 bytes)
-        unknown1 = try dataStream.read(endianess: .littleEndian)
+    public init(dataStream: inout DataStream, version: OutlookRulesVersion) throws {
+        /// Unknown (4 bytes)
+        self.unknown1 = try dataStream.read(endianess: .littleEndian)
         
-        // Unknown (4 bytes)
-        unknown2 = try dataStream.read(endianess: .littleEndian)
+        /// Unknown (4 bytes)
+        self.unknown2 = try dataStream.read(endianess: .littleEndian)
         
-        // Flags (4 bytes)
-        flags = ApplyConditionFlags(rawValue: try dataStream.read(endianess: .littleEndian))
+        /// Flags (4 bytes)
+        self.flags = ApplyConditionFlags(rawValue: try dataStream.read(endianess: .littleEndian))
     }
     
     public func write(to dataStream: inout OutputDataStream) {
-        // Unknown1 (4 bytes)
+        /// Unknown1 (4 bytes)
         dataStream.write(unknown1, endianess: .littleEndian)
         
-        // Unknown2 (4 bytes)
+        /// Unknown2 (4 bytes)
         dataStream.write(unknown2, endianess: .littleEndian)
         
-        // Flags (4 bytes)
+        /// Flags (4 bytes)
         dataStream.write(flags.rawValue, endianess: .littleEndian)
     }
 }

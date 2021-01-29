@@ -1515,7 +1515,7 @@ final class ImportExceptionTests: XCTestCase {
             
             let exception = file.rules[0].exceptions[0].data as! WithSelectedPropertiesOfDocumentOrFormsRuleElementData
             XCTAssertEqual(["Accept Meeting Response"], exception.forms)
-            XCTAssertEqual(1, exception.numberOfDocumentProperties)
+            XCTAssertEqual(1, exception.documentProperties.count)
             XCTAssertEqual("Author", exception.documentProperties[0].field)
             XCTAssertEqual(0x8222, exception.documentProperties[0].propertyId)
             XCTAssertEqual(PropertyType.string, exception.documentProperties[0].propertyType)
@@ -1557,7 +1557,7 @@ final class ImportExceptionTests: XCTestCase {
             
             let exception = file.rules[0].exceptions[0].data as! WithSelectedPropertiesOfDocumentOrFormsRuleElementData
             XCTAssertEqual([], exception.forms)
-            XCTAssertEqual(1, exception.numberOfDocumentProperties)
+            XCTAssertEqual(1, exception.documentProperties.count)
             XCTAssertEqual("Author", exception.documentProperties[0].field)
             XCTAssertEqual(0x8222, exception.documentProperties[0].propertyId)
             XCTAssertEqual(PropertyType.string, exception.documentProperties[0].propertyType)
@@ -1599,7 +1599,7 @@ final class ImportExceptionTests: XCTestCase {
             
             let exception = file.rules[0].exceptions[0].data as! WithSelectedPropertiesOfDocumentOrFormsRuleElementData
             XCTAssertEqual([], exception.forms)
-            XCTAssertEqual(1, exception.numberOfDocumentProperties)
+            XCTAssertEqual(1, exception.documentProperties.count)
             XCTAssertEqual("Author", exception.documentProperties[0].field)
             XCTAssertEqual(0x8222, exception.documentProperties[0].propertyId)
             XCTAssertEqual(PropertyType.string, exception.documentProperties[0].propertyType)
@@ -1640,7 +1640,7 @@ final class ImportExceptionTests: XCTestCase {
             
             let exception = file.rules[0].exceptions[0].data as! WithSelectedPropertiesOfDocumentOrFormsRuleElementData
             XCTAssertEqual([], exception.forms)
-            XCTAssertEqual(1, exception.numberOfDocumentProperties)
+            XCTAssertEqual(1, exception.documentProperties.count)
             XCTAssertEqual("Bytes", exception.documentProperties[0].field)
             XCTAssertEqual(0x8223, exception.documentProperties[0].propertyId)
             XCTAssertEqual(PropertyType.integer32, exception.documentProperties[0].propertyType)
@@ -1681,7 +1681,7 @@ final class ImportExceptionTests: XCTestCase {
             
             let exception = file.rules[0].exceptions[0].data as! WithSelectedPropertiesOfDocumentOrFormsRuleElementData
             XCTAssertEqual([], exception.forms)
-            XCTAssertEqual(1, exception.numberOfDocumentProperties)
+            XCTAssertEqual(1, exception.documentProperties.count)
             XCTAssertEqual("Bytes", exception.documentProperties[0].field)
             XCTAssertEqual(0x8223, exception.documentProperties[0].propertyId)
             XCTAssertEqual(PropertyType.integer32, exception.documentProperties[0].propertyType)
@@ -1722,7 +1722,7 @@ final class ImportExceptionTests: XCTestCase {
             
             let exception = file.rules[0].exceptions[0].data as! WithSelectedPropertiesOfDocumentOrFormsRuleElementData
             XCTAssertEqual([], exception.forms)
-            XCTAssertEqual(1, exception.numberOfDocumentProperties)
+            XCTAssertEqual(1, exception.documentProperties.count)
             XCTAssertEqual("Bytes", exception.documentProperties[0].field)
             XCTAssertEqual(0x8223, exception.documentProperties[0].propertyId)
             XCTAssertEqual(PropertyType.integer32, exception.documentProperties[0].propertyType)
@@ -1763,7 +1763,7 @@ final class ImportExceptionTests: XCTestCase {
             
             let exception = file.rules[0].exceptions[0].data as! WithSelectedPropertiesOfDocumentOrFormsRuleElementData
             XCTAssertEqual([], exception.forms)
-            XCTAssertEqual(1, exception.numberOfDocumentProperties)
+            XCTAssertEqual(1, exception.documentProperties.count)
             XCTAssertEqual("Bytes", exception.documentProperties[0].field)
             XCTAssertEqual(0x8223, exception.documentProperties[0].propertyId)
             XCTAssertEqual(PropertyType.integer32, exception.documentProperties[0].propertyType)
@@ -1804,7 +1804,7 @@ final class ImportExceptionTests: XCTestCase {
             
             let exception = file.rules[0].exceptions[0].data as! WithSelectedPropertiesOfDocumentOrFormsRuleElementData
             XCTAssertEqual([], exception.forms)
-            XCTAssertEqual(1, exception.numberOfDocumentProperties)
+            XCTAssertEqual(1, exception.documentProperties.count)
             XCTAssertEqual("Bytes", exception.documentProperties[0].field)
             XCTAssertEqual(0x8223, exception.documentProperties[0].propertyId)
             XCTAssertEqual(PropertyType.integer32, exception.documentProperties[0].propertyType)
@@ -1845,7 +1845,7 @@ final class ImportExceptionTests: XCTestCase {
             
             let exception = file.rules[0].exceptions[0].data as! WithSelectedPropertiesOfDocumentOrFormsRuleElementData
             XCTAssertEqual([], exception.forms)
-            XCTAssertEqual(1, exception.numberOfDocumentProperties)
+            XCTAssertEqual(1, exception.documentProperties.count)
             XCTAssertEqual("Bytes", exception.documentProperties[0].field)
             XCTAssertEqual(0x8223, exception.documentProperties[0].propertyId)
             XCTAssertEqual(PropertyType.integer32, exception.documentProperties[0].propertyType)
@@ -1886,7 +1886,7 @@ final class ImportExceptionTests: XCTestCase {
             
             let exception = file.rules[0].exceptions[0].data as! WithSelectedPropertiesOfDocumentOrFormsRuleElementData
             XCTAssertEqual([], exception.forms)
-            XCTAssertEqual(1, exception.numberOfDocumentProperties)
+            XCTAssertEqual(1, exception.documentProperties.count)
             XCTAssertEqual("Bytes", exception.documentProperties[0].field)
             XCTAssertEqual(0x8223, exception.documentProperties[0].propertyId)
             XCTAssertEqual(PropertyType.integer32, exception.documentProperties[0].propertyType)
@@ -1931,7 +1931,7 @@ final class ImportExceptionTests: XCTestCase {
             
             let exception = file.rules[0].exceptions[0].data as! WithSelectedPropertiesOfDocumentOrFormsRuleElementData
             XCTAssertEqual([], exception.forms)
-            XCTAssertEqual(1, exception.numberOfDocumentProperties)
+            XCTAssertEqual(1, exception.documentProperties.count)
             XCTAssertEqual("Creation Time", exception.documentProperties[0].field)
             XCTAssertEqual(0x8228, exception.documentProperties[0].propertyId)
             XCTAssertEqual(PropertyType.time, exception.documentProperties[0].propertyType)
@@ -1974,7 +1974,7 @@ final class ImportExceptionTests: XCTestCase {
             
             let exception = file.rules[0].exceptions[0].data as! WithSelectedPropertiesOfDocumentOrFormsRuleElementData
             XCTAssertEqual([], exception.forms)
-            XCTAssertEqual(1, exception.numberOfDocumentProperties)
+            XCTAssertEqual(1, exception.documentProperties.count)
             XCTAssertEqual("Creation Time", exception.documentProperties[0].field)
             XCTAssertEqual(0x8228, exception.documentProperties[0].propertyId)
             XCTAssertEqual(PropertyType.time, exception.documentProperties[0].propertyType)
@@ -2029,7 +2029,7 @@ final class ImportExceptionTests: XCTestCase {
             
             let exception = file.rules[0].exceptions[0].data as! WithSelectedPropertiesOfDocumentOrFormsRuleElementData
             XCTAssertEqual(["Accept Meeting Response", " Text Message", " Task"], exception.forms)
-            XCTAssertEqual(2, exception.numberOfDocumentProperties)
+            XCTAssertEqual(2, exception.documentProperties.count)
             XCTAssertEqual("Bytes", exception.documentProperties[0].field)
             XCTAssertEqual(0x8223, exception.documentProperties[0].propertyId)
             XCTAssertEqual(PropertyType.integer32, exception.documentProperties[0].propertyType)

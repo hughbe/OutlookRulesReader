@@ -27,7 +27,7 @@ public struct OutlookRulesFile: CustomDebugStringConvertible {
         var rules: [Rule] = []
         rules.reserveCapacity(Int(header.numberOfRules))
         for index in 0..<Int(header.numberOfRules) {
-            let rule = try Rule(version: header.signature, dataStream: &dataStream, index: index)
+            let rule = try Rule(dataStream: &dataStream, index: index, version: header.version)
             rules.append(rule)
         }
         

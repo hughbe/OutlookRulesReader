@@ -19,26 +19,29 @@ internal struct RulesFooter {
     }
     
     public init(dataStream: inout DataStream) throws {
-        // Template Directory Length (4 bytes)
+        /// Template Directory Length (4 bytes)
         let templateDirectoryLength = try dataStream.read(endianess: .littleEndian) as UInt32
+        guard templateDirectoryLength <= dataStream.remainingCount else {
+            throw OutlookRulesReadError.corrupted
+        }
         
-        // Template (variable)
+        /// Template (variable)
         guard let templateDirectory = try dataStream.readString(count: Int(templateDirectoryLength) * 2, encoding: .utf16LittleEndian) else {
             throw OutlookRulesReadError.corrupted
         }
         self.templateDirectory = templateDirectory
         
-        // Unknown1 (4 bytes)
-        unknown1 = try dataStream.read(endianess: .littleEndian)
+        /// Unknown1 (4 bytes)
+        self.unknown1 = try dataStream.read(endianess: .littleEndian)
         
-        // Unknown2 (4 bytes)
-        unknown2 = try dataStream.read(endianess: .littleEndian)
+        /// Unknown2 (4 bytes)
+        self.unknown2 = try dataStream.read(endianess: .littleEndian)
         
-        // Unknown3 (4 bytes)
-        unknown3 = try dataStream.read(endianess: .littleEndian)
+        /// Unknown3 (4 bytes)
+        self.unknown3 = try dataStream.read(endianess: .littleEndian)
         
-        // Unknown4 (4 bytes)
-        unknown4 = try dataStream.read(endianess: .littleEndian)
+        /// Unknown4 (4 bytes)
+        self.unknown4 = try dataStream.read(endianess: .littleEndian)
         
         assert(dataStream.remainingCount == 0)
     }

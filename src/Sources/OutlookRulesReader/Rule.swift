@@ -32,8 +32,8 @@ public struct Rule: CustomDebugStringConvertible {
         self.exceptions = exceptions
     }
     
-    public init(version: UInt32, dataStream: inout DataStream, index: Int) throws {
-        let header = try RuleHeader(dataStream: &dataStream, index: index)
+    public init(dataStream: inout DataStream, index: Int, version: OutlookRulesVersion) throws {
+        let header = try RuleHeader(dataStream: &dataStream, index: index, version: version)
         self.name = header.name
         self.enabled = header.enabled
         
@@ -46,26 +46,26 @@ public struct Rule: CustomDebugStringConvertible {
             
             /// Data (variable)
             func addCondition<T>(type: T.Type) throws where T: RuleElementData {
-                let data = try T(dataStream: &dataStream)
+                let data = try T(dataStream: &dataStream, version: version)
                 conditions.append(RuleElement(identifier: identifier, data: data))
             }
             
             func addAction<T>(type: T.Type) throws where T: RuleElementData {
-                let data = try T(dataStream: &dataStream)
+                let data = try T(dataStream: &dataStream, version: version)
                 actions.append(RuleElement(identifier: identifier, data: data))
             }
             
             func addException<T>(type: T.Type) throws where T: RuleElementData {
-                let data = try T(dataStream: &dataStream)
+                let data = try T(dataStream: &dataStream, version: version)
                 exceptions.append(RuleElement(identifier: identifier, data: data))
             }
 
             switch identifier {
             /// Mandatory Elements
             case .applyCondition: // 0x0190
-                applyCondition = try ApplyConditionRuleElementData(dataStream: &dataStream).flags
+                applyCondition = try ApplyConditionRuleElementData(dataStream: &dataStream, version: version).flags
             case .unknown0x64: // 0x0064
-                let _ = try RuleElement0x64Data(dataStream: &dataStream)
+                let _ = try RuleElement0x64Data(dataStream: &dataStream, version: version)
                 
             /// Conditions
             case .nameInToBoxCondition: // 0x000C8

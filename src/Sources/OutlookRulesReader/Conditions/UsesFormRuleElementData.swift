@@ -65,7 +65,7 @@ public struct UsesFormRuleElementData: RuleElementData {
         self.forms = forms
     }
     
-    public init(dataStream: inout DataStream) throws {
+    public init(dataStream: inout DataStream, version: OutlookRulesVersion) throws {
         // Number of Forms (4 bytes)
         numberOfForms = try dataStream.read(endianess: .littleEndian)
         
