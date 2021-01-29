@@ -24,7 +24,7 @@ internal struct RulesFooter {
         
         // Template (variable)
         guard let templateDirectory = try dataStream.readString(count: Int(templateDirectoryLength) * 2, encoding: .utf16LittleEndian) else {
-            throw OutlookRulesFileError.corrupted
+            throw OutlookRulesReadError.corrupted
         }
         self.templateDirectory = templateDirectory
         

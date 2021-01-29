@@ -35,73 +35,57 @@ public struct MoveToFolderRuleElementData: RuleElementData {
     }
     
     public init(dataStream: inout DataStream) throws {
-        // Unknown1 (4 bytes)
+        /// Unknown1 (4 bytes)
         self.unknown1 = try dataStream.read(endianess: .littleEndian)
         
-        // Unknown2 (4 bytes)
+        /// Unknown2 (4 bytes)
         self.unknown2 = try dataStream.read(endianess: .littleEndian)
         
-        // FolderEntryIdSize (4 bytes)
+        /// Folder Entry Id Size (4 bytes)
         self.folderEntryIdSize = try dataStream.read(endianess: .littleEndian)
         if self.folderEntryIdSize != 46 {
-            throw OutlookRulesFileError.corrupted
+            throw OutlookRulesReadError.corrupted
         }
         
-        // FolderEntryId (variable)
+        /// Folder Entry Id (variable)
         self.folderEntryId = try FolderEntryID(dataStream: &dataStream, size: Int(self.folderEntryIdSize))
         
-        // StoreEntryIdSize (4 bytes)
+        /// Store Entry Id Size (4 bytes)
         self.storeEntryIdSize = try dataStream.read(endianess: .littleEndian)
         
-        // StoreEntryId (variable)
+        /// Store EntryId (variable)
         self.storeEntryId = try StoreEntryID(dataStream: &dataStream, size: Int(self.storeEntryIdSize))
         
-        // FolderName (variable)
+        /// Folder Name (variable)
         self.folderName = try UTF16String(dataStream: &dataStream).value
         
-        // Unknown3 (4 bytes)
+        /// Unknown3 (4 bytes)
         self.unknown3 = try dataStream.read(endianess: .littleEndian)
     }
     
     public func write(to dataStream: inout OutputDataStream) {
-        // Unknown1 (4 bytes)
+        /// Unknown1 (4 bytes)
         dataStream.write(unknown1, endianess: .littleEndian)
         
-        // Unknown2 (4 bytes)
+        /// Unknown2 (4 bytes)
         dataStream.write(unknown2, endianess: .littleEndian)
         
-        // FolderEntryIdSize (4 bytes)
+        /// Folder Entry Id Size (4 bytes)
         dataStream.write(folderEntryIdSize, endianess: .littleEndian)
         
-        // FolderEntryId (variable)
-        dataStream.write(folderEntryId)
+        /// Folder Entry Id (variable)
+        folderEntryId.write(to: &dataStream)
         
-        // StoreEntryIdSize (4 bytes)
+        /// Store Entry Id Size (4 bytes)
         dataStream.write(storeEntryIdSize, endianess: .littleEndian)
         
-        // Store Id (variable)
-        dataStream.write(storeEntryId)
+        /// Store Id (variable)
+        storeEntryId.write(to: &dataStream)
         
-        // Folder Name (variable)
+        /// Folder Name (variable)
         UTF16String(value: folderName).write(to: &dataStream)
         
-        // Unknown3 (4 bytes)
+        /// Unknown3 (4 bytes)
         dataStream.write(unknown3, endianess: .littleEndian)
-    }
-}
-
-fileprivate extension FolderEntryID {
-    var dataSize: UInt32 {
-        return 46
-    }
-}
-
-fileprivate extension StoreEntryID {
-    var dataSize: UInt32 {
-        // Flags + ProviderUid + Version + Flag + WrappedFlags + WrappedProviderUid + WrappedType
-        var baseSize: UInt32 = 4 + 16 + 1 + 1 + 4 + 16 + 4
-        baseSize += UInt32(dllFileName.count)
-        baseSize += (UInt32(path.count) + 1) * 2
-        return baseSize
     }
 }

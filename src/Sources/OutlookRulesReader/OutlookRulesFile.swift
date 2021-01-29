@@ -17,19 +17,24 @@ public struct OutlookRulesFile: CustomDebugStringConvertible {
     }
     
     public init(data: Data) throws {
-        var dataStream = DataStream(data: data)
-        
+        var dataStream = DataStream(data)
+        try self.init(dataStream: &dataStream)
+    }
+    
+    public init(dataStream: inout DataStream) throws {
         let header = try RulesHeader(dataStream: &dataStream)
         
-        rules = []
+        var rules: [Rule] = []
         rules.reserveCapacity(Int(header.numberOfRules))
-        for _ in 0..<header.numberOfRules {
-            let rule = try Rule(dataStream: &dataStream)
+        for index in 0..<Int(header.numberOfRules) {
+            let rule = try Rule(version: header.signature, dataStream: &dataStream, index: index)
             rules.append(rule)
         }
         
+        self.rules = rules
+        
         let footer = try RulesFooter(dataStream: &dataStream)
-        templateDirectory = footer.templateDirectory
+        self.templateDirectory = footer.templateDirectory
     }
     
     public func getData() -> Data {
@@ -38,8 +43,8 @@ public struct OutlookRulesFile: CustomDebugStringConvertible {
         let header = RulesHeader(numberOfRules: UInt16(rules.count))
         header.write(to: &dataStream)
         
-        for rule in rules {
-            rule.write(to: &dataStream)
+        for (index, rule) in rules.enumerated() {
+            rule.write(to: &dataStream, index: index)
         }
         
         let footer = RulesFooter()

@@ -182,50 +182,41 @@ public struct WithSelectedPropertiesOfDocumentOrFormsRuleElementData: RuleElemen
     }
     
     public init(dataStream: inout DataStream) throws {
-        // Unknown1 (4 bytes)
-        unknown1 = try dataStream.read(endianess: .littleEndian)
+        /// Unknown1 (4 bytes)
+        self.unknown1 = try dataStream.read(endianess: .littleEndian)
         
-        // Unknown2 (4 bytes)
-        unknown2 = try dataStream.read(endianess: .littleEndian)
+        /// Unknown2 (4 bytes)
+        self.unknown2 = try dataStream.read(endianess: .littleEndian)
 
-        // Forms length (4 bytes)
-        let formsLength = try dataStream.readUInt8Length()
-        
-        // Forms (variable)
-        guard let forms = try dataStream.readString(count: Int(formsLength * 2), encoding: .utf16LittleEndian) else {
-            throw OutlookRulesFileError.corrupted
-        }
-
+        /// Forms (variable)
+        let forms = try UTF16String(dataStream: &dataStream).value
         self.forms = forms.count == 0 ? [] : forms.components(separatedBy: ";")
         
         // Number of Document Properties (4 bytes)
-        numberOfDocumentProperties = try dataStream.read(endianess: .littleEndian)
+        self.numberOfDocumentProperties = try dataStream.read(endianess: .littleEndian)
         
         // Document Properties (variable)
-        documentProperties = []
-        documentProperties.reserveCapacity(Int(numberOfDocumentProperties))
-        for _ in 0..<numberOfDocumentProperties {
+        var documentProperties: [DocumentProperty] = []
+        documentProperties.reserveCapacity(Int(self.numberOfDocumentProperties))
+        for _ in 0..<self.numberOfDocumentProperties {
             let documentProperty = try DocumentProperty(dataStream: &dataStream)
             documentProperties.append(documentProperty)
         }
         
-        // Number of Classes (4 bytes)
-        numberOfClasses = try dataStream.read(endianess: .littleEndian)
+        self.documentProperties = documentProperties
         
-        // Classes (variable)
-        classes = []
-        classes.reserveCapacity(Int(numberOfClasses))
-        for _ in 0..<numberOfClasses {
-            // Message Length (1 byte or 3 bytes if first byte is 0xFF)
-            let messageLength = try dataStream.readUInt8Length()
-            
-            // Message (variable)
-            guard let message = try dataStream.readString(count: messageLength, encoding: .ascii) else {
-                continue
-            }
-            
-            classes.append(message)
+        /// Number of Classes (4 bytes)
+        self.numberOfClasses = try dataStream.read(endianess: .littleEndian)
+        
+        /// Classes (variable)
+        var classes: [String] = []
+        classes.reserveCapacity(Int(self.numberOfClasses))
+        for _ in 0..<self.numberOfClasses {
+            /// Message (Variable)
+            classes.append(try ASCIIString(dataStream: &dataStream).value)
         }
+        
+        self.classes = classes
     }
     
     public func write(to dataStream: inout OutputDataStream) {

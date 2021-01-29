@@ -24,7 +24,7 @@ internal struct ASCIIString {
         
         // Value (variable)
         guard let value = try dataStream.readString(count: length, encoding: .ascii) else {
-            throw OutlookRulesFileError.corrupted
+            throw OutlookRulesReadError.corrupted
         }
         
         self.value = value

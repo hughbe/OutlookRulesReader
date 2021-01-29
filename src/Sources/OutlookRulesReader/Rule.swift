@@ -32,19 +32,19 @@ public struct Rule: CustomDebugStringConvertible {
         self.exceptions = exceptions
     }
     
-    public init(dataStream: inout DataStream) throws {
-        let header = try RuleHeader(dataStream: &dataStream)
-        name = header.name
-        enabled = header.enabled
+    public init(version: UInt32, dataStream: inout DataStream, index: Int) throws {
+        let header = try RuleHeader(dataStream: &dataStream, index: index)
+        self.name = header.name
+        self.enabled = header.enabled
         
         for i in 0..<header.numberOfElements {
-            // Identifier (4 bytes)
-            let rawIdentifier = try dataStream.read(endianess: .littleEndian) as UInt32
+            /// Identifier (4 bytes)
+            let rawIdentifier: UInt32 = try dataStream.read(endianess: .littleEndian)
             guard let identifier = RuleElementIdentifier(rawValue: rawIdentifier) else {
                 fatalError("Unknown identifier \(rawIdentifier.hexString)")
             }
             
-            // Data (variable)
+            /// Data (variable)
             func addCondition<T>(type: T.Type) throws where T: RuleElementData {
                 let data = try T(dataStream: &dataStream)
                 conditions.append(RuleElement(identifier: identifier, data: data))
@@ -61,13 +61,13 @@ public struct Rule: CustomDebugStringConvertible {
             }
 
             switch identifier {
-            // Mandatory Elements
+            /// Mandatory Elements
             case .applyCondition: // 0x0190
                 applyCondition = try ApplyConditionRuleElementData(dataStream: &dataStream).flags
             case .unknown0x64: // 0x0064
                 let _ = try RuleElement0x64Data(dataStream: &dataStream)
                 
-            // Conditions
+            /// Conditions
             case .nameInToBoxCondition: // 0x000C8
                 try addCondition(type: SimpleRuleElementData.self)
             case .sentOnlyToMeCondition: // 0x000C9
@@ -129,7 +129,7 @@ public struct Rule: CustomDebugStringConvertible {
             case .fromAnyRSSFeedCondition: // 0x00F7
                 try addCondition(type: SimpleRuleElementData.self)
                 
-            // Actions
+            /// Actions
             case .forwardAction: // 0x012B
                 try addAction(type: PeopleOrPublicGroupListRuleElementData.self)
             case .moveToFolderAction: // 0x012C
@@ -164,6 +164,8 @@ public struct Rule: CustomDebugStringConvertible {
                 try addAction(type: DeferDeliveryRuleElementData.self)
             case .stopProcessingMoreRulesAction: // 0x0142
                 try addAction(type: SimpleRuleElementData.self)
+            case .automaticReply: // 0x0146
+                try addAction(type: AutomaticReplyRuleElementData.self)
             case .forwardAsAttachmentAction: // 0x0147
                 try addAction(type: PeopleOrPublicGroupListRuleElementData.self)
             case .printAction: // 0x0148
@@ -183,7 +185,7 @@ public struct Rule: CustomDebugStringConvertible {
             case .clearCategoriesAction: // 0x0152
                 try addAction(type: SimpleRuleElementData.self)
 
-            // Exceptions
+            /// Exceptions
             case .nameInToBoxException: // 0x01F4
                 try addException(type: SimpleRuleElementData.self)
             case .sentOnlyToMeException: // 0x01F5
@@ -244,11 +246,11 @@ public struct Rule: CustomDebugStringConvertible {
                 try addException(type: SimpleRuleElementData.self)
             }
 
-            // Separator (2 bytes)
+            /// Separator (2 bytes)
             if i != header.numberOfElements - 1 {
                 let separator = try dataStream.read(endianess: .littleEndian) as UInt16
                 if separator != 0x8001 {
-                    throw OutlookRulesFileError.invalidSeparator(separator: separator)
+                    throw OutlookRulesReadError.invalidSeparator(separator: separator)
                 }
             }
         }
@@ -260,7 +262,7 @@ public struct Rule: CustomDebugStringConvertible {
         return s
     }
     
-    public func write(to dataStream: inout OutputDataStream) {
+    public func write(to dataStream: inout OutputDataStream, index: Int) {
         var elements: [RuleElement] = [
             // First element is rule condition
             RuleElement(identifier: .applyCondition, data: ApplyConditionRuleElementData(flags: self.applyCondition)),
@@ -283,7 +285,7 @@ public struct Rule: CustomDebugStringConvertible {
         let dataSize = elements.map { $0.dataSize }.reduce(0, +) + separatorDataSize + remainingLength
 
         let header = RuleHeader(name: name, enabled: enabled, numberOfElements: numberOfElements, dataSize: dataSize)
-        header.write(to: &dataStream)
+        header.write(to: &dataStream, index: index)
 
         for (i, element) in elements.enumerated() {
             // Element (variable)

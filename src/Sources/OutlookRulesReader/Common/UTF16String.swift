@@ -24,7 +24,7 @@ internal struct UTF16String {
         
         // Value (variable)
         guard let value = try dataStream.readString(count: length * 2, encoding: .utf16LittleEndian) else {
-            throw OutlookRulesFileError.corrupted
+            throw OutlookRulesReadError.corrupted
         }
         
         self.value = value
