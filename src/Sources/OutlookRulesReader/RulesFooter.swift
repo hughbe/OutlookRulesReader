@@ -6,12 +6,12 @@
 //
 
 import DataStream
+import WindowsDataTypes
 
 internal struct RulesFooter {
     public var templateDirectory: String = ""
     public var unknown1: UInt32 = 2
-    public var unknown2: UInt32 = 0
-    public var unknown3: UInt32 = 0
+    public var creationDate: Double = 0
     public var unknown4: UInt32 = 0
     
     public init(templateDirectory: String = "") {
@@ -34,11 +34,8 @@ internal struct RulesFooter {
         /// Unknown1 (4 bytes)
         self.unknown1 = try dataStream.read(endianess: .littleEndian)
         
-        /// Unknown2 (4 bytes)
-        self.unknown2 = try dataStream.read(endianess: .littleEndian)
-        
-        /// Unknown3 (4 bytes)
-        self.unknown3 = try dataStream.read(endianess: .littleEndian)
+        /// Creation Date (8 bytes)
+        self.creationDate = try dataStream.readDouble(endianess: .littleEndian)
         
         /// Unknown4 (4 bytes)
         self.unknown4 = try dataStream.read(endianess: .littleEndian)
@@ -56,14 +53,10 @@ internal struct RulesFooter {
         // Unknown1 (4 bytes)
         dataStream.write(unknown1, endianess: .littleEndian)
 
-        // Unknown2 (4 bytes)
-        dataStream.write(unknown2, endianess: .littleEndian)
-
-        // Unknown3 (4 bytes)
-        dataStream.write(unknown3, endianess: .littleEndian)
+        // Creation Date (8 bytes)
+        dataStream.write(creationDate, endianess: .littleEndian)
 
         // Unknown4 (4 bytes)
         dataStream.write(unknown4, endianess: .littleEndian)
     }
 }
-

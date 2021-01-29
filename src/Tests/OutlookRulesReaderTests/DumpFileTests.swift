@@ -5,6 +5,8 @@ final class DumpFileTests: XCTestCase {
     func testDumpRwz() throws {
         for (name, fileExtension) in [
             // Custom
+            ("New732", "rwz"),
+            ("New742", "rwz"),
             ("Outlook2003", "rwz"),
             ("Outlook2003All", "rwz"),
             ("Outlook2003Multiple", "rwz"),
