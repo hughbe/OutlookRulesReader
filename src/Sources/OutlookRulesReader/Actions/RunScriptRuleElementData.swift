@@ -1,5 +1,5 @@
 //
-//  RunScriptElementData.swift
+//  RunScriptRuleElementData.swift
 //
 //
 //  Created by Hugh Bellamy on 08/08/2020.
@@ -7,7 +7,7 @@
 
 import DataStream
 
-public struct RunScriptElementData: RuleElementData {
+public struct RunScriptRuleElementData: RuleElementData {
     public var dataSize: UInt32 {
         return 8 + UTF16String(value: name).dataSize + UTF16String(value: function).dataSize
     }

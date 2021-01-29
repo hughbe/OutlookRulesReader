@@ -6,99 +6,272 @@
 //
 
 public enum RuleElementIdentifier: UInt32 {
-    case applyCondition = 0x0190
-    case unknown0x64 = 0x0064
+    /// "type of messages to which this rule applies"
+    case applyCondition = 0x00000190
     
-    // Conditions
-    case nameInToBoxCondition = 0x000C8
-    case sentOnlyToMeCondition = 0x000C9
-    case nameNotInToBoxCondition = 0x00CA
-    case fromCondition = 0x00CB
-    case sentToCondition = 0x00CC
-    case specificWordsInSubjectCondition = 0x00CD
-    case specificWordsInBodyCondition = 0x00CE
-    case specificWordsInSubjectOrBodyCondition = 0x00CF
-    case flaggedForActionCondition = 0x00D0
-    case SensitivityRuleElementDataImportanceCondition = 0x00D2
-    case sensitivityCondition = 0x00D3
-    case assignedToCategoryCondition = 0x00D7
-    case automaticReplyCondition = 0x00DC
-    case hasAttachmentCondition = 0x00DE
-    case withSelectedPropertiesOfDocumentOrFormsCondition = 0x00DF
-    case sizeInSpecificRangeCondition = 0x00E0
-    case receivedInSpecificDateSpanCondition = 0x00E1
-    case nameInCcBoxCondition = 0x00E2
-    case nameInToOrCcBoxCondition = 0x00E3
-    case usesFormCondition = 0x00E4
-    case specificWordsInRecipientsAddressCondition = 0x00E5
-    case specificWordsInSendersAddressCondition = 0x00E6
-    case specificWordsInMessageHeaderCondition = 0x00E8
-    case throughSpecifiedAccountCondition = 0x00EE
-    case onThisComputerOnlyCondition = 0x00EF
-    case senderInSpecifiedAddressBookCondition = 0x00F0
-    case whichIsAMeetingInvitationOrInviteCondition = 0x00F1
-    case fromRSSFeedsWithSpecifiedTextInTitleCondition = 0x00F5
-    case assignedToAnyCategoryCondition = 0x00F6
-    case fromAnyRSSFeedCondition = 0x00F7
+    /// Unknown
+    case unknown0x64 = 0x00000064
+    
+    /// “where my name is in the To box”
+    case nameInToBoxCondition = 0x0000000C8
+    
+    /// “sent only to me”
+    case sentOnlyToMeCondition = 0x0000000C9
+    
+    /// “where my name is not in the To box”
+    case nameNotInToBoxCondition = 0x000000CA
+    
+    /// “from <people or public group>”
+    case fromCondition = 0x000000CB
+    
+    /// “sent to <people or public group>”
+    case sentToCondition = 0x000000CC
+    
+    /// “with <specific words> in the subject”
+    case specificWordsInSubjectCondition = 0x000000CD
+    
+    /// “with <specific words> in the body”
+    case specificWordsInBodyCondition = 0x000000CE
+    
+    /// “with <specific words> in the subject or body”
+    case specificWordsInSubjectOrBodyCondition = 0x000000CF
+    
+    /// “flagged for <action>”
+    case flaggedForActionCondition = 0x000000D0
+    
+    /// “marked as <importance>”
+    case importanceCondition = 0x000000D2
+    
+    /// “marked as <sensitivity>”
+    case sensitivityCondition = 0x000000D3
+    
+    /// “assigned to <category> category”
+    case assignedToCategoryCondition = 0x000000D7
+    
+    /// “which is an automatic reply”
+    case automaticReplyCondition = 0x000000DC
+    
+    /// “which has attachment”
+    case hasAttachmentCondition = 0x000000DE
+    
+    /// “with <selected properties> of documents or forms”
+    case withSelectedPropertiesOfDocumentOrFormsCondition = 0x000000DF
+    
+    /// “with a size <in a specific range>"
+    case sizeInSpecificRangeCondition = 0x000000E0
+    
+    /// “received <in a specific date span>”
+    case receivedInSpecificDateSpanCondition = 0x000000E1
+    
+    /// “where my name is in the Cc box”
+    case nameInCcBoxCondition = 0x000000E2
+    
+    /// “where my name is in the To or Cc box”
+    case nameInToOrCcBoxCondition = 0x000000E3
+    
+    /// “uses the <form name> form”
+    case usesFormCondition = 0x000000E4
+    
+    /// “with <specific words> in the recipient’s address”
+    case specificWordsInRecipientsAddressCondition = 0x000000E5
+    
+    /// “with <specific words> in the sender’s address”
+    case specificWordsInSendersAddressCondition = 0x000000E6
+    
+    /// “with <specific words> in the message header”
+    case specificWordsInMessageHeaderCondition = 0x000000E8
+    
+    /// “through the <specified> account”
+    case throughSpecifiedAccountCondition = 0x000000EE
+    
+    /// “on this computer only”
+    case onThisComputerOnlyCondition = 0x000000EF
+    
+    /// “sender is in <specified> Address Book”
+    case senderInSpecifiedAddressBookCondition = 0x000000F0
+    
+    /// “which is a meeting invitation or update”
+    case whichIsAMeetingInvitationOrInviteCondition = 0x000000F1
+    
+    /// “from RSS feeds with <specified text> in the title”
+    case fromRSSFeedsWithSpecifiedTextInTitleCondition = 0x000000F5
+    
+    /// “assigned to any category”
+    case assignedToAnyCategoryCondition = 0x000000F6
+    
+    /// “from any RSS feed”
+    case fromAnyRSSFeedCondition = 0x000000F7
 
-    // Actions
-    case moveToFolderAction = 0x012C
-    case deleteAction = 0x012D
-    case forwardAction = 0x012E
-    case replyUsingTemplateAction = 0x012F
-    case displayMessageInNewItemAlertWindowAction = 0x0130
-    case flagAction = 0x0131
-    case clearFlagAction = 0x0132
-    case assignToCategoryAction = 0x0133
-    case playSoundAction = 0x0136
-    case markImportanceAction = 0x0137
-    case markSensitivityAction = 0x0138
-    case moveCopyToFolderAction = 0x0139
-    case notifyReadAction = 0x013A
-    case notifyDeliveredAction = 0x013B
-    case ccAction = 0x013C
-    case deferDeliveryAction = 0x013E
-    case stopProcessingMoreRulesAction = 0x0142
-    case forwardAsAttachmentAction = 0x0147
-    case printAction = 0x0148
-    /// Removed (hidden) in Outlook 2016
-    case startApplicationAction = 0x0149
-    case permanentlyDeleteAction = 0x014A
-    /// Removed (hidden) in Outlook 2016
-    case runScriptAction = 0x014B
-    case markAsReadAction = 0x014C
-    case displayDesktopAlertAction = 0x014F
-    case flagForFollowUpAction = 0x0151
-    case clearCategoriesAction = 0x0152
+    /// “move it to the <specified> folder”
+    case moveToFolderAction = 0x0000012C
     
-    // Exceptions
-    case nameInToBoxException = 0x01F4
-    case sentOnlyToMeException = 0x01F5
-    case nameNotInToBoxException = 0x01F6
-    case fromException = 0x01F7
-    case toException = 0x01F8
-    case specificWordsInSubjectException = 0x01F9
-    case specificWordsInBodyException = 0x01FA
-    case specificWordsInSubjectOrBodyException = 0x01FB
-    case flaggedForActionException = 0x01FC
-    case SensitivityRuleElementDataImportanceException = 0x01FE
-    case sensitivityConditionException = 0x01FF
-    case assignedToCategoryException = 0x0203
-    case automaticReplyException = 0x0208
-    case hasAttachmentException = 0x020A
-    case withSelectedPropertiesOfDocumentOrFormsException = 0x020B
-    case sizeInSpecificRangeException = 0x020C
-    case receivedInSpecificDateSpanException = 0x020D
-    case nameInCcBoxException = 0x020E
-    case nameInToOrCcBoxException = 0x020F
-    case usesFormException = 0x0210
-    case specificWordsInRecipientsAddressException = 0x0211
-    case specificWordsInSendersAddressException = 0x0212
-    case specificWordsInMessageHeaderException = 0x0213
-    case throughSpecifiedAccountException = 0x0214
-    case senderInSpecifiedAddressBookException = 0x0215
-    case whichIsAMeetingInvitationOrInviteException = 0x0216
-    case fromRSSFeedsWithSpecifiedTextInTitleException = 0x0219
-    case assignedToAnyCategoryException = 0x021A
-    case fromAnyRSSFeedException = 0x021B
+    /// “delete it”
+    case deleteAction = 0x0000012D
+    
+    /// “forward it to <people or public group>”
+    case forwardAction = 0x0000012E
+    
+    /// “reply using <template>”
+    case replyUsingTemplateAction = 0x0000012F
+    
+    /// “display <a specific message> in the New Item Alert window”
+    case displayMessageInNewItemAlertWindowAction = 0x00000130
+    
+    /// "flag message for <action in a number of days>"
+    case flagAction = 0x00000131
+    
+    /// “clear the Message flag”
+    case clearFlagAction = 0x00000132
+    
+    /// “assign it to the <category> category”
+    case assignToCategoryAction = 0x00000133
+    
+    /// “play <sound>”
+    case playSoundAction = 0x00000136
+    
+    /// “mark it as <importance>”
+    case markImportanceAction = 0x00000137
+    
+    /// “mark it as <sensitivity>”
+    case markSensitivityAction = 0x00000138
+    
+    /// “move a copy to the <specified> folder”
+    case moveCopyToFolderAction = 0x00000139
+    
+    /// “notify me when it is read”
+    case notifyReadAction = 0x0000013A
+    
+    /// “notify me when it is delivered”
+    case notifyDeliveredAction = 0x0000013B
+    
+    /// “Cc the message to <people or public group>”
+    case ccAction = 0x0000013C
+    
+    /// “defer delivery by <a number of> minutes”
+    case deferDeliveryAction = 0x0000013E
+    
+    /// “stop processing more rules”
+    case stopProcessingMoreRulesAction = 0x00000142
+    
+    /// "redirect it to <people or public group>"
+    case redirectAction = 0x00000144
+    
+    /// “have server reply using <a specific message>”
+    case automaticReply = 0x00000146
+    
+    /// “forward it to <people or public group> as attachment”
+    case forwardAsAttachmentAction = 0x00000147
+    
+    /// “print it”
+    case printAction = 0x00000148
+
+    /// “start <application>”
+    /// Note: this has been hidden in Outlook 2016
+    case startApplicationAction = 0x00000149
+
+    /// “permanently delete it”
+    case permanentlyDeleteAction = 0x0000014A
+
+    /// “run <script>”
+    /// Note: this has been hidden in Outlook 2016
+    case runScriptAction = 0x0000014B
+
+    /// “mark as read”
+    case markAsReadAction = 0x0000014C
+
+    /// “display a Desktop alert”
+    case displayDesktopAlertAction = 0x0000014F
+
+    /// “flag message for <follow up at this time>”
+    case flagForFollowUpAction = 0x00000151
+
+    /// “clear message’s categories”
+    case clearCategoriesAction = 0x00000152
+    
+    /// “except where my name is in the To box”
+    case nameInToBoxException = 0x000001F4
+    
+    /// “except if sent only to me”
+    case sentOnlyToMeException = 0x000001F5
+    
+    /// “except where my name is not in the To Box”
+    case nameNotInToBoxException = 0x000001F6
+    
+    /// “except if from <people or public group>”
+    case fromException = 0x000001F7
+    
+    /// “except if sent to <people or public group>”
+    case toException = 0x000001F8
+    
+    /// “except if the subject contains <specific words>”
+    case specificWordsInSubjectException = 0x000001F9
+    
+    /// “except if the body contains <specific words>”
+    case specificWordsInBodyException = 0x000001FA
+    
+    /// “except if the subject or body contains <specific words>”
+    case specificWordsInSubjectOrBodyException = 0x000001FB
+    
+    /// “except if it is flagged for <action>”
+    case flaggedForActionException = 0x000001FC
+    
+    /// “except if it is marked as <importance>”
+    case importanceException = 0x000001FE
+    
+    /// “except if it is marked as <sensitivity>”
+    case sensitivityConditionException = 0x000001FF
+    
+    /// “except if it is assigned to <category> category”
+    case assignedToCategoryException = 0x00000203
+    
+    /// “except if it is an automatic reply”
+    case automaticReplyException = 0x00000208
+    
+    /// “except if it has an attachment”
+    case hasAttachmentException = 0x0000020A
+    
+    /// “except with <selected properties> of documents or forms”
+    case withSelectedPropertiesOfDocumentOrFormsException = 0x0000020B
+    
+    /// “except with a size <in a specific range>
+    case sizeInSpecificRangeException = 0x0000020C
+    
+    /// “except if received <in a specific date span>
+    case receivedInSpecificDateSpanException = 0x0000020D
+    
+    /// “except where my name is in the Cc box”
+    case nameInCcBoxException = 0x0000020E
+    
+    /// “except if my name is in the To or Cc box”
+    case nameInToOrCcBoxException = 0x0000020F
+    
+    /// “except if it uses the <form name> form”
+    case usesFormException = 0x00000210
+    
+    /// “except with <specific words> in the recipient's address”
+    case specificWordsInRecipientsAddressException = 0x00000211
+    
+    /// “except with <specific words> in the sender’s address”
+    case specificWordsInSendersAddressException = 0x00000212
+    
+    /// “except if the message header contains <specific words>”
+    case specificWordsInMessageHeaderException = 0x00000213
+    
+    /// “except through the <specified> account”
+    case throughSpecifiedAccountException = 0x00000214
+    
+    /// “except if sender is <specified> Address Book”
+    case senderInSpecifiedAddressBookException = 0x00000215
+    
+    /// “except if it is a meeting invitation or update”
+    case whichIsAMeetingInvitationOrInviteException = 0x00000216
+    
+    /// “except if it is from RSS Feeds with <specified text> in the title”
+    case fromRSSFeedsWithSpecifiedTextInTitleException = 0x00000219
+    
+    /// “except if it is assigned to any category”
+    case assignedToAnyCategoryException = 0x0000021A
+    
+    /// “except from any RSS Feed”
+    case fromAnyRSSFeedException = 0x0000021B
 }

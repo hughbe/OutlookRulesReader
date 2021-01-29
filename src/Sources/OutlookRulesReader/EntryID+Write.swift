@@ -44,3 +44,19 @@ internal extension FolderEntryID {
     }
 }
 
+internal extension MessageEntryID {
+    var dataSize: UInt32 {
+        // Flags (4 bytes) + ProviderUid (16 bytes) + MessageType (2 bytes) + FolderDatabaseGuid (16 bytes) + FolderGlobalCounter (8 bytes) + MessageDatabaseGuid (16 bytes) + MessageGlobalCounter (8 bytes)
+        return 4 + 16 + 2 + 16 + 8 + 16 + 8
+    }
+    
+    func write(to dataStream: inout OutputDataStream) {
+        dataStream.write(flags, endianess: .littleEndian)
+        dataStream.write(providerUid)
+        dataStream.write(messageType.rawValue, endianess: .littleEndian)
+        dataStream.write(folderDatabaseGuid)
+        dataStream.write(folderGlobalCounter, endianess: .littleEndian)
+        dataStream.write(messageDatabaseGuid)
+        dataStream.write(messageGlobalCounter, endianess: .littleEndian)
+    }
+}

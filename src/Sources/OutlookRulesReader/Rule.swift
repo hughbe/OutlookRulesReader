@@ -86,7 +86,7 @@ public struct Rule: CustomDebugStringConvertible {
                 try addCondition(type: StringsListRuleElementData.self)
             case .flaggedForActionCondition: // 0x00D0
                 try addCondition(type: FlaggedForActionRuleElementData.self)
-            case .SensitivityRuleElementDataImportanceCondition: // 0x00D2
+            case .importanceCondition: // 0x00D2
                 try addCondition(type: ImportanceRuleElementData.self)
             case .sensitivityCondition: // 0x00D3
                 try addCondition(type: SensitivityRuleElementData.self)
@@ -164,6 +164,8 @@ public struct Rule: CustomDebugStringConvertible {
                 try addAction(type: DeferDeliveryRuleElementData.self)
             case .stopProcessingMoreRulesAction: // 0x0142
                 try addAction(type: SimpleRuleElementData.self)
+            case .redirectAction: // 0x0143
+                try addAction(type: PeopleOrPublicGroupListRuleElementData.self)
             case .automaticReply: // 0x0146
                 try addAction(type: AutomaticReplyRuleElementData.self)
             case .forwardAsAttachmentAction: // 0x0147
@@ -175,7 +177,7 @@ public struct Rule: CustomDebugStringConvertible {
             case .permanentlyDeleteAction: // 0x014A
                 try addAction(type: SimpleRuleElementData.self)
             case .runScriptAction: // 0x014B
-                try addAction(type: RunScriptElementData.self)
+                try addAction(type: RunScriptRuleElementData.self)
             case .markAsReadAction: // 0x014C
                 try addAction(type: SimpleRuleElementData.self)
             case .displayDesktopAlertAction: // 0x014F
@@ -204,7 +206,7 @@ public struct Rule: CustomDebugStringConvertible {
                 try addException(type: StringsListRuleElementData.self)
             case .flaggedForActionException: // 0x1FC
                 try addException(type: FlaggedForActionRuleElementData.self)
-            case .SensitivityRuleElementDataImportanceException: // 0x01FE
+            case .importanceException: // 0x01FE
                 try addException(type: ImportanceRuleElementData.self)
             case .sensitivityConditionException: // 0x01FF
                 try addException(type: SensitivityRuleElementData.self)

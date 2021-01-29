@@ -337,7 +337,7 @@ final class ImportExceptionTests: XCTestCase {
             XCTAssertEqual(0, file.rules[0].conditions.count)
             XCTAssertEqual(0, file.rules[0].actions.count)
             XCTAssertEqual(1, file.rules[0].exceptions.count)
-            XCTAssertEqual(.SensitivityRuleElementDataImportanceException, file.rules[0].exceptions[0].identifier)
+            XCTAssertEqual(.importanceException, file.rules[0].exceptions[0].identifier)
             XCTAssertTrue(file.rules[0].exceptions[0].data is ImportanceRuleElementData)
             
             let exception = file.rules[0].exceptions[0].data as! ImportanceRuleElementData
@@ -362,7 +362,7 @@ final class ImportExceptionTests: XCTestCase {
             XCTAssertEqual(0, file.rules[0].conditions.count)
             XCTAssertEqual(0, file.rules[0].actions.count)
             XCTAssertEqual(1, file.rules[0].exceptions.count)
-            XCTAssertEqual(.SensitivityRuleElementDataImportanceException, file.rules[0].exceptions[0].identifier)
+            XCTAssertEqual(.importanceException, file.rules[0].exceptions[0].identifier)
             XCTAssertTrue(file.rules[0].exceptions[0].data is ImportanceRuleElementData)
             
             let exception = file.rules[0].exceptions[0].data as! ImportanceRuleElementData
@@ -387,7 +387,7 @@ final class ImportExceptionTests: XCTestCase {
             XCTAssertEqual(0, file.rules[0].conditions.count)
             XCTAssertEqual(0, file.rules[0].actions.count)
             XCTAssertEqual(1, file.rules[0].exceptions.count)
-            XCTAssertEqual(.SensitivityRuleElementDataImportanceException, file.rules[0].exceptions[0].identifier)
+            XCTAssertEqual(.importanceException, file.rules[0].exceptions[0].identifier)
             XCTAssertTrue(file.rules[0].exceptions[0].data is ImportanceRuleElementData)
             
             let exception = file.rules[0].exceptions[0].data as! ImportanceRuleElementData
@@ -412,7 +412,7 @@ final class ImportExceptionTests: XCTestCase {
             XCTAssertEqual(0, file.rules[0].conditions.count)
             XCTAssertEqual(0, file.rules[0].actions.count)
             XCTAssertEqual(1, file.rules[0].exceptions.count)
-            XCTAssertEqual(.SensitivityRuleElementDataImportanceException, file.rules[0].exceptions[0].identifier)
+            XCTAssertEqual(.importanceException, file.rules[0].exceptions[0].identifier)
             XCTAssertTrue(file.rules[0].exceptions[0].data is ImportanceRuleElementData)
             
             let exception = file.rules[0].exceptions[0].data as! ImportanceRuleElementData
