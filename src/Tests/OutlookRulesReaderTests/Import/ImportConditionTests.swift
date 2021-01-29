@@ -123,8 +123,8 @@ final class ImportConditionTests: XCTestCase {
             XCTAssertEqual(MAPI_E.NOT_FOUND.rawValue, condition.values[0][PropertyId.tagSmtpAddress.rawValue] as! UInt32)
             XCTAssertEqual("First Name Middle Name Last Name Suffix (Business Fax)", condition.values[0][PropertyId.tagDisplayName.rawValue] as! String)
             XCTAssertEqual(MAPI_E.NOT_FOUND.rawValue, condition.values[0][PropertyId.tagSmtpAddress.rawValue] as! UInt32)
-            XCTAssertTrue(condition.values[0][PropertyId.tagSearchKey.rawValue] is [Data])
-            XCTAssertTrue(condition.values[0][PropertyId.tagEntryId.rawValue] is [Data])
+            XCTAssertTrue(condition.values[0][PropertyId.tagSearchKey.rawValue] is [UInt8])
+            XCTAssertTrue(condition.values[0][PropertyId.tagEntryId.rawValue] is [UInt8])
             XCTAssertEqual(1, condition.values[0][PropertyId.tagRecipientType.rawValue] as! UInt32)
 
             XCTAssertEqual(6, condition.values[1].count)
@@ -725,8 +725,8 @@ final class ImportConditionTests: XCTestCase {
             XCTAssertEqual(MAPI_E.NOT_FOUND.rawValue, condition.values[0][PropertyId.tagSmtpAddress.rawValue] as! UInt32)
             XCTAssertEqual("First Name Middle Name Last Name Suffix (Business Fax)", condition.values[0][PropertyId.tagDisplayName.rawValue] as! String)
             XCTAssertEqual(MAPI_E.NOT_FOUND.rawValue, condition.values[0][PropertyId.tagSmtpAddress.rawValue] as! UInt32)
-            XCTAssertTrue(condition.values[0][PropertyId.tagSearchKey.rawValue] is [Data])
-            XCTAssertTrue(condition.values[0][PropertyId.tagEntryId.rawValue] is [Data])
+            XCTAssertTrue(condition.values[0][PropertyId.tagSearchKey.rawValue] is [UInt8])
+            XCTAssertTrue(condition.values[0][PropertyId.tagEntryId.rawValue] is [UInt8])
             XCTAssertEqual(1, condition.values[0][PropertyId.tagRecipientType.rawValue] as! UInt32)
 
             XCTAssertEqual(6, condition.values[1].count)

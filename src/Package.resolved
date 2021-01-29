@@ -6,8 +6,26 @@
         "repositoryURL": "https://github.com/hughbe/DataStream",
         "state": {
           "branch": null,
-          "revision": "e7da621235b5a4db261f82a51a936947c5dcab0c",
-          "version": "1.2.0"
+          "revision": "858175a666cd9d9d45b2d9a364dba61a41940120",
+          "version": "2.0.3"
+        }
+      },
+      {
+        "package": "BitField",
+        "repositoryURL": "https://github.com/hughbe/SwiftBitField",
+        "state": {
+          "branch": null,
+          "revision": "993f2e4ec4d4edfc598abd3e87cc813e937cffc1",
+          "version": "1.0.0"
+        }
+      },
+      {
+        "package": "MAPI",
+        "repositoryURL": "https://github.com/hughbe/SwiftMAPI",
+        "state": {
+          "branch": null,
+          "revision": "f2aec6c1df65c590c571a60bb4a0d96c280b158e",
+          "version": "1.1.8"
         }
       },
       {
@@ -15,8 +33,8 @@
         "repositoryURL": "https://github.com/hughbe/WindowsDataTypes",
         "state": {
           "branch": null,
-          "revision": "d61796516927097258550e91d0c2f041ea19eaec",
-          "version": "1.0.4"
+          "revision": "2d0efa7a0fbdb3eae9ff99456cb864382b883f4d",
+          "version": "1.0.10"
         }
       }
     ]

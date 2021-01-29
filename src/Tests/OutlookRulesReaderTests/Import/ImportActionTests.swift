@@ -392,8 +392,8 @@ final class ImportActionTests: XCTestCase {
             XCTAssertEqual(MAPI_E.NOT_FOUND.rawValue, action.values[0][PropertyId.tagSmtpAddress.rawValue] as! UInt32)
             XCTAssertEqual("First Name Middle Name Last Name Suffix (Business Fax)", action.values[0][PropertyId.tagDisplayName.rawValue] as! String)
             XCTAssertEqual(MAPI_E.NOT_FOUND.rawValue, action.values[0][PropertyId.tagSmtpAddress.rawValue] as! UInt32)
-            XCTAssertTrue(action.values[0][PropertyId.tagSearchKey.rawValue] is [Data])
-            XCTAssertTrue(action.values[0][PropertyId.tagEntryId.rawValue] is [Data])
+            XCTAssertTrue(action.values[0][PropertyId.tagSearchKey.rawValue] is [UInt8])
+            XCTAssertTrue(action.values[0][PropertyId.tagEntryId.rawValue] is [UInt8])
             XCTAssertEqual(1, action.values[0][PropertyId.tagRecipientType.rawValue] as! UInt32)
 
             XCTAssertEqual(6, action.values[1].count)
@@ -526,8 +526,8 @@ final class ImportActionTests: XCTestCase {
             XCTAssertEqual(MAPI_E.NOT_FOUND.rawValue, action.values[0][PropertyId.tagSmtpAddress.rawValue] as! UInt32)
             XCTAssertEqual("First Name Middle Name Last Name Suffix (Business Fax)", action.values[0][PropertyId.tagDisplayName.rawValue] as! String)
             XCTAssertEqual(MAPI_E.NOT_FOUND.rawValue, action.values[0][PropertyId.tagSmtpAddress.rawValue] as! UInt32)
-            XCTAssertTrue(action.values[0][PropertyId.tagSearchKey.rawValue] is [Data])
-            XCTAssertTrue(action.values[0][PropertyId.tagEntryId.rawValue] is [Data])
+            XCTAssertTrue(action.values[0][PropertyId.tagSearchKey.rawValue] is [UInt8])
+            XCTAssertTrue(action.values[0][PropertyId.tagEntryId.rawValue] is [UInt8])
             XCTAssertEqual(1, action.values[0][PropertyId.tagRecipientType.rawValue] as! UInt32)
 
             XCTAssertEqual(6, action.values[1].count)
@@ -1567,8 +1567,8 @@ final class ImportActionTests: XCTestCase {
             XCTAssertEqual(MAPI_E.NOT_FOUND.rawValue, action.values[0][PropertyId.tagSmtpAddress.rawValue] as! UInt32)
             XCTAssertEqual("First Name Middle Name Last Name Suffix (Business Fax)", action.values[0][PropertyId.tagDisplayName.rawValue] as! String)
             XCTAssertEqual(MAPI_E.NOT_FOUND.rawValue, action.values[0][PropertyId.tagSmtpAddress.rawValue] as! UInt32)
-            XCTAssertTrue(action.values[0][PropertyId.tagSearchKey.rawValue] is [Data])
-            XCTAssertTrue(action.values[0][PropertyId.tagEntryId.rawValue] is [Data])
+            XCTAssertTrue(action.values[0][PropertyId.tagSearchKey.rawValue] is [UInt8])
+            XCTAssertTrue(action.values[0][PropertyId.tagEntryId.rawValue] is [UInt8])
             XCTAssertEqual(1, action.values[0][PropertyId.tagRecipientType.rawValue] as! UInt32)
 
             XCTAssertEqual(6, action.values[1].count)
