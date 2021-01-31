@@ -33,7 +33,7 @@ public struct OutlookRulesFile: CustomDebugStringConvertible {
         
         self.rules = rules
         
-        let footer = try RulesFooter(dataStream: &dataStream)
+        let footer = try RulesFooter(dataStream: &dataStream, version: header.version)
         self.templateDirectory = footer.templateDirectory
     }
     

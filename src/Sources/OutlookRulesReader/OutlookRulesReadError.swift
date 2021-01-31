@@ -6,7 +6,7 @@
 //
 
 public enum OutlookRulesReadError: Error {
-    case invalidSignature(signature: UInt32, unknown1: UInt32)
+    case invalidSignature(signature: UInt32, flags: UInt32)
     case unknownRuleClass(ruleClass: String)
     case invalidSeparator(separator: UInt16)
     case corrupted

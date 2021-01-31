@@ -1,7 +1,7 @@
 import XCTest
 @testable import OutlookRulesReader
 
-final class OutlookRulesReaderExportTests: XCTestCase {
+final class ExportTests: XCTestCase {
     func testEmpty() {
         let file = OutlookRulesFile(rules: [])
         let expected: [UInt8] = [

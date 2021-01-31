@@ -151,6 +151,10 @@ public enum RuleElementIdentifier: UInt32 {
     /// “defer delivery by <a number of> minutes”
     case deferDeliveryAction = 0x0000013E
     
+    /// "perform <a custom action>"
+    /// Removed in Outlook 2010
+    case performCustomActionAction = 0x0000013F
+    
     /// “stop processing more rules”
     case stopProcessingMoreRulesAction = 0x00000142
     

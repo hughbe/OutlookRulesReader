@@ -27,7 +27,7 @@ internal struct RuleHeader {
     }
 
     public init(dataStream: inout DataStream, index: Int, version: OutlookRulesVersion) throws {
-        if !version.shortHeaders {
+        if version >= .outlook2002 {
             /// Signature (4 bytes)
             self.signature = try dataStream.read(endianess: .littleEndian)
         } else {
@@ -35,7 +35,7 @@ internal struct RuleHeader {
         }
         
         /// Name (variable)
-        if !version.isASCII {
+        if version != .noSignature && version != .outlook2000 {
             self.name = try UTF16String(dataStream: &dataStream).value
         } else {
             self.name = try ASCIIString(dataStream: &dataStream).value
@@ -51,14 +51,14 @@ internal struct RuleHeader {
         self.unknown3 = try dataStream.read(endianess: .littleEndian)
         
         /// Unknown4 (4 bytes)
-        if !version.shortHeaders {
+        if version >= .outlook2002 {
             self.unknown4 = try dataStream.read(endianess: .littleEndian)
         } else {
             self.unknown4 = nil
         }
         
         /// Unknown5 (4 bytes)
-        if !version.shortHeaders {
+        if version >= .outlook2002 {
             self.unknown5 = try dataStream.read(endianess: .littleEndian)
         } else {
             self.unknown5 = nil

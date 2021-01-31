@@ -18,18 +18,27 @@ internal struct RulesFooter {
         self.templateDirectory = templateDirectory
     }
     
-    public init(dataStream: inout DataStream) throws {
+    public init(dataStream: inout DataStream, version: OutlookRulesVersion) throws {
         /// Template Directory Length (4 bytes)
         let templateDirectoryLength = try dataStream.read(endianess: .littleEndian) as UInt32
-        guard templateDirectoryLength <= dataStream.remainingCount else {
+        guard templateDirectoryLength * (version >= .outlook2002 ? 2 : 1) <= dataStream.remainingCount else {
             throw OutlookRulesReadError.corrupted
         }
         
         /// Template (variable)
-        guard let templateDirectory = try dataStream.readString(count: Int(templateDirectoryLength) * 2, encoding: .utf16LittleEndian) else {
-            throw OutlookRulesReadError.corrupted
+        if version >= .outlook2002 {
+            guard let templateDirectory = try dataStream.readString(count: Int(templateDirectoryLength) * 2, encoding: .utf16LittleEndian) else {
+                throw OutlookRulesReadError.corrupted
+            }
+
+            self.templateDirectory = templateDirectory
+        } else {
+            guard let templateDirectory = try dataStream.readString(count: Int(templateDirectoryLength), encoding: .ascii) else {
+                throw OutlookRulesReadError.corrupted
+            }
+
+            self.templateDirectory = templateDirectory
         }
-        self.templateDirectory = templateDirectory
         
         /// Unknown1 (4 bytes)
         self.unknown1 = try dataStream.read(endianess: .littleEndian)
