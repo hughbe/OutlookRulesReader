@@ -27,38 +27,56 @@ public struct RecievedInSpecificDateSpanRuleElementData: RuleElementData {
     }
 
     public init(dataStream: inout DataStream, version: OutlookRulesVersion) throws {
-        // Unknown1 (4 bytes)
-        unknown1 = try dataStream.read(endianess: .littleEndian)
+        /// Unknown1 (4 bytes)
+        self.unknown1 = try dataStream.read(endianess: .littleEndian)
         
-        // Unknown2 (4 bytes)
-        unknown2 = try dataStream.read(endianess: .littleEndian)
+        /// Unknown2 (4 bytes)
+        self.unknown2 = try dataStream.read(endianess: .littleEndian)
         
-        // Include After Date (4 bytes)
-        includeAfterDate = try dataStream.read(endianess: .littleEndian) as UInt32 != 0
+        /// Include After Date (4 bytes)
+        self.includeAfterDate = try dataStream.read(endianess: .littleEndian) as UInt32 != 0
         
-        // Unknown3 (4 bytes)
-        unknown3 = try dataStream.read(endianess: .littleEndian)
+        /// Unknown3 (4 bytes)
+        self.unknown3 = try dataStream.read(endianess: .littleEndian)
         
-        // After Date (8 bytes)
-        rawAfterDate = try dataStream.read(type: Double.self)
+        /// After Date (8 bytes)
+        self.rawAfterDate = try dataStream.readDouble(endianess: .littleEndian)
         
-        // Include Before Date (4 bytes)
-        includeBeforeDate = try dataStream.read(endianess: .littleEndian) as UInt32 != 0
+        /// Include Before Date (4 bytes)
+        self.includeBeforeDate = try dataStream.read(endianess: .littleEndian) as UInt32 != 0
         
-        // Unknown4 (4 bytes)
-        unknown4 = try dataStream.read(endianess: .littleEndian)
+        /// Unknown4 (4 bytes)
+        self.unknown4 = try dataStream.read(endianess: .littleEndian)
 
-        // Before (8 bytes)
-        rawBeforeDate = try dataStream.read(type: Double.self)
+        /// Before Date (8 bytes)
+        self.rawBeforeDate = try dataStream.readDouble(endianess: .littleEndian)
     }
     
     public func write(to dataStream: inout OutputDataStream) {
-        // Unknown (4 bytes)
+        /// Unknown (4 bytes)
         dataStream.write(unknown1, endianess: .littleEndian)
         
-        // Unknown (4 bytes)
+        /// Unknown (4 bytes)
         dataStream.write(unknown2, endianess: .littleEndian)
         
-        // TODO
+        /// Include After Date (4 bytes)
+        let includeAfterDateRaw: UInt32 = includeAfterDate ? 0x00000001 : 0x00000000
+        dataStream.write(includeAfterDateRaw, endianess: .littleEndian)
+        
+        /// Unknown3 (4 bytes)
+        dataStream.write(unknown3, endianess: .littleEndian)
+        
+        /// After Date (8 bytes)
+        dataStream.write(rawAfterDate, endianess: .littleEndian)
+        
+        /// Include Before Date (4 bytes)
+        let includeBeforeDateRaw: UInt32 = includeBeforeDate ? 0x00000001 : 0x00000000
+        dataStream.write(includeBeforeDateRaw, endianess: .littleEndian)
+        
+        /// Unknown4 (4 bytes)
+        dataStream.write(unknown4, endianess: .littleEndian)
+
+        /// Before Date (8 bytes)
+        dataStream.write(rawBeforeDate, endianess: .littleEndian)
     }
 }

@@ -188,6 +188,8 @@ public struct Rule: CustomDebugStringConvertible {
                 try addAction(type: FlagForFollowUpRuleElementData.self)
             case .clearCategoriesAction: // 0x0152
                 try addAction(type: SimpleRuleElementData.self)
+            case .applyRetentionPolicyAction: // 0x0153
+                try addAction(type: ApplyRetentionPolicyRuleElementData.self)
 
             /// Exceptions
             case .nameInToBoxException: // 0x01F4

@@ -1,5 +1,5 @@
 //
-//  Timestamp.swift
+//  Date+Timestamp.swift
 //  
 //
 //  Created by Hugh Bellamy on 13/08/2020.

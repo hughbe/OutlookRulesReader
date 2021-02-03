@@ -41,10 +41,10 @@ public struct AutomaticReplyRuleElementData: RuleElementData {
             throw OutlookRulesReadError.corrupted
         }
         
-        /// Message Entry Id (Variable)
+        /// Message Entry Id (variable)
         self.messageEntryId = try MessageEntryID(dataStream: &dataStream, size: Int(self.messageEntryIdSize))
         
-        /// Name (Variable)
+        /// Name (variable)
         self.name = try UTF16String(dataStream: &dataStream).value
     }
     
@@ -58,10 +58,10 @@ public struct AutomaticReplyRuleElementData: RuleElementData {
         /// Message Entry Id Size (4 bytes)
         dataStream.write(messageEntryIdSize, endianess: .littleEndian)
         
-        /// Message Entry Id (Variable)
+        /// Message Entry Id (variable)
         messageEntryId.write(to: &dataStream)
         
-        /// Name (Variable)
+        /// Name (variable)
         UTF16String(value: name).write(to: &dataStream)
     }
 }

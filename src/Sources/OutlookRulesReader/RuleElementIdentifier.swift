@@ -193,6 +193,9 @@ public enum RuleElementIdentifier: UInt32 {
     /// “clear message’s categories”
     case clearCategoriesAction = 0x00000152
     
+    /// "apply retention policy: <retention policy>"
+    case applyRetentionPolicyAction = 0x00000153
+    
     /// “except where my name is in the To box”
     case nameInToBoxException = 0x000001F4
     

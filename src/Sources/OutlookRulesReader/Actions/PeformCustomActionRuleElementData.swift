@@ -37,16 +37,16 @@ public struct PeformCustomActionRuleElementData: RuleElementData {
         /// Unknown2 (4 bytes)
         self.unknown2 = try dataStream.read(endianess: .littleEndian)
         
-        /// Location (Variable)
+        /// Location (variable)
         self.location = try UTF16String(dataStream: &dataStream).value
         
-        /// Name (Variable)
+        /// Name (variable)
         self.name = try UTF16String(dataStream: &dataStream).value
         
-        /// Options (Variable)
+        /// Options (variable)
         self.options = try UTF16String(dataStream: &dataStream).value
         
-        /// Action Value (Variable)
+        /// Action Value (variable)
         self.actionValue = try UTF16String(dataStream: &dataStream).value
     }
     
@@ -57,16 +57,16 @@ public struct PeformCustomActionRuleElementData: RuleElementData {
         /// Unknown2 (4 bytes)
         dataStream.write(unknown2, endianess: .littleEndian)
         
-        /// Location (Variable)
+        /// Location (variable)
         UTF16String(value: location).write(to: &dataStream)
         
-        /// Name (Variable)
+        /// Name (variable)
         UTF16String(value: name).write(to: &dataStream)
         
-        /// Options (Variable)
+        /// Options (variable)
         UTF16String(value: options).write(to: &dataStream)
         
-        /// Action Value (Variable)
+        /// Action Value (variable)
         UTF16String(value: actionValue).write(to: &dataStream)
     }
 }
