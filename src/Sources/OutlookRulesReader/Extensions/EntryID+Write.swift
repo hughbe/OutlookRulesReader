@@ -1,5 +1,5 @@
 //
-//  FolderEntryID+DataSize.swift
+//  EntryID+Write.swift
 //  
 //
 //  Created by Hugh Bellamy on 29/01/2021.

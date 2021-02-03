@@ -20,7 +20,14 @@ internal struct ASCIIString {
     
     public init(dataStream: inout DataStream) throws {
         /// Length (1 byte or 3 bytes if first byte is 0xFF)
-        let length = try dataStream.readUInt8Length()
+        var length: Int
+        let byteLength = try dataStream.read() as UInt8
+        if byteLength < 0xFF {
+            length = Int(byteLength)
+        } else {
+            length = Int(try dataStream.read(endianess: .littleEndian) as UInt16)
+        }
+
         guard length <= dataStream.remainingCount else {
             throw OutlookRulesReadError.corrupted
         }
@@ -35,7 +42,12 @@ internal struct ASCIIString {
     
     public func write(to dataStream: inout OutputDataStream) {
         /// Length (1 byte or 3 bytes if length >= 256)
-        dataStream.writeUInt8Length(length: value.count)
+        if value.count < 0xFF {
+            dataStream.write(UInt8(value.count))
+        } else {
+            dataStream.write(0xFF as UInt8)
+            dataStream.write(UInt16(value.count), endianess: .littleEndian)
+        }
         
         /// Value (variable)
         dataStream.write(value, encoding: .ascii)
