@@ -19,24 +19,24 @@ public struct DeferDeliveryRuleElementData: RuleElementData {
     }
     
     public init(dataStream: inout DataStream, version: OutlookRulesVersion) throws {
-        // Unknown1 (4 bytes)
+        /// Unknown1 (4 bytes)
         unknown1 = try dataStream.read(endianess: .littleEndian)
         
-        // Unknown2 (4 bytes)
+        /// Unknown2 (4 bytes)
         unknown2 = try dataStream.read(endianess: .littleEndian)
         
-        // Minutes (4 bytes)
+        /// Minutes (4 bytes)
         minutes = try dataStream.read(endianess: .littleEndian)
     }
     
     public func write(to dataStream: inout OutputDataStream) {
-        // Unknown (4 bytes)
+        /// Unknown (4 bytes)
         dataStream.write(unknown1, endianess: .littleEndian)
         
-        // Unknown (4 bytes)
+        /// Unknown (4 bytes)
         dataStream.write(unknown2, endianess: .littleEndian)
 
-        // Minutes (4 bytes)
+        /// Minutes (4 bytes)
         dataStream.write(minutes, endianess: .littleEndian)
     }
 }

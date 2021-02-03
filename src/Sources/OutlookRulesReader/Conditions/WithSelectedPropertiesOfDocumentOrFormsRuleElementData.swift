@@ -11,8 +11,20 @@ import MAPI
 
 public struct WithSelectedPropertiesOfDocumentOrFormsRuleElementData: RuleElementData {
     public var dataSize: UInt32 {
-        // TODO
-        return 0
+        var baseSize: UInt32 = 8
+        for form in forms {
+            baseSize += UTF16String(value: form).dataSize
+        }
+        baseSize += 2
+        for documentProperty in documentProperties {
+            baseSize += documentProperty.dataSize
+        }
+        baseSize += 4
+        for `class` in classes {
+            baseSize += UTF16String(value: `class`).dataSize
+        }
+        
+        return baseSize
     }
     
     public var unknown1: UInt32 = 1
@@ -38,7 +50,7 @@ public struct WithSelectedPropertiesOfDocumentOrFormsRuleElementData: RuleElemen
         let forms = try UTF16String(dataStream: &dataStream).value
         self.forms = forms.count == 0 ? [] : forms.components(separatedBy: ";")
         
-        /// Number of Document Properties (4 bytes)
+        /// Number of Document Properties (2 bytes)
         let numberOfDocumentProperties: UInt16 = try dataStream.read(endianess: .littleEndian)
         
         /// Document Properties (variable)
@@ -66,6 +78,29 @@ public struct WithSelectedPropertiesOfDocumentOrFormsRuleElementData: RuleElemen
     }
     
     public func write(to dataStream: inout OutputDataStream) {
-        // TODO
+        /// Unknown1 (4 bytes)
+        dataStream.write(unknown1, endianess: .littleEndian)
+        
+        /// Unknown2 (4 bytes)
+        dataStream.write(unknown2, endianess: .littleEndian)
+
+        /// Forms (variable)
+        UTF16String(value: forms.joined(separator: ";")).write(to: &dataStream)
+        
+        /// Number of Document Properties (2 bytes)
+        dataStream.write(UInt16(documentProperties.count), endianess: .littleEndian)
+        
+        /// Document Properties (variable)
+        for documentProperty in documentProperties {
+            documentProperty.write(to: &dataStream)
+        }
+        
+        /// Number of Classes (4 bytes)
+        dataStream.write(UInt32(classes.count), endianess: .littleEndian)
+        
+        /// Classes (variable)
+        for `class` in classes {
+            ASCIIString(value: `class`).write(to: &dataStream)
+        }
     }
 }

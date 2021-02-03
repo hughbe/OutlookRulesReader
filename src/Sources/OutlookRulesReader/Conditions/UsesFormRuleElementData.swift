@@ -25,31 +25,31 @@ public struct Form {
     }
     
     public init(dataStream: inout DataStream) throws {
-        // Unknown (4 bytes)
+        /// Unknown (4 bytes)
         unknown = try dataStream.read(endianess: .littleEndian)
         
-        // Name (variable)
+        /// Name (variable)
         name = try UTF16String(dataStream: &dataStream).value
 
-        // Class Name (variable)
+        /// Class Name (variable)
         className = try ASCIIString(dataStream: &dataStream).value
     }
     
     public func write(to dataStream: inout OutputDataStream) {
-        // Unknown (4 bytes)
+        /// Unknown (4 bytes)
         dataStream.write(unknown, endianess: .littleEndian)
         
-        // Name (variable)
+        /// Name (variable)
         UTF16String(value: name).write(to: &dataStream)
 
-        // Class Name (variable)
+        /// Class Name (variable)
         ASCIIString(value: name).write(to: &dataStream)
     }
 }
 
 public struct UsesFormRuleElementData: RuleElementData {
     public var dataSize: UInt32 {
-        var baseSize: UInt32 = 8
+        var baseSize: UInt32 = 4
         for form in forms {
             baseSize += form.dataSize
         }
@@ -66,23 +66,25 @@ public struct UsesFormRuleElementData: RuleElementData {
     }
     
     public init(dataStream: inout DataStream, version: OutlookRulesVersion) throws {
-        // Number of Forms (4 bytes)
-        numberOfForms = try dataStream.read(endianess: .littleEndian)
+        /// Number of Forms (4 bytes)
+        self.numberOfForms = try dataStream.read(endianess: .littleEndian)
         
-        // Forms (variable)
-        forms = []
-        forms.reserveCapacity(Int(numberOfForms))
-        for _ in 0..<numberOfForms {
+        /// Forms (variable)
+        var forms: [Form] = []
+        forms.reserveCapacity(Int(self.numberOfForms))
+        for _ in 0..<self.numberOfForms {
             let form = try Form(dataStream: &dataStream)
             forms.append(form)
         }
+        
+        self.forms = forms
     }
     
     public func write(to dataStream: inout OutputDataStream) {
-        // Number of Forms (4 bytes)
+        /// Number of Forms (4 bytes)
         dataStream.write(numberOfForms, endianess: .littleEndian)
         
-        // Forms (variable)
+        /// Forms (variable)
         for form in forms {
             form.write(to: &dataStream)
         }

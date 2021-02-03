@@ -41,30 +41,30 @@ public struct FlagForFollowUpRuleElementData: RuleElementData {
     }
     
     public init(dataStream: inout DataStream, version: OutlookRulesVersion) throws {
-        // Unknown1 (4 bytes)
+        /// Unknown1 (4 bytes)
         unknown1 = try dataStream.read(endianess: .littleEndian)
         
-        // Unknown2 (4 bytes)
+        /// Unknown2 (4 bytes)
         unknown2 = try dataStream.read(endianess: .littleEndian)
         
-        // Follow Up (4 bytes)
+        /// Follow Up (4 bytes)
         rawFollowUp = try dataStream.read(endianess: .littleEndian)
 
-        // Action Name (variable)
+        /// Action Name (variable)
         actionName = try UTF16String(dataStream: &dataStream).value
     }
     
     public func write(to dataStream: inout OutputDataStream) {
-        // Unknown1 (4 bytes)
+        /// Unknown1 (4 bytes)
         dataStream.write(unknown1, endianess: .littleEndian)
         
-        // Unknown2 (4 bytes)
+        /// Unknown2 (4 bytes)
         dataStream.write(unknown2, endianess: .littleEndian)
         
-        // Follow Up (4 bytes)
+        /// Follow Up (4 bytes)
         dataStream.write(rawFollowUp, endianess: .littleEndian)
         
-        // Action Name (variable)
+        /// Action Name (variable)
         UTF16String(value: actionName).write(to: &dataStream)
     }
 }

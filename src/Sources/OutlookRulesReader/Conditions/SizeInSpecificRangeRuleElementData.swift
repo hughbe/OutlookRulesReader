@@ -21,30 +21,30 @@ public struct SizeInSpecificRangeRuleElementData: RuleElementData {
     }
     
     public init(dataStream: inout DataStream, version: OutlookRulesVersion) throws {
-        // Unknown1 (4 bytes)
+        /// Unknown1 (4 bytes)
         unknown1 = try dataStream.read(endianess: .littleEndian)
         
-        // Unknown2 (4 bytes)
+        /// Unknown2 (4 bytes)
         unknown2 = try dataStream.read(endianess: .littleEndian)
         
-        // MinSizeInKilobytes (4 bytes)
+        /// MinSizeInKilobytes (4 bytes)
         minSizeInKilobytes = try dataStream.read(endianess: .littleEndian)
         
-        // MaxSizeInKilobytes (4 bytes)
+        /// MaxSizeInKilobytes (4 bytes)
         maxSizeInKilobytes = try dataStream.read(endianess: .littleEndian)
     }
     
     public func write(to dataStream: inout OutputDataStream) {
-        // Unknown (4 bytes)
+        /// Unknown (4 bytes)
         dataStream.write(unknown1, endianess: .littleEndian)
         
-        // Unknown (4 bytes)
+        /// Unknown (4 bytes)
         dataStream.write(unknown2, endianess: .littleEndian)
 
-        // MinSizeInKilobytes (4 bytes)
+        /// MinSizeInKilobytes (4 bytes)
         dataStream.write(minSizeInKilobytes, endianess: .littleEndian)
 
-        // MaxSizeInKilobytes (4 bytes)
+        /// MaxSizeInKilobytes (4 bytes)
         dataStream.write(maxSizeInKilobytes, endianess: .littleEndian)
     }
 }

@@ -25,30 +25,30 @@ public struct ThroughAccountRuleElementData: RuleElementData {
     }
     
     public init(dataStream: inout DataStream, version: OutlookRulesVersion) throws {
-        // Unknown1 (4 bytes)
+        /// Unknown1 (4 bytes)
         unknown1 = try dataStream.read(endianess: .littleEndian)
         
-        // Unknown2 (4 bytes)
+        /// Unknown2 (4 bytes)
         unknown2 = try dataStream.read(endianess: .littleEndian)
 
-        // Account Name (variable)
+        /// Account Name (variable)
         accountName = try UTF16String(dataStream: &dataStream).value
         
-        // Unknown3 (variable)
+        /// Unknown3 (variable)
         unknown3 = try ASCIIString(dataStream: &dataStream).value
     }
     
     public func write(to dataStream: inout OutputDataStream) {
-        // Unknown1 (4 bytes)
+        /// Unknown1 (4 bytes)
         dataStream.write(unknown1, endianess: .littleEndian)
         
-        // Unknown2 (4 bytes)
+        /// Unknown2 (4 bytes)
         dataStream.write(unknown2, endianess: .littleEndian)
         
-        // Account Name (variable)
+        /// Account Name (variable)
         UTF16String(value: accountName).write(to: &dataStream)
 
-        // Unknown3 (variable)
+        /// Unknown3 (variable)
         ASCIIString(value: accountName).write(to: &dataStream)
     }
 }

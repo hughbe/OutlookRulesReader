@@ -29,7 +29,7 @@ extension OutputDataStream {
             return
         }
         
-        write(0xFF)
+        write(0xFF as UInt8)
         write(UInt16(length), endianess: .littleEndian)
     }
 }

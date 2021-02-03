@@ -59,13 +59,13 @@ internal struct RulesFooter {
         // Template Directory (variable)
         dataStream.write(templateDirectory, encoding: .utf16LittleEndian)
         
-        // Unknown1 (4 bytes)
+        /// Unknown1 (4 bytes)
         dataStream.write(unknown1, endianess: .littleEndian)
 
         // Creation Date (8 bytes)
         dataStream.write(creationDate, endianess: .littleEndian)
 
-        // Unknown4 (4 bytes)
+        /// Unknown4 (4 bytes)
         dataStream.write(unknown4, endianess: .littleEndian)
     }
 }

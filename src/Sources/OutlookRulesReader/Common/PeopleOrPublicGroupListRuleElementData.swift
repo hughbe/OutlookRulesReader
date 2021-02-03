@@ -29,28 +29,30 @@ public struct PeopleOrPublicGroupListRuleElementData: RuleElementData {
     }
 
     public init(dataStream: inout DataStream, version: OutlookRulesVersion) throws {
-        // Unknown1 (4 bytes)
-        unknown1 = try dataStream.read(endianess: .littleEndian)
+        /// Unknown1 (4 bytes)
+        self.unknown1 = try dataStream.read(endianess: .littleEndian)
         
-        // Unknown2 (4 bytes)
-        unknown2 = try dataStream.read(endianess: .littleEndian)
+        /// Unknown2 (4 bytes)
+        self.unknown2 = try dataStream.read(endianess: .littleEndian)
         
-        // Number of Values (4 bytes)
-        numberOfValues = try dataStream.read(endianess: .littleEndian)
+        /// Number of Values (4 bytes)
+        self.numberOfValues = try dataStream.read(endianess: .littleEndian)
         
-        // Values (variable)
-        values = []
-        values.reserveCapacity(Int(numberOfValues))
-        for _ in 0..<numberOfValues {
+        /// Values (variable)
+        var values: [[UInt16 : Any]] = []
+        values.reserveCapacity(Int(self.numberOfValues))
+        for _ in 0..<self.numberOfValues {
             let list = try PropertiesList(dataStream: &dataStream)
             values.append(list.properties)
         }
         
-        // Unknown3 (4 bytes)
-        unknown3 = try dataStream.read(endianess: .littleEndian)
+        self.values = values
         
-        // Unknown4 (4 bytes)
-        unknown4 = try dataStream.read(endianess: .littleEndian)
+        /// Unknown3 (4 bytes)
+        self.unknown3 = try dataStream.read(endianess: .littleEndian)
+        
+        /// Unknown4 (4 bytes)
+        self.unknown4 = try dataStream.read(endianess: .littleEndian)
     }
 
     public func write(to dataStream: inout OutputDataStream) {

@@ -28,24 +28,24 @@ public struct CategoriesListRuleElementData: RuleElementData {
     }
     
     public init(dataStream: inout DataStream, version: OutlookRulesVersion) throws {
-        // Unknown1 (4 bytes)
+        /// Unknown1 (4 bytes)
         unknown1 = try dataStream.read(endianess: .littleEndian)
         
-        // Unknown2 (4 bytes)
+        /// Unknown2 (4 bytes)
         unknown2 = try dataStream.read(endianess: .littleEndian)
         
-        // Categories (variable)
+        /// Categories (variable)
         rawCategories = try UTF16String(dataStream: &dataStream).value
     }
     
     public func write(to dataStream: inout OutputDataStream) {
-        // Unknown1 (4 bytes)
+        /// Unknown1 (4 bytes)
         dataStream.write(unknown1, endianess: .littleEndian)
         
-        // Unknown2 (4 bytes)
+        /// Unknown2 (4 bytes)
         dataStream.write(unknown2, endianess: .littleEndian)
         
-        // Categories (variable)
+        /// Categories (variable)
         UTF16String(value: rawCategories).write(to: &dataStream)
     }
 }

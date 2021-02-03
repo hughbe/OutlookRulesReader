@@ -17,16 +17,16 @@ internal struct PropertyValueHeader {
     public var data3: UInt32
     
     public init(dataStream: inout DataStream) throws {
-        // Tag (4 bytes)
+        /// Tag (4 bytes)
         self.tag = try PropertyTag(dataStream: &dataStream)
 
-        // Data 1 (4 bytes)
+        /// Data 1 (4 bytes)
         self.data1 = try dataStream.read(endianess: .littleEndian)
         
-        // Data 2 (4 bytes)
+        /// Data 2 (4 bytes)
         self.data2 = try dataStream.read(endianess: .littleEndian)
         
-        // Data 3 (4 bytes)
+        /// Data 3 (4 bytes)
         self.data3 = try dataStream.read(endianess: .littleEndian)
     }
 }
@@ -39,22 +39,22 @@ internal struct PropertiesList {
     public var properties: [UInt16: Any]
     
     public init(dataStream: inout DataStream) throws {
-        // Unknown (4 bytes)
-        unknown = try dataStream.read(endianess: .littleEndian)
+        /// Unknown (4 bytes)
+        self.unknown = try dataStream.read(endianess: .littleEndian)
         
-        // Number of Properties (4 bytes)
-        numberOfProperties = try dataStream.read(endianess: .littleEndian)
+        /// Number of Properties (4 bytes)
+        self.numberOfProperties = try dataStream.read(endianess: .littleEndian)
         
-        // Property Block Data Size (4 bytes)
-        propertyBlockDataSize = try dataStream.read(endianess: .littleEndian)
+        /// Property Block Data Size (4 bytes)
+        self.propertyBlockDataSize = try dataStream.read(endianess: .littleEndian)
 
         let startPosition = dataStream.position
         // let dataPosition = startPosition + Int(numberOfProperties * PropertyValueHeader.size)
         let endPosition = dataStream.position + Int(propertyBlockDataSize)
         
-        properties = [:]
+        var properties: [UInt16: Any] = [:]
         properties.reserveCapacity(Int(numberOfProperties))
-        for _ in 0..<numberOfProperties {
+        for _ in 0..<self.numberOfProperties {
             let header = try PropertyValueHeader(dataStream: &dataStream)
             let position = dataStream.position
 
@@ -97,7 +97,8 @@ internal struct PropertiesList {
             
             properties[header.tag.id] = value
         }
-
+        
+        self.properties = properties
         dataStream.position = endPosition
     }
 }

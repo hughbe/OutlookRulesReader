@@ -23,30 +23,30 @@ public struct RunScriptRuleElementData: RuleElementData {
     }
     
     public init(dataStream: inout DataStream, version: OutlookRulesVersion) throws {
-        // Unknown1 (4 bytes)
+        /// Unknown1 (4 bytes)
         unknown1 = try dataStream.read(endianess: .littleEndian)
         
-        // Unknown2 (4 bytes)
+        /// Unknown2 (4 bytes)
         unknown2 = try dataStream.read(endianess: .littleEndian)
         
-        // Name (variable)
+        /// Name (variable)
         name = try UTF16String(dataStream: &dataStream).value
         
-        // Function (variable)
+        /// Function (variable)
         function = try UTF16String(dataStream: &dataStream).value
     }
     
     public func write(to dataStream: inout OutputDataStream) {
-        // Unknown1 (4 bytes)
+        /// Unknown1 (4 bytes)
         dataStream.write(unknown1, endianess: .littleEndian)
         
-        // Unknown2 (4 bytes)
+        /// Unknown2 (4 bytes)
         dataStream.write(unknown2, endianess: .littleEndian)
         
-        // Name (variable)
+        /// Name (variable)
         UTF16String(value: name).write(to: &dataStream)
         
-        // Function (variable)
+        /// Function (variable)
         UTF16String(value: function).write(to: &dataStream)
     }
 }

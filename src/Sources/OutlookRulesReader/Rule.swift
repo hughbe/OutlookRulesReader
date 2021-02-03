@@ -282,11 +282,11 @@ public struct Rule: CustomDebugStringConvertible {
         let numberOfElements = UInt16(elements.count)
         let separatorDataSize = UInt32(2 * (elements.count - 1))
         
-        // Number of Rule Elements (2 bytes)
-        // Separator (2 bytes)
-        // Magic (2 bytes)
-        // Class Name Length (2 bytes)
-        // Class Name (12 bytes - CRuleElement)
+        /// Number of Rule Elements (2 bytes)
+        /// Separator (2 bytes)
+        /// Magic (2 bytes)
+        /// Class Name Length (2 bytes)
+        /// Class Name (12 bytes - CRuleElement)
         let remainingLength: UInt32 = 2 + 2 + 2 + 2 + 12
         let dataSize = elements.map { $0.dataSize }.reduce(0, +) + separatorDataSize + remainingLength
 
@@ -298,7 +298,7 @@ public struct Rule: CustomDebugStringConvertible {
             element.write(to: &dataStream)
             
             if i != elements.count - 1 {
-                // Separator (2 bytes)
+                /// Separator (2 bytes)
                 dataStream.write(0x8001 as UInt16, endianess: .littleEndian)
             }
         }

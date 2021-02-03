@@ -20,18 +20,18 @@ internal struct SearchEntry {
     }
     
     public init(dataStream: inout DataStream) throws {
-        // Flags (4 bytes)
-        flags = try dataStream.read(endianess: .littleEndian)
+        /// Flags (4 bytes)
+        self.flags = try dataStream.read(endianess: .littleEndian)
         
-        // Value (variable)
-        value = try UTF16String(dataStream: &dataStream).value
+        /// Value (variable)
+        self.value = try UTF16String(dataStream: &dataStream).value
     }
     
     public func write(to dataStream: inout OutputDataStream) {
-        // Flags (4 bytes)
+        /// Flags (4 bytes)
         dataStream.write(flags, endianess: .littleEndian)
         
-        // Value (variable)
+        /// Value (variable)
         UTF16String(value: value).write(to: &dataStream)
     }
 }

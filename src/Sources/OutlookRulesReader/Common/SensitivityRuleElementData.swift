@@ -28,24 +28,24 @@ public struct SensitivityRuleElementData: RuleElementData {
     }
     
     public init(dataStream: inout DataStream, version: OutlookRulesVersion) throws {
-        // Unknown1 (4 bytes)
+        /// Unknown1 (4 bytes)
         unknown1 = try dataStream.read(endianess: .littleEndian)
         
-        // Unknown2 (4 bytes)
+        /// Unknown2 (4 bytes)
         unknown2 = try dataStream.read(endianess: .littleEndian)
         
-        // Sensitivity (4 bytes)
+        /// Sensitivity (4 bytes)
         rawSensitivity = try dataStream.read(endianess: .littleEndian)
     }
     
     public func write(to dataStream: inout OutputDataStream) {
-        // Unknown (4 bytes)
+        /// Unknown (4 bytes)
         dataStream.write(unknown1, endianess: .littleEndian)
         
-        // Unknown (4 bytes)
+        /// Unknown (4 bytes)
         dataStream.write(unknown2, endianess: .littleEndian)
 
-        // Sensitivity (4 bytes)
+        /// Sensitivity (4 bytes)
         dataStream.write(rawSensitivity, endianess: .littleEndian)
     }
 }
