@@ -31,7 +31,7 @@ public struct StringsListRuleElementData: RuleElementData {
         var entries: [String] = []
         entries.reserveCapacity(Int(numberOfEntries))
         for _ in 0..<numberOfEntries {
-            let entry = try SearchEntry(dataStream: &dataStream)
+            let entry = try SearchEntry(dataStream: &dataStream, version: version)
             entries.append(entry.value)
         }
         

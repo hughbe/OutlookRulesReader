@@ -1963,10 +1963,10 @@ final class ImportActionTests: XCTestCase {
             XCTAssertEqual(0, file.rules[0].conditions.count)
             XCTAssertEqual(1, file.rules[0].actions.count)
             XCTAssertEqual(.performCustomActionAction, file.rules[0].actions[0].identifier)
-            XCTAssertTrue(file.rules[0].actions[0].data is PeformCustomActionRuleElementData)
+            XCTAssertTrue(file.rules[0].actions[0].data is PerformCustomActionRuleElementData)
             XCTAssertEqual(0, file.rules[0].exceptions.count)
 
-            let action = file.rules[0].actions[0].data as! PeformCustomActionRuleElementData
+            let action = file.rules[0].actions[0].data as! PerformCustomActionRuleElementData
             XCTAssertEqual("4.0;C:\\Program Files (x86)\\TechHit.com\\AutoRead\\autoread.dll;1", action.location)
             XCTAssertEqual("AutoRead", action.name)
             XCTAssertEqual("", action.options)
@@ -2003,10 +2003,10 @@ final class ImportActionTests: XCTestCase {
             XCTAssertEqual(0, file.rules[0].conditions.count)
             XCTAssertEqual(1, file.rules[0].actions.count)
             XCTAssertEqual(.performCustomActionAction, file.rules[0].actions[0].identifier)
-            XCTAssertTrue(file.rules[0].actions[0].data is PeformCustomActionRuleElementData)
+            XCTAssertTrue(file.rules[0].actions[0].data is PerformCustomActionRuleElementData)
             XCTAssertEqual(0, file.rules[0].exceptions.count)
 
-            let action = file.rules[0].actions[0].data as! PeformCustomActionRuleElementData
+            let action = file.rules[0].actions[0].data as! PerformCustomActionRuleElementData
             XCTAssertEqual("4.0;C:\\Program Files (x86)\\TechHit.com\\AutoRead\\autoread.dll", action.location)
             XCTAssertEqual("AutoRead", action.name)
             XCTAssertEqual("v: 1|c: autoread|b: 2|", action.options)
@@ -2043,10 +2043,10 @@ final class ImportActionTests: XCTestCase {
             XCTAssertEqual(0, file.rules[0].conditions.count)
             XCTAssertEqual(1, file.rules[0].actions.count)
             XCTAssertEqual(.performCustomActionAction, file.rules[0].actions[0].identifier)
-            XCTAssertTrue(file.rules[0].actions[0].data is PeformCustomActionRuleElementData)
+            XCTAssertTrue(file.rules[0].actions[0].data is PerformCustomActionRuleElementData)
             XCTAssertEqual(0, file.rules[0].exceptions.count)
 
-            let action = file.rules[0].actions[0].data as! PeformCustomActionRuleElementData
+            let action = file.rules[0].actions[0].data as! PerformCustomActionRuleElementData
             XCTAssertEqual("4.0;C:\\Program Files (x86)\\TechHit.com\\AutoRead\\autoread.dll", action.location)
             XCTAssertEqual("AutoRead", action.name)
             XCTAssertEqual("v: 1|c: autoread|b: 4|", action.options)

@@ -35,7 +35,7 @@ internal struct RuleHeader {
         }
         
         /// Name (variable)
-        if version != .noSignature && version != .outlook2000 {
+        if version != .noSignature && version >= .outlook2002 {
             self.name = try UTF16String(dataStream: &dataStream).value
         } else {
             self.name = try ASCIIString(dataStream: &dataStream).value

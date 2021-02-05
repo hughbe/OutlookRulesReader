@@ -22,16 +22,16 @@ public struct SizeInSpecificRangeRuleElementData: RuleElementData {
     
     public init(dataStream: inout DataStream, version: OutlookRulesVersion) throws {
         /// Unknown1 (4 bytes)
-        unknown1 = try dataStream.read(endianess: .littleEndian)
+        self.unknown1 = try dataStream.read(endianess: .littleEndian)
         
         /// Unknown2 (4 bytes)
-        unknown2 = try dataStream.read(endianess: .littleEndian)
+        self.unknown2 = try dataStream.read(endianess: .littleEndian)
         
         /// MinSizeInKilobytes (4 bytes)
-        minSizeInKilobytes = try dataStream.read(endianess: .littleEndian)
+        self.minSizeInKilobytes = try dataStream.read(endianess: .littleEndian)
         
         /// MaxSizeInKilobytes (4 bytes)
-        maxSizeInKilobytes = try dataStream.read(endianess: .littleEndian)
+        self.maxSizeInKilobytes = try dataStream.read(endianess: .littleEndian)
     }
     
     public func write(to dataStream: inout OutputDataStream) {

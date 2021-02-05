@@ -36,7 +36,11 @@ public struct FlaggedForActionRuleElementData: RuleElementData {
         self.unknown3 = try dataStream.read(endianess: .littleEndian)
     
         /// Action (variable)
-        self.action = try UTF16String(dataStream: &dataStream).value
+        if version >= .outlook2002 {
+            self.action = try UTF16String(dataStream: &dataStream).value
+        } else {
+            self.action = try ASCIIString(dataStream: &dataStream).value
+        }
         
         /// Unknown4 (4 bytes)
         self.unknown4 = try dataStream.read(endianess: .littleEndian)

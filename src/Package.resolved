@@ -6,8 +6,8 @@
         "repositoryURL": "https://github.com/hughbe/DataStream",
         "state": {
           "branch": null,
-          "revision": "858175a666cd9d9d45b2d9a364dba61a41940120",
-          "version": "2.0.3"
+          "revision": "755814222d05056db30936aeb45c3b4bf46ac2c0",
+          "version": "2.0.4"
         }
       },
       {
@@ -24,8 +24,8 @@
         "repositoryURL": "https://github.com/hughbe/SwiftMAPI",
         "state": {
           "branch": null,
-          "revision": "f2aec6c1df65c590c571a60bb4a0d96c280b158e",
-          "version": "1.1.8"
+          "revision": "396022de2c5cf0589d307472420d727830eb17fc",
+          "version": "1.1.10"
         }
       },
       {
@@ -33,8 +33,8 @@
         "repositoryURL": "https://github.com/hughbe/WindowsDataTypes",
         "state": {
           "branch": null,
-          "revision": "2d0efa7a0fbdb3eae9ff99456cb864382b883f4d",
-          "version": "1.0.10"
+          "revision": "ca9fa5609840dca9846ee2f959f214f6dc24fe33",
+          "version": "1.0.11"
         }
       }
     ]

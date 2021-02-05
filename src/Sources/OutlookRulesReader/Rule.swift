@@ -163,7 +163,7 @@ public struct Rule: CustomDebugStringConvertible {
             case .deferDeliveryAction: // 0x013E
                 try addAction(type: DeferDeliveryRuleElementData.self)
             case .performCustomActionAction:
-                try addAction(type: PeformCustomActionRuleElementData.self)
+                try addAction(type: PerformCustomActionRuleElementData.self)
             case .stopProcessingMoreRulesAction: // 0x0142
                 try addAction(type: SimpleRuleElementData.self)
             case .redirectAction: // 0x0143

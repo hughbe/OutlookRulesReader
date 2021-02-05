@@ -65,9 +65,9 @@ internal struct RulesHeader {
             
                 guard (version == .outlook2019 && flags == 0x06140000) ||
                         (version == .outlook2007 && flags == 0x06140000) ||
-                        (version == .outlook2007 && flags == 0x06140000) ||
+                        (version == .outlook2007 && (flags == 0x06140000 || flags == 0x05124F80)) ||
                         (version == .outlook2003 && flags == 0x04140000) ||
-                        (version == .outlook2002 && (flags == 0x03140000 || flags == 0x06140000)) else {
+                        (version == .outlook2002 && (flags == 0x03140000 || flags == 0x06140000 || flags == 0x03124F80 || flags == 0x05124F80)) else {
                     throw OutlookRulesReadError.invalidSignature(signature: signature, flags: flags)
                 }
             } else {

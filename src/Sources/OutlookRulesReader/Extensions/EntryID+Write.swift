@@ -19,11 +19,11 @@ internal extension StoreEntryID {
     
     func write(to dataStream: inout OutputDataStream) {
         dataStream.write(flags, endianess: .littleEndian)
-        dataStream.write(providerUid)
+        providerUid.write(to: &dataStream)
         dataStream.write(flag, endianess: .littleEndian)
         dataStream.write(dllFileName, encoding: .ascii)
         dataStream.write(wrappedFlags, endianess: .littleEndian)
-        dataStream.write(wrappedProviderUid)
+        wrappedProviderUid.write(to: &dataStream)
         dataStream.write(wrappedType.rawValue, endianess: .littleEndian)
         dataStream.write(path, encoding: .utf16LittleEndian)
     }
@@ -37,9 +37,9 @@ internal extension FolderEntryID {
     
     func write(to dataStream: inout OutputDataStream) {
         dataStream.write(flags, endianess: .littleEndian)
-        dataStream.write(providerUid)
+        providerUid.write(to: &dataStream)
         dataStream.write(folderType.rawValue, endianess: .littleEndian)
-        dataStream.write(databaseGuid)
+        databaseGuid.write(to: &dataStream)
         dataStream.write(globalCounter, endianess: .littleEndian)
     }
 }
@@ -52,11 +52,11 @@ internal extension MessageEntryID {
     
     func write(to dataStream: inout OutputDataStream) {
         dataStream.write(flags, endianess: .littleEndian)
-        dataStream.write(providerUid)
+        providerUid.write(to: &dataStream)
         dataStream.write(messageType.rawValue, endianess: .littleEndian)
-        dataStream.write(folderDatabaseGuid)
+        folderDatabaseGuid.write(to: &dataStream)
         dataStream.write(folderGlobalCounter, endianess: .littleEndian)
-        dataStream.write(messageDatabaseGuid)
+        messageDatabaseGuid.write(to: &dataStream)
         dataStream.write(messageGlobalCounter, endianess: .littleEndian)
     }
 }

@@ -19,12 +19,16 @@ internal struct SearchEntry {
         self.value = value
     }
     
-    public init(dataStream: inout DataStream) throws {
+    public init(dataStream: inout DataStream, version: OutlookRulesVersion) throws {
         /// Flags (4 bytes)
         self.flags = try dataStream.read(endianess: .littleEndian)
         
         /// Value (variable)
-        self.value = try UTF16String(dataStream: &dataStream).value
+        if version >= .outlook2002 {
+            self.value = try UTF16String(dataStream: &dataStream).value
+        } else {
+            self.value = try ASCIIString(dataStream: &dataStream).value
+        }
     }
     
     public func write(to dataStream: inout OutputDataStream) {

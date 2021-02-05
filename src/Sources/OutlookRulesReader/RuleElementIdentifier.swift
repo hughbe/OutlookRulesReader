@@ -70,6 +70,7 @@ public enum RuleElementIdentifier: UInt32 {
     case nameInToOrCcBoxCondition = 0x000000E3
     
     /// “uses the <form name> form”
+    /// Note: not functional in Outlook 2019
     case usesFormCondition = 0x000000E4
     
     /// “with <specific words> in the recipient’s address”
@@ -254,6 +255,7 @@ public enum RuleElementIdentifier: UInt32 {
     case nameInToOrCcBoxException = 0x0000020F
     
     /// “except if it uses the <form name> form”
+    /// Note: not functional in Outlook 2019
     case usesFormException = 0x00000210
     
     /// “except with <specific words> in the recipient's address”

@@ -47,7 +47,13 @@ public struct WithSelectedPropertiesOfDocumentOrFormsRuleElementData: RuleElemen
         self.unknown2 = try dataStream.read(endianess: .littleEndian)
 
         /// Forms (variable)
-        let forms = try UTF16String(dataStream: &dataStream).value
+        let forms: String
+        if version >= .outlook2002 {
+            forms = try UTF16String(dataStream: &dataStream).value
+        } else {
+            forms = try ASCIIString(dataStream: &dataStream).value
+        }
+        
         self.forms = forms.count == 0 ? [] : forms.components(separatedBy: ";")
         
         /// Number of Document Properties (2 bytes)
@@ -57,7 +63,7 @@ public struct WithSelectedPropertiesOfDocumentOrFormsRuleElementData: RuleElemen
         var documentProperties: [DocumentProperty] = []
         documentProperties.reserveCapacity(Int(numberOfDocumentProperties))
         for _ in 0..<numberOfDocumentProperties {
-            let documentProperty = try DocumentProperty(dataStream: &dataStream)
+            let documentProperty = try DocumentProperty(dataStream: &dataStream, version: version)
             documentProperties.append(documentProperty)
         }
         

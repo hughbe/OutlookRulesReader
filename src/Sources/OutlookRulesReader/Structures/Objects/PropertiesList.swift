@@ -75,6 +75,23 @@ internal struct PropertiesList {
                 
                 dataStream.position = position
                 break
+            case PropertyType.string8:
+                // Data stored in data block.
+                let offset = Int(header.data2)
+                guard offset >= 0 && offset <= endPosition else {
+                    throw OutlookRulesReadError.corrupted
+                }
+
+                dataStream.position = startPosition + offset
+
+                // Continue reading until null terminator.
+                value = try dataStream.readAsciiString()!
+                guard dataStream.position <= endPosition else {
+                    throw OutlookRulesReadError.corrupted
+                }
+                
+                dataStream.position = position
+                break
             case PropertyType.binary:
                 // Data stored in data block.
                 let offset = Int(header.data2)

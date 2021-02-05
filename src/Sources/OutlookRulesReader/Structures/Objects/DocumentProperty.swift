@@ -89,9 +89,13 @@ public struct DocumentProperty {
         self.rawDateValue = 0
     }
     
-    public init(dataStream: inout DataStream) throws {
+    public init(dataStream: inout DataStream, version: OutlookRulesVersion) throws {
         /// Field (variable)
-        self.field = try UTF16String(dataStream: &dataStream).value
+        if version >= .outlook2002 {
+            self.field = try UTF16String(dataStream: &dataStream).value
+        } else {
+            self.field = try ASCIIString(dataStream: &dataStream).value
+        }
 
         /// Data Type (2 bytes)
         self.rawDataType = try dataStream.read(endianess: .littleEndian)
@@ -103,7 +107,11 @@ public struct DocumentProperty {
         self.rawStringMatchType = try dataStream.read(endianess: .littleEndian)
 
         /// String Value (variable)
-        self.stringValue = try UTF16String(dataStream: &dataStream).value
+        if version >= .outlook2002 {
+            self.stringValue = try UTF16String(dataStream: &dataStream).value
+        } else {
+            self.stringValue = try ASCIIString(dataStream: &dataStream).value
+        }
         
         /// Number Match Type (4 bytes)
         self.rawNumberMatchType = try dataStream.read(endianess: .littleEndian)

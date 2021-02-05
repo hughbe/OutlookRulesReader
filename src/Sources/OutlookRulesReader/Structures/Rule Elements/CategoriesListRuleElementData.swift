@@ -29,13 +29,17 @@ public struct CategoriesListRuleElementData: RuleElementData {
     
     public init(dataStream: inout DataStream, version: OutlookRulesVersion) throws {
         /// Unknown1 (4 bytes)
-        unknown1 = try dataStream.read(endianess: .littleEndian)
+        self.unknown1 = try dataStream.read(endianess: .littleEndian)
         
         /// Unknown2 (4 bytes)
-        unknown2 = try dataStream.read(endianess: .littleEndian)
+        self.unknown2 = try dataStream.read(endianess: .littleEndian)
         
         /// Categories (variable)
-        rawCategories = try UTF16String(dataStream: &dataStream).value
+        if version >= .outlook2002 {
+            self.rawCategories = try UTF16String(dataStream: &dataStream).value
+        } else {
+            self.rawCategories = try ASCIIString(dataStream: &dataStream).value
+        }
     }
     
     public func write(to dataStream: inout OutputDataStream) {
