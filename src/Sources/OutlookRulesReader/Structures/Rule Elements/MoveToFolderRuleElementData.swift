@@ -11,8 +11,8 @@ import MAPI
 public struct MoveToFolderRuleElementData: RuleElementData {
     public var dataSize: UInt32 {
         var baseSize: UInt32 = 8
-        baseSize += 4 + (folderEntryId as? FolderEntryID)!.dataSize
-        baseSize += 4 + storeEntryId.dataSize
+        baseSize += 4 + UInt32(folderEntryId.dataSize)
+        baseSize += 4 + UInt32(storeEntryId.dataSize)
         baseSize += UTF16String(value: folderName).dataSize
         return baseSize
     }
@@ -24,12 +24,12 @@ public struct MoveToFolderRuleElementData: RuleElementData {
     public var storeEntryIdSize: UInt32
     public var storeEntryId: StoreEntryID
     public var folderName: String
-    public var unknown3: UInt32 = 0
+    public var unknown3: UInt32? = 0
     
     public init(folderEntryId: FolderEntryID, storeEntryId: StoreEntryID, folderName: String) {
-        self.folderEntryIdSize = folderEntryId.dataSize
+        self.folderEntryIdSize = UInt32(folderEntryId.dataSize)
         self.folderEntryId = folderEntryId
-        self.storeEntryIdSize = storeEntryId.dataSize
+        self.storeEntryIdSize = UInt32(storeEntryId.dataSize)
         self.storeEntryId = storeEntryId
         self.folderName = folderName
     }
@@ -72,10 +72,18 @@ public struct MoveToFolderRuleElementData: RuleElementData {
         }
 
         /// Folder Name (variable)
-        self.folderName = try UTF16String(dataStream: &dataStream).value
+        if version >= .outlook2002 {
+            self.folderName = try UTF16String(dataStream: &dataStream).value
+        } else {
+            self.folderName = try ASCIIString(dataStream: &dataStream).value
+        }
         
-        /// Unknown3 (4 bytes)
-        self.unknown3 = try dataStream.read(endianess: .littleEndian)
+        if version != .noSignature {
+            /// Unknown3 (4 bytes)
+            self.unknown3 = try dataStream.read(endianess: .littleEndian)
+        } else {
+            self.unknown3 = nil
+        }
     }
     
     public func write(to dataStream: inout OutputDataStream) {
@@ -89,7 +97,7 @@ public struct MoveToFolderRuleElementData: RuleElementData {
         dataStream.write(folderEntryIdSize, endianess: .littleEndian)
         
         /// Folder Entry Id (variable)
-        (folderEntryId as? FolderEntryID)!.write(to: &dataStream)
+        folderEntryId.write(to: &dataStream)
         
         /// Store Entry Id Size (4 bytes)
         dataStream.write(storeEntryIdSize, endianess: .littleEndian)
@@ -100,7 +108,9 @@ public struct MoveToFolderRuleElementData: RuleElementData {
         /// Folder Name (variable)
         UTF16String(value: folderName).write(to: &dataStream)
         
-        /// Unknown3 (4 bytes)
-        dataStream.write(unknown3, endianess: .littleEndian)
+        if let unknown3 = unknown3 {
+            /// Unknown3 (4 bytes)
+            dataStream.write(unknown3, endianess: .littleEndian)
+        }
     }
 }

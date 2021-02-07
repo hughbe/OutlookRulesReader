@@ -35,7 +35,7 @@ internal struct RuleHeader {
         }
         
         /// Name (variable)
-        if version != .noSignature && version >= .outlook2002 {
+        if version != .noSignatureOutlook2003 && version >= .outlook2002 {
             self.name = try UTF16String(dataStream: &dataStream).value
         } else {
             self.name = try ASCIIString(dataStream: &dataStream).value
@@ -65,7 +65,7 @@ internal struct RuleHeader {
         }
         
         /// Data Size (4 bytes)
-        if version != .noSignature {
+        if version != .noSignature && version != .noSignatureOutlook2003 {
             self.dataSize = try dataStream.read(endianess: .littleEndian)
         } else {
             self.dataSize = nil

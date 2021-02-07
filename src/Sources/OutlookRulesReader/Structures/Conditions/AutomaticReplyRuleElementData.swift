@@ -10,8 +10,8 @@ import MAPI
 
 public struct AutomaticReplyRuleElementData: RuleElementData {
     public var dataSize: UInt32 {
-        var baseSize: UInt32 = 8
-        baseSize += 4 + messageEntryId.dataSize
+        var baseSize: UInt32 = 12
+        baseSize += UInt32(messageEntryId.dataSize)
         baseSize += UTF16String(value: name).dataSize
         return baseSize
     }
@@ -23,7 +23,7 @@ public struct AutomaticReplyRuleElementData: RuleElementData {
     public var name: String
     
     public init(messageEntryId: MessageEntryID, name: String) {
-        self.messageEntryIdSize = messageEntryId.dataSize
+        self.messageEntryIdSize = UInt32(messageEntryId.dataSize)
         self.messageEntryId = messageEntryId
         self.name = name
     }

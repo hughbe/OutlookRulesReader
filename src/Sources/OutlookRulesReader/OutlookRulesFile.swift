@@ -10,10 +10,18 @@ import Foundation
 
 public struct OutlookRulesFile: CustomDebugStringConvertible {
     public var rules: [Rule] = []
-    public var templateDirectory: String = ""
+    private var footer: RulesFooter?
+    public var templateDirectory: String {
+        get {
+            footer?.templateDirectory ?? ""
+        } set {
+            footer?.templateDirectory = newValue
+        }
+    }
     
     public init(rules: [Rule] = []) {
         self.rules = rules
+        self.footer = RulesFooter()
     }
     
     public init(data: Data) throws {
@@ -33,8 +41,11 @@ public struct OutlookRulesFile: CustomDebugStringConvertible {
         
         self.rules = rules
         
-        let footer = try RulesFooter(dataStream: &dataStream, version: header.version)
-        self.templateDirectory = footer.templateDirectory
+        if header.version != .noSignature {
+            self.footer = try RulesFooter(dataStream: &dataStream, version: header.version)
+        } else {
+            self.footer = nil
+        }
     }
     
     public func getData() -> Data {

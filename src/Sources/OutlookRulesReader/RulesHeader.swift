@@ -11,14 +11,14 @@ internal struct RulesHeader {
     public let version: OutlookRulesVersion
     public var signature: UInt32?
     public var flags: UInt32?
-    public var unknown1: UInt32 = 0
-    public var unknown2: UInt32 = 0
-    public var unknown3: UInt32 = 0
-    public var unknown4: UInt32 = 0
-    public var unknown5: UInt32 = 0
-    public var unknown6: UInt32 = 0
-    public var unknown7: UInt32 = 1
-    public var unknown8: UInt32 = 1
+    public var unknown1: UInt32? = 0
+    public var unknown2: UInt32? = 0
+    public var unknown3: UInt32? = 0
+    public var unknown4: UInt32? = 0
+    public var unknown5: UInt32? = 0
+    public var unknown6: UInt32? = 0
+    public var unknown7: UInt32? = 1
+    public var unknown8: UInt32? = 1
     public var unknown9: UInt32? = 0
     public var numberOfRules: UInt16
     
@@ -46,14 +46,14 @@ internal struct RulesHeader {
         case 970812:
             version = .outlook98
         case 0:
-            version = .noSignature
+            version = .noSignatureOutlook2003
         default:
-            throw OutlookRulesReadError.invalidSignature(signature: peekedSignature, flags: 0x00000000)
+            version = .noSignature
         }
         
         self.version = version
         
-        if self.version != .noSignature {
+        if version != .noSignatureOutlook2003 && version != .noSignature {
             /// Signature (4 bytes)
             let signature: UInt32 = try dataStream.read(endianess: .littleEndian)
             self.signature = signature
@@ -79,46 +79,75 @@ internal struct RulesHeader {
         }
         
         /// Unknown1 (4 bytes)
-        self.unknown1 = try dataStream.read(endianess: .littleEndian)
-        guard self.unknown1 == 0x00000000 else {
-            throw OutlookRulesReadError.corrupted
+        if version != .noSignature {
+            self.unknown1 = try dataStream.read(endianess: .littleEndian)
+            guard self.unknown1 == 0x00000000 else {
+                throw OutlookRulesReadError.corrupted
+            }
+        } else {
+            self.unknown1 = nil
         }
 
         /// Unknown2 (4 bytes)
-        self.unknown2 = try dataStream.read(endianess: .littleEndian)
-        guard self.unknown2 == 0x00000000 else {
-            throw OutlookRulesReadError.corrupted
+        if version != .noSignature {
+            self.unknown2 = try dataStream.read(endianess: .littleEndian)
+            guard self.unknown2 == 0x00000000 else {
+                throw OutlookRulesReadError.corrupted
+            }
+        } else {
+            self.unknown2 = nil
         }
         
         /// Unknown3 (4 bytes)
-        self.unknown3 = try dataStream.read(endianess: .littleEndian)
-        guard self.unknown3 == 0x00000000 else {
-            throw OutlookRulesReadError.corrupted
+        if version != .noSignature {
+            self.unknown3 = try dataStream.read(endianess: .littleEndian)
+            guard self.unknown3 == 0x00000000 else {
+                throw OutlookRulesReadError.corrupted
+            }
+        } else {
+            self.unknown3 = nil
         }
 
         /// Unknown4 (4 bytes)
-        self.unknown4 = try dataStream.read(endianess: .littleEndian)
+        if version != .noSignature {
+            self.unknown4 = try dataStream.read(endianess: .littleEndian)
+        } else {
+            self.unknown4 = nil
+        }
         
         /// Unknown5 (4 bytes)
-        self.unknown5 = try dataStream.read(endianess: .littleEndian)
+        if version != .noSignature {
+            self.unknown5 = try dataStream.read(endianess: .littleEndian)
+        } else {
+            self.unknown6 = nil
+        }
         
         /// Unknown6 (4 bytes)
-        self.unknown6 = try dataStream.read(endianess: .littleEndian)
-        guard self.unknown6 == 0x00000000 else {
-            throw OutlookRulesReadError.corrupted
+        if version != .noSignature {
+            self.unknown6 = try dataStream.read(endianess: .littleEndian)
+        } else {
+            self.unknown6 = nil
         }
 
         /// Unknown7 (4 bytes)
-        self.unknown7 = try dataStream.read(endianess: .littleEndian)
+        if version != .noSignature {
+            self.unknown7 = try dataStream.read(endianess: .littleEndian)
+        } else {
+            self.unknown7 = nil
+        }
         
         /// Unknown8 (4 bytes)
-        self.unknown8 = try dataStream.read(endianess: .littleEndian)
-        guard self.unknown8 == 0x00000001 else {
-            throw OutlookRulesReadError.corrupted
+        if version != .noSignature {
+            self.unknown8 = try dataStream.read(endianess: .littleEndian)
+            guard self.unknown8 == 0x00000001 else {
+                throw OutlookRulesReadError.corrupted
+            }
+        } else {
+            self.unknown9 = nil
         }
         
         /// Unknown9 (4 bytes)
-        if version >= .outlook2002 || version == .noSignature {
+        if version >= .outlook2002 || version == .noSignatureOutlook2003 {
             self.unknown9 = try dataStream.read(endianess: .littleEndian)
         } else {
             self.unknown9 = nil
@@ -139,29 +168,46 @@ internal struct RulesHeader {
             dataStream.write(flags, endianess: .littleEndian)
         }
         
-        /// Unknown1 (4 bytes)
-        dataStream.write(unknown1, endianess: .littleEndian)
+        if let unknown1 = unknown1 {
+            /// Unknown1 (4 bytes)
+            dataStream.write(unknown1, endianess: .littleEndian)
+        }
         
-        /// Unknown2 (4 bytes)
-        dataStream.write(unknown2, endianess: .littleEndian)
+        if let unknown2 = unknown2 {
+            /// Unknown2 (4 bytes)
+            dataStream.write(unknown2, endianess: .littleEndian)
+        }
         
-        /// Unknown3 (4 bytes)
+        if let unknown3 = unknown3 {
+            /// Unknown3 (4 bytes)
         dataStream.write(unknown3, endianess: .littleEndian)
+        }
         
-        /// Unknown4 (4 bytes)
-        dataStream.write(unknown4, endianess: .littleEndian)
+        if let unknown4 = unknown4 {
+            /// Unknown4 (4 bytes)
+            dataStream.write(unknown4, endianess: .littleEndian)
+        }
         
-        /// Unknown5 (4 bytes)
-        dataStream.write(unknown5, endianess: .littleEndian)
+        if let unknown5 = unknown5 {
+            /// Unknown5 (4 bytes)
+            dataStream.write(unknown5, endianess: .littleEndian)
+        }
         
-        /// Unknown6 (4 bytes)
-        dataStream.write(unknown6, endianess: .littleEndian)
         
-        /// Unknown7 (4 bytes)
-        dataStream.write(unknown7, endianess: .littleEndian)
+        if let unknown6 = unknown6 {
+            /// Unknown6 (4 bytes)
+            dataStream.write(unknown6, endianess: .littleEndian)
+        }
         
-        /// Unknown8 (4 bytes)
-        dataStream.write(unknown8, endianess: .littleEndian)
+        if let unknown7 = unknown7 {
+            /// Unknown7 (4 bytes)
+            dataStream.write(unknown7, endianess: .littleEndian)
+        }
+        
+        if let unknown8 = unknown8 {
+            /// Unknown8 (4 bytes)
+            dataStream.write(unknown8, endianess: .littleEndian)
+        }
         
         /// Unknown9 (4 bytes)
         if let unknown9 = unknown9 {

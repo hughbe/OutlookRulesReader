@@ -82,6 +82,14 @@ public enum RuleElementIdentifier: UInt32 {
     /// “with <specific words> in the message header”
     case specificWordsInMessageHeaderCondition = 0x000000E8
     
+    /// "suspected to be junk-email or from <Junk Senders>"
+    /// Note: this has been removed in Outlook 2003
+    case junkCondition = 0x000000EB
+    
+    /// "containing adult content or from <Adult Content Senders>"
+    /// Note: this has been removed in Outlook 2003
+    case adultCondition = 0x000000EC
+    
     /// “through the <specified> account”
     case throughSpecifiedAccountCondition = 0x000000EE
     

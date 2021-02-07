@@ -114,6 +114,10 @@ public struct Rule: CustomDebugStringConvertible {
                 try addCondition(type: StringsListRuleElementData.self)
             case .specificWordsInMessageHeaderCondition: // 0x00E8
                 try addCondition(type: StringsListRuleElementData.self)
+            case .junkCondition: // 0x00EB
+                try addCondition(type: SendersListRuleElementData.self)
+            case .adultCondition: // 0x00EC
+                try addCondition(type: SendersListRuleElementData.self)
             case .throughSpecifiedAccountCondition: // 0x00EE
                 try addCondition(type: ThroughAccountRuleElementData.self)
             case .onThisComputerOnlyCondition: // 0x00EF

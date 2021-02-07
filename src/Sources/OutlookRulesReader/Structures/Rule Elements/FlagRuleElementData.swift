@@ -36,7 +36,7 @@ public struct FlagRuleElementData: RuleElementData {
         self.days = try dataStream.read(endianess: .littleEndian)
 
         /// Action Name (variable)
-        if !version.isASCII {
+        if version >= .outlook2002 {
             self.actionName = try UTF16String(dataStream: &dataStream).value
         } else {
             self.actionName = try ASCIIString(dataStream: &dataStream).value

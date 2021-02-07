@@ -32,6 +32,8 @@ public enum RuleCondition {
     case specificWordsInSendersAddress(_: StringsListRuleElementData)
     case specificWordsInMessageHeader(_: StringsListRuleElementData)
     case throughSpecifiedAccount(_: ThroughAccountRuleElementData)
+    case junk(_: SendersListRuleElementData)
+    case adult(_: SendersListRuleElementData)
     case onThisComputerOnly(_: OnThisComputerOnlyRuleElementData)
     case senderInSpecifiedAddressBook(_: SenderInSpecifiedAddressBookRuleElementData)
     case whichIsAMeetingInvitationOrInvite
@@ -121,6 +123,12 @@ public enum RuleCondition {
         case .throughSpecifiedAccountCondition:
             /// “through the <specified> account”
             self = .throughSpecifiedAccount(try ThroughAccountRuleElementData(dataStream: &dataStream, version: version))
+        case .junkCondition:
+            /// "suspected to be junk-email or from <Junk Senders>"
+            self = .junk(try SendersListRuleElementData(dataStream: &dataStream, version: version))
+        case .adultCondition:
+            /// "containing adult content or from <Adult Content Senders>"
+            self = .adult(try SendersListRuleElementData(dataStream: &dataStream, version: version))
         case .onThisComputerOnlyCondition:
             /// “on this computer only”
             /// Outlook 2003: "on this machine only"
@@ -138,7 +146,7 @@ public enum RuleCondition {
             /// “assigned to any category”
             self = .assignedToAnyCategory
         case .fromAnyRSSFeedCondition:
-            /// “from any RSS fee
+            /// “from any RSS feed"
             self = .fromAnyRSSFeed
         default:
             #if DEBUG
