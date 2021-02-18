@@ -1,3 +1,4 @@
+#if false
 //
 //  RuleCondition.swift
 //  
@@ -157,3 +158,4 @@ public enum RuleCondition {
         }
     }
 }
+#endif

@@ -51,7 +51,7 @@ internal struct RuleHeader {
         self.unknown3 = try dataStream.read(endianess: .littleEndian)
         
         /// Unknown4 (4 bytes)
-        if version >= .outlook2002 {
+        if version >= .outlook98 {
             self.unknown4 = try dataStream.read(endianess: .littleEndian)
         } else {
             self.unknown4 = nil
@@ -65,7 +65,7 @@ internal struct RuleHeader {
         }
         
         /// Data Size (4 bytes)
-        if version != .noSignature && version != .noSignatureOutlook2003 {
+        if version >= .outlook2002 {
             self.dataSize = try dataStream.read(endianess: .littleEndian)
         } else {
             self.dataSize = nil
@@ -77,18 +77,21 @@ internal struct RuleHeader {
         /// Separator (2 byte)
         /// The first rule element contains 0xFFFF followed by a class name ("CRuleElement").
         /// Subsequent rule elements contain the separator 0x8001.
-        let separator = try dataStream.read(endianess: .littleEndian) as UInt16
+        let separator: UInt16 = try dataStream.read(endianess: .littleEndian)
         switch separator {
         case 0xFFFF:
             guard index == 0 else {
                 throw OutlookRulesReadError.corrupted
             }
             
-            /// Unknown6 (2 bytes)
-            let _ = try dataStream.read(endianess: .littleEndian) as UInt16
+            /// Padding (2 bytes)
+            let _: UInt16 = try dataStream.read(endianess: .littleEndian)
             
             /// Class Name Length (2 bytes)
-            let ruleClassLength = try dataStream.read(endianess: .littleEndian) as UInt16
+            let ruleClassLength: UInt16 = try dataStream.read(endianess: .littleEndian)
+            guard ruleClassLength == 12 && ruleClassLength <= dataStream.remainingCount else {
+                throw OutlookRulesReadError.corrupted
+            }
             
             /// Class Name (variable)
             guard let ruleClass = try dataStream.readString(count: Int(ruleClassLength), encoding: .ascii) else {

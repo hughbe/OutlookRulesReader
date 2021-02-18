@@ -15,11 +15,7 @@ public struct DocumentProperty {
     }
 
     public var field: String
-    public var id: UInt16
-    public var rawDataType: UInt16
-    public var dataType: PropertyType {
-        return PropertyType(rawValue: rawDataType)!
-    }
+    public var tag: PropertyTag
     public var rawStringMatchType: UInt32
     public var stringMatchType: DocumentPropertyStringMatchType {
         return DocumentPropertyStringMatchType(rawValue: rawStringMatchType)!
@@ -47,10 +43,9 @@ public struct DocumentProperty {
     }
     public var unknown4: UInt32 = 0
 
-    public init(field: String, id: PropertyId, dataType: PropertyType, matchType: DocumentPropertyStringMatchType, stringValue: String) {
+    public init(field: String, tag: PropertyTag, matchType: DocumentPropertyStringMatchType, stringValue: String) {
         self.field = field
-        self.id = id.rawValue
-        self.rawDataType = dataType.rawValue
+        self.tag = tag
         self.rawStringMatchType = matchType.rawValue
         self.stringValue = stringValue
         
@@ -61,10 +56,9 @@ public struct DocumentProperty {
         self.rawDateValue = 0
     }
 
-    public init(field: String, id: PropertyId, dataType: PropertyType, matchType: DocumentPropertyNumberMatchType, numberValue: Int32) {
+    public init(field: String, tag: PropertyTag, matchType: DocumentPropertyNumberMatchType, numberValue: Int32) {
         self.field = field
-        self.id = id.rawValue
-        self.rawDataType = dataType.rawValue
+        self.tag = tag
         self.rawNumberMatchType = matchType.rawValue
         self.numberValue = numberValue
         
@@ -75,10 +69,9 @@ public struct DocumentProperty {
         self.rawDateValue = 0
     }
 
-    public init(field: String, id: PropertyId, dataType: PropertyType, matchType: DocumentPropertyNumberMatchType, boolValue: Bool) {
+    public init(field: String, tag: PropertyTag, matchType: DocumentPropertyNumberMatchType, boolValue: Bool) {
         self.field = field
-        self.id = id.rawValue
-        self.rawDataType = dataType.rawValue
+        self.tag = tag
         self.boolValue = boolValue ? 0 : 1 // Inverted
         
         self.rawStringMatchType = 0
@@ -97,11 +90,8 @@ public struct DocumentProperty {
             self.field = try ASCIIString(dataStream: &dataStream).value
         }
 
-        /// Data Type (2 bytes)
-        self.rawDataType = try dataStream.read(endianess: .littleEndian)
-
-        /// Id (2 bytes)
-        self.id = try dataStream.read(endianess: .littleEndian)
+        /// Tag (4 bytes)
+        self.tag = try PropertyTag(dataStream: &dataStream)
 
         /// String Match Type (4 bytes)
         self.rawStringMatchType = try dataStream.read(endianess: .littleEndian)
@@ -145,11 +135,8 @@ public struct DocumentProperty {
         /// Field (variable)
         UTF16String(value: field).write(to: &dataStream)
 
-        /// Data Type (2 bytes)
-        dataStream.write(rawDataType, endianess: .littleEndian)
-
-        /// Id (2 bytes)
-        dataStream.write(id, endianess: .littleEndian)
+        /// Tag (4 bytes)
+        tag.write(to: &dataStream)
 
         /// String Match Type (4 bytes)
         dataStream.write(rawStringMatchType, endianess: .littleEndian)

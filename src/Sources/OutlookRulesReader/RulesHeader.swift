@@ -193,7 +193,6 @@ internal struct RulesHeader {
             dataStream.write(unknown5, endianess: .littleEndian)
         }
         
-        
         if let unknown6 = unknown6 {
             /// Unknown6 (4 bytes)
             dataStream.write(unknown6, endianess: .littleEndian)
