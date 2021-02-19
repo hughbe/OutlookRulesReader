@@ -1344,9 +1344,9 @@ final class ImportExceptionTests: XCTestCase {
             
             let exception = file.rules[0].exceptions[0].data as! RecievedInSpecificDateSpanRuleElementData
             XCTAssertTrue(exception.includeAfterDate)
-            XCTAssertEqual(calendar.date(from: DateComponents(timeZone: timeZone, year: 2020, month: 08, day: 08, hour: 23, minute: 59, second: 0)), exception.afterDate)
+            XCTAssertEqual(calendar.date(from: DateComponents(timeZone: timeZone, year: 2020, month: 08, day: 08, hour: 23, minute: 59, second: 0)), exception.afterDate.date)
             XCTAssertFalse(exception.includeBeforeDate)
-                XCTAssertEqual(calendar.date(from: DateComponents(timeZone: timeZone, year: 2020, month: 08, day: 09)), exception.beforeDate)
+                XCTAssertEqual(calendar.date(from: DateComponents(timeZone: timeZone, year: 2020, month: 08, day: 09)), exception.beforeDate.date)
         }
         do {
             let file = try OutlookRulesFile(data: Data([
@@ -1374,9 +1374,9 @@ final class ImportExceptionTests: XCTestCase {
             
             let exception = file.rules[0].exceptions[0].data as! RecievedInSpecificDateSpanRuleElementData
             XCTAssertFalse(exception.includeAfterDate)
-            XCTAssertEqual(calendar.date(from: DateComponents(timeZone: timeZone, year: 2020, month: 08, day: 09, hour: 23, minute: 59, second: 0)), exception.afterDate)
+            XCTAssertEqual(calendar.date(from: DateComponents(timeZone: timeZone, year: 2020, month: 08, day: 09, hour: 23, minute: 59, second: 0)), exception.afterDate.date)
             XCTAssertTrue(exception.includeBeforeDate)
-            XCTAssertEqual(calendar.date(from: DateComponents(timeZone: timeZone, year: 2020, month: 08, day: 02)), exception.beforeDate)
+            XCTAssertEqual(calendar.date(from: DateComponents(timeZone: timeZone, year: 2020, month: 08, day: 02)), exception.beforeDate.date)
         }
         do {
             let file = try OutlookRulesFile(data: Data([
@@ -1405,9 +1405,9 @@ final class ImportExceptionTests: XCTestCase {
             let calendar = Calendar(identifier: .gregorian)
             let exception = file.rules[0].exceptions[0].data as! RecievedInSpecificDateSpanRuleElementData
             XCTAssertTrue(exception.includeAfterDate)
-            XCTAssertEqual(calendar.date(from: DateComponents(timeZone: timeZone, year: 2020, month: 08, day: 02, hour: 23, minute: 59, second: 0)), exception.afterDate)
+            XCTAssertEqual(calendar.date(from: DateComponents(timeZone: timeZone, year: 2020, month: 08, day: 02, hour: 23, minute: 59, second: 0)), exception.afterDate.date)
             XCTAssertTrue(exception.includeBeforeDate)
-            XCTAssertEqual(calendar.date(from: DateComponents(timeZone: timeZone, year: 2020, month: 08, day: 05)), exception.beforeDate)
+            XCTAssertEqual(calendar.date(from: DateComponents(timeZone: timeZone, year: 2020, month: 08, day: 05)), exception.beforeDate.date)
         }
     }
 
@@ -1941,7 +1941,7 @@ final class ImportExceptionTests: XCTestCase {
             XCTAssertEqual(0, exception.documentProperties[0].numberValue)
             XCTAssertEqual(0, exception.documentProperties[0].boolValue)
             XCTAssertEqual(.before, exception.documentProperties[0].dateMatchType)
-            XCTAssertEqual(calendar.date(from: DateComponents(timeZone: timeZone, year: 2020, month: 01, day: 02, hour: 08, minute: 50, second: 0)), exception.documentProperties[0].dateValue)
+            XCTAssertEqual(calendar.date(from: DateComponents(timeZone: timeZone, year: 2020, month: 01, day: 02, hour: 08, minute: 50, second: 0)), exception.documentProperties[0].dateValue.date)
             XCTAssertEqual([], exception.classes)
         }
         // Date, after
@@ -1984,7 +1984,7 @@ final class ImportExceptionTests: XCTestCase {
             XCTAssertEqual(0, exception.documentProperties[0].numberValue)
             XCTAssertEqual(0, exception.documentProperties[0].boolValue)
             XCTAssertEqual(.after, exception.documentProperties[0].dateMatchType)
-            XCTAssertEqual(calendar.date(from: DateComponents(timeZone: timeZone, year: 2020, month: 08, day: 14, hour: 08, minute: 58, second: 01)), exception.documentProperties[0].dateValue)
+            XCTAssertEqual(calendar.date(from: DateComponents(timeZone: timeZone, year: 2020, month: 08, day: 14, hour: 08, minute: 58, second: 01)), exception.documentProperties[0].dateValue.date)
             XCTAssertEqual([], exception.classes)
         }
         // Multiple

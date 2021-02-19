@@ -16,15 +16,18 @@ public struct RuleElement {
     public var data: RuleElementData
     
     public init(identifier: RuleElementIdentifier, data: RuleElementData) {
+        /// Identifier (4 bytes)
         self.identifier = identifier
+        
+        /// Data (variable)
         self.data = data
     }
     
     func write(to dataStream: inout OutputDataStream) {
-        // Identifier (4 bytes)
+        /// Identifier (4 bytes)
         dataStream.write(identifier.rawValue, endianess: .littleEndian)
         
-        // Data (variable)
+        /// Data (variable)
         data.write(to: &dataStream)
     }
 }

@@ -36,12 +36,8 @@ public struct DocumentProperty {
     public var dateMatchType: DocumentPropertyDateMatchType {
         return DocumentPropertyDateMatchType(rawValue: rawDateMatchType)!
     }
+    public var dateValue: OleDateTime
     public var unknown3: UInt32 = 0
-    public var rawDateValue: Double
-    public var dateValue: Date {
-        return Date(timestamp: rawDateValue)
-    }
-    public var unknown4: UInt32 = 0
 
     public init(field: String, tag: PropertyTag, matchType: DocumentPropertyStringMatchType, stringValue: String) {
         self.field = field
@@ -53,7 +49,7 @@ public struct DocumentProperty {
         self.numberValue = 0
         self.boolValue = 0
         self.rawDateMatchType = 0
-        self.rawDateValue = 0
+        self.dateValue = OleDateTime()
     }
 
     public init(field: String, tag: PropertyTag, matchType: DocumentPropertyNumberMatchType, numberValue: Int32) {
@@ -66,7 +62,7 @@ public struct DocumentProperty {
         self.stringValue = ""
         self.boolValue = 0
         self.rawDateMatchType = 0
-        self.rawDateValue = 0
+        self.dateValue = OleDateTime()
     }
 
     public init(field: String, tag: PropertyTag, matchType: DocumentPropertyNumberMatchType, boolValue: Bool) {
@@ -79,7 +75,7 @@ public struct DocumentProperty {
         self.rawNumberMatchType = 0
         self.numberValue = 0
         self.rawDateMatchType = 0
-        self.rawDateValue = 0
+        self.dateValue = OleDateTime()
     }
     
     public init(dataStream: inout DataStream, version: OutlookRulesVersion) throws {
@@ -121,14 +117,11 @@ public struct DocumentProperty {
         /// Date Match Type (4 bytes)
         self.rawDateMatchType = try dataStream.read(endianess: .littleEndian)
         
+        /// Date Value (12 bytes)
+        self.dateValue = try OleDateTime(dataStream: &dataStream)
+        
         /// Unknown3 (4 bytes)
         self.unknown3 = try dataStream.read(endianess: .littleEndian)
-        
-        /// Date Value (8 bytes)
-        self.rawDateValue = try dataStream.readDouble(endianess: .littleEndian)
-        
-        /// Unknown4 (4 bytes)
-        self.unknown4 = try dataStream.read(endianess: .littleEndian)
     }
     
     public func write(to dataStream: inout OutputDataStream) {
@@ -162,13 +155,10 @@ public struct DocumentProperty {
         /// Date Match Type (4 bytes)
         dataStream.write(rawDateMatchType, endianess: .littleEndian)
         
+        /// Date Value (12 bytes)
+        dateValue.write(to: &dataStream)
+        
         /// Unknown3 (4 bytes)
         dataStream.write(unknown3, endianess: .littleEndian)
-        
-        /// Date Value (8 bytes)
-        dataStream.write(rawDateValue, endianess: .littleEndian)
-        
-        /// Unknown4 (4 bytes)
-        dataStream.write(unknown4, endianess: .littleEndian)
     }
 }

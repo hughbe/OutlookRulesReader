@@ -16,6 +16,7 @@ public struct ApplyConditionFlags: OptionSet {
     
     public static let afterReceived = ApplyConditionFlags(rawValue: 0x01)
     public static let afterSent = ApplyConditionFlags(rawValue: 0x04)
+    public static let afterServerReceived = ApplyConditionFlags(rawValue: 0x08)
 }
 
 public struct ApplyConditionRuleElementData: RuleElementData {

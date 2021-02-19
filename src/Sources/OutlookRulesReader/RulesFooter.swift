@@ -11,14 +11,7 @@ import WindowsDataTypes
 
 internal struct RulesFooter {
     public var templateDirectory: String = ""
-    public var rawCreationStatus: UInt32 = 2
-    public var creationStatus: CreationStatus {
-        return CreationStatus(rawValue: rawCreationStatus)!
-    }
-    public var rawCreationDate: Double = 0
-    public var creationDate: Date {
-        return Date(timestamp: rawCreationDate)
-    }
+    public var creationDate: OleDateTime = OleDateTime()
     public var unknown: UInt32 = 0
     
     public init(templateDirectory: String = "") {
@@ -48,11 +41,8 @@ internal struct RulesFooter {
             self.templateDirectory = templateDirectory
         }
         
-        /// Creation Status (4 bytes)
-        self.rawCreationStatus = try dataStream.read(endianess: .littleEndian)
-        
-        /// Creation Date (8 bytes)
-        self.rawCreationDate = try dataStream.readDouble(endianess: .littleEndian)
+        /// Creation Date (12 bytes)
+        self.creationDate = try OleDateTime(dataStream: &dataStream)
         
         /// Unknown (4 bytes)
         self.unknown = try dataStream.read(endianess: .littleEndian)
@@ -66,19 +56,11 @@ internal struct RulesFooter {
         
         /// Template Directory (variable)
         dataStream.write(templateDirectory, encoding: .utf16LittleEndian)
-        
-        /// Status (4 bytes)
-        dataStream.write(rawCreationStatus, endianess: .littleEndian)
 
-        /// Creation Date (8 bytes)
-        dataStream.write(rawCreationDate, endianess: .littleEndian)
+        /// Creation Date (12 bytes)
+        creationDate.write(to: &dataStream)
 
         /// Unknown (4 bytes)
         dataStream.write(unknown, endianess: .littleEndian)
-    }
-    
-    public enum CreationStatus: UInt32 {
-        case created = 0x00000000
-        case notCreated = 0x00000002
     }
 }
