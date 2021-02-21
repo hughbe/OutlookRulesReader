@@ -16,8 +16,8 @@ public struct PerformCustomActionRuleElementData: RuleElementData {
         return baseSize
     }
 
-    public var unknown1: UInt32 = 1
-    public var unknown2: UInt32 = 0
+    public var extended: UInt32 = 1
+    public var reserved: UInt32 = 0
     public var location: String
     public var name: String
     public var options: String
@@ -31,11 +31,14 @@ public struct PerformCustomActionRuleElementData: RuleElementData {
     }
     
     public init(dataStream: inout DataStream, version: OutlookRulesVersion) throws {
-        /// Unknown1 (4 bytes)
-        self.unknown1 = try dataStream.read(endianess: .littleEndian)
+        /// Extended (4 bytes)
+        self.extended = try dataStream.read(endianess: .littleEndian)
+        guard self.extended == 0x00000001 else {
+            throw OutlookRulesReadError.corrupted
+        }
         
-        /// Unknown2 (4 bytes)
-        self.unknown2 = try dataStream.read(endianess: .littleEndian)
+        /// Reserved (4 bytes)
+        self.reserved = try dataStream.read(endianess: .littleEndian)
         
         /// Location (variable)
         if version >= .outlook2002 {
@@ -67,11 +70,11 @@ public struct PerformCustomActionRuleElementData: RuleElementData {
     }
     
     public func write(to dataStream: inout OutputDataStream) {
-        /// Unknown1 (4 bytes)
-        dataStream.write(unknown1, endianess: .littleEndian)
+        /// Extended (4 bytes)
+        dataStream.write(extended, endianess: .littleEndian)
         
-        /// Unknown2 (4 bytes)
-        dataStream.write(unknown2, endianess: .littleEndian)
+        /// Reserved (4 bytes)
+        dataStream.write(reserved, endianess: .littleEndian)
         
         /// Location (variable)
         UTF16String(value: location).write(to: &dataStream)

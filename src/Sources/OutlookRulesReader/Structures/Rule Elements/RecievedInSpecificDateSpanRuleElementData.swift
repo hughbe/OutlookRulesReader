@@ -11,19 +11,22 @@ import Foundation
 public struct RecievedInSpecificDateSpanRuleElementData: RuleElementData {
     public let dataSize: UInt32 = 12
 
-    public var unknown1: UInt32 = 1
-    public var unknown2: UInt32 = 0
+    public var extended: UInt32 = 1
+    public var reserved: UInt32 = 0
     public var includeAfterDate: Bool
     public var afterDate: OleDateTime
     public var includeBeforeDate: Bool
     public var beforeDate: OleDateTime
 
     public init(dataStream: inout DataStream, version: OutlookRulesVersion) throws {
-        /// Unknown1 (4 bytes)
-        self.unknown1 = try dataStream.read(endianess: .littleEndian)
-        
-        /// Unknown2 (4 bytes)
-        self.unknown2 = try dataStream.read(endianess: .littleEndian)
+        /// Extended (4 bytes)
+        self.extended = try dataStream.read(endianess: .littleEndian)
+        guard self.extended == 0x00000001 else {
+            throw OutlookRulesReadError.corrupted
+        }
+
+        /// Reserved (4 bytes)
+        self.reserved = try dataStream.read(endianess: .littleEndian)
         
         /// Include After Date (4 bytes)
         self.includeAfterDate = try dataStream.read(endianess: .littleEndian) as UInt32 != 0
@@ -39,11 +42,11 @@ public struct RecievedInSpecificDateSpanRuleElementData: RuleElementData {
     }
     
     public func write(to dataStream: inout OutputDataStream) {
-        /// Unknown (4 bytes)
-        dataStream.write(unknown1, endianess: .littleEndian)
+        /// Extended (4 bytes)
+        dataStream.write(extended, endianess: .littleEndian)
         
-        /// Unknown (4 bytes)
-        dataStream.write(unknown2, endianess: .littleEndian)
+        /// Reserved (4 bytes)
+        dataStream.write(reserved, endianess: .littleEndian)
         
         /// Include After Date (4 bytes)
         let includeAfterDateRaw: UInt32 = includeAfterDate ? 0x00000001 : 0x00000000

@@ -232,7 +232,7 @@ final class ImportExceptionTests: XCTestCase {
 
             let exception = file.rules[0].exceptions[0].data as! ThroughAccountRuleElementData
             XCTAssertEqual("hughbellars@gmail.com", exception.accountName)
-            XCTAssertEqual("-190692068", exception.unknown3)
+            XCTAssertEqual("-190692068", exception.unknown)
         }
         do {
             let file = try OutlookRulesFile(data: Data([
@@ -265,7 +265,7 @@ final class ImportExceptionTests: XCTestCase {
 
             let exception = file.rules[0].exceptions[0].data as! ThroughAccountRuleElementData
             XCTAssertEqual("hughbellars@gmail.com", exception.accountName)
-            XCTAssertEqual("-190692068", exception.unknown3)
+            XCTAssertEqual("-190692068", exception.unknown)
         }
     }
 

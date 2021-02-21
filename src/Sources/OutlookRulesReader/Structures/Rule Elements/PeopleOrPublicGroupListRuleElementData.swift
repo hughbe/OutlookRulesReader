@@ -16,12 +16,12 @@ public struct PeopleOrPublicGroupListRuleElementData: RuleElementData {
         return result
     }
 
-    public var unknown1: UInt32 = 1
-    public var unknown2: UInt32 = 0
+    public var extended: UInt32 = 1
+    public var reserved: UInt32 = 0
     public var numberOfValues: UInt32 = 0
     public var values: [[UInt16 : Any]] = []
-    public var unknown3: UInt32 = 1
-    public var unknown4: UInt32 = 0
+    public var unknown1: UInt32 = 1
+    public var unknown2: UInt32 = 0
 
     public init(values: [[UInt16: Any]]) {
         self.numberOfValues = UInt32(values.count)
@@ -29,11 +29,14 @@ public struct PeopleOrPublicGroupListRuleElementData: RuleElementData {
     }
 
     public init(dataStream: inout DataStream, version: OutlookRulesVersion) throws {
-        /// Unknown1 (4 bytes)
-        self.unknown1 = try dataStream.read(endianess: .littleEndian)
+        /// Extended (4 bytes)
+        self.extended = try dataStream.read(endianess: .littleEndian)
+        guard self.extended == 0x00000001 else {
+            throw OutlookRulesReadError.corrupted
+        }
         
-        /// Unknown2 (4 bytes)
-        self.unknown2 = try dataStream.read(endianess: .littleEndian)
+        /// Reserved (4 bytes)
+        self.reserved = try dataStream.read(endianess: .littleEndian)
         
         /// Number of Values (4 bytes)
         self.numberOfValues = try dataStream.read(endianess: .littleEndian)
@@ -48,11 +51,11 @@ public struct PeopleOrPublicGroupListRuleElementData: RuleElementData {
         
         self.values = values
         
-        /// Unknown3 (4 bytes)
-        self.unknown3 = try dataStream.read(endianess: .littleEndian)
+        /// Unknown1 (4 bytes)
+        self.unknown1 = try dataStream.read(endianess: .littleEndian)
         
-        /// Unknown4 (4 bytes)
-        self.unknown4 = try dataStream.read(endianess: .littleEndian)
+        /// Unknown2 (4 bytes)
+        self.unknown2 = try dataStream.read(endianess: .littleEndian)
     }
 
     public func write(to dataStream: inout OutputDataStream) {

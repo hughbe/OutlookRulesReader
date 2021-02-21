@@ -11,10 +11,10 @@ internal struct RuleHeader {
     public var signature: UInt32?
     public var name: String
     public var enabled: Bool
+    public var unknown1: UInt32 = 0
     public var unknown2: UInt32 = 0
-    public var unknown3: UInt32 = 0
+    public var unknown3: UInt32? = 0
     public var unknown4: UInt32? = 0
-    public var unknown5: UInt32? = 0
     public var dataSize: UInt32?
     public var numberOfElements: UInt16
     
@@ -44,24 +44,24 @@ internal struct RuleHeader {
         /// Enabled (4 bytes)
         self.enabled = try dataStream.read(endianess: .littleEndian) as UInt32 != 0x0000
         
+        /// Unknown1 (4 bytes)
+        self.unknown1 = try dataStream.read(endianess: .littleEndian)
+        
         /// Unknown2 (4 bytes)
         self.unknown2 = try dataStream.read(endianess: .littleEndian)
         
         /// Unknown3 (4 bytes)
-        self.unknown3 = try dataStream.read(endianess: .littleEndian)
+        if version >= .outlook98 {
+            self.unknown3 = try dataStream.read(endianess: .littleEndian)
+        } else {
+            self.unknown3 = nil
+        }
         
         /// Unknown4 (4 bytes)
-        if version >= .outlook98 {
+        if version >= .outlook2002 {
             self.unknown4 = try dataStream.read(endianess: .littleEndian)
         } else {
             self.unknown4 = nil
-        }
-        
-        /// Unknown5 (4 bytes)
-        if version >= .outlook2002 {
-            self.unknown5 = try dataStream.read(endianess: .littleEndian)
-        } else {
-            self.unknown5 = nil
         }
         
         /// Data Size (4 bytes)
@@ -124,23 +124,23 @@ internal struct RuleHeader {
         /// Enabled (4 bytes)
         dataStream.write((enabled ? 1 : 0) as UInt32, endianess: .littleEndian)
         
+        /// Unknown1 (4 bytes)
+        dataStream.write(unknown1, endianess: .littleEndian)
+        
         /// Unknown2 (4 bytes)
         dataStream.write(unknown2, endianess: .littleEndian)
         
         /// Unknown3 (4 bytes)
-        dataStream.write(unknown3, endianess: .littleEndian)
+        if let unknown3 = unknown3 {
+            dataStream.write(unknown3, endianess: .littleEndian)
+        }
         
         /// Unknown4 (4 bytes)
         if let unknown4 = unknown4 {
             dataStream.write(unknown4, endianess: .littleEndian)
         }
         
-        /// Unknown5 (4 bytes)
-        if let unknown5 = unknown5 {
-            dataStream.write(unknown5, endianess: .littleEndian)
-        }
-        
-        /// Data size (4 bytes)
+        /// Data Size (4 bytes)
         if let dataSize = dataSize {
             dataStream.write(dataSize, endianess: .littleEndian)
         }
@@ -152,7 +152,7 @@ internal struct RuleHeader {
             /// Separator (2 bytes)
             dataStream.write(0xFFFF as UInt16, endianess: .littleEndian)
             
-            /// Unknown2 (2 bytes)
+            /// Padding (2 bytes)
             dataStream.write(0 as UInt16, endianess: .littleEndian)
             
             /// Class Name Length (2 bytes)

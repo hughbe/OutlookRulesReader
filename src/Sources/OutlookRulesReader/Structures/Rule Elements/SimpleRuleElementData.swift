@@ -12,19 +12,22 @@ public struct SimpleRuleElementData: RuleElementData {
         return 4
     }
 
-    public var reserved: UInt32
+    public var extended: UInt32
     
     public init() {
-        self.reserved = 0
+        self.extended = 0
     }
     
     public init(dataStream: inout DataStream, version: OutlookRulesVersion) throws {
-        /// Reserved (4 bytes)
-        self.reserved = try dataStream.read(endianess: .littleEndian)
+        /// Extended (4 bytes)
+        self.extended = try dataStream.read(endianess: .littleEndian)
+        guard self.extended == 0x00000001 else {
+            throw OutlookRulesReadError.corrupted
+        }
     }
     
     public func write(to dataStream: inout OutputDataStream) {
-        /// Reserved (4 bytes)
-        dataStream.write(reserved, endianess: .littleEndian)
+        /// Extended (4 bytes)
+        dataStream.write(extended, endianess: .littleEndian)
     }
 }

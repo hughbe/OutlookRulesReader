@@ -15,7 +15,7 @@ public struct Form {
         return baseSize
     }
 
-    public var unknown: UInt32 = 0
+    public var reserved: UInt32 = 0
     public var name: String
     public var className: String
     
@@ -25,8 +25,8 @@ public struct Form {
     }
     
     public init(dataStream: inout DataStream, version: OutlookRulesVersion) throws {
-        /// Unknown (4 bytes)
-        self.unknown = try dataStream.read(endianess: .littleEndian)
+        /// Reserved (4 bytes)
+        self.reserved = try dataStream.read(endianess: .littleEndian)
         
         /// Name (variable)
         if version >= .outlook2002 {
@@ -40,8 +40,8 @@ public struct Form {
     }
     
     public func write(to dataStream: inout OutputDataStream) {
-        /// Unknown (4 bytes)
-        dataStream.write(unknown, endianess: .littleEndian)
+        /// Reserved (4 bytes)
+        dataStream.write(reserved, endianess: .littleEndian)
         
         /// Name (variable)
         UTF16String(value: name).write(to: &dataStream)

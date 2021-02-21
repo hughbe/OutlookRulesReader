@@ -15,40 +15,44 @@ public struct ThroughAccountRuleElementData: RuleElementData {
         return baseSize
     }
 
-    public var unknown1: UInt32 = 1
-    public var unknown2: UInt32 = 0
+    public var extended: UInt32 = 1
+    public var reserved: UInt32 = 0
     public var accountName: String
-    public var unknown3: String = "-190692068"
+    public var unknown: String
     
-    public init(accountName: String) {
+    public init(accountName: String, unknown: String) {
         self.accountName = accountName
+        self.unknown = unknown
     }
     
     public init(dataStream: inout DataStream, version: OutlookRulesVersion) throws {
-        /// Unknown1 (4 bytes)
-        self.unknown1 = try dataStream.read(endianess: .littleEndian)
+        /// Extended (4 bytes)
+        self.extended = try dataStream.read(endianess: .littleEndian)
+        guard self.extended == 0x00000001 else {
+            throw OutlookRulesReadError.corrupted
+        }
         
-        /// Unknown2 (4 bytes)
-        self.unknown2 = try dataStream.read(endianess: .littleEndian)
+        /// Reserved (4 bytes)
+        self.reserved = try dataStream.read(endianess: .littleEndian)
 
         /// Account Name (variable)
         self.accountName = try UTF16String(dataStream: &dataStream).value
         
-        /// Unknown3 (variable)
-        self.unknown3 = try ASCIIString(dataStream: &dataStream).value
+        /// Unknown (variable)
+        self.unknown = try ASCIIString(dataStream: &dataStream).value
     }
     
     public func write(to dataStream: inout OutputDataStream) {
-        /// Unknown1 (4 bytes)
-        dataStream.write(unknown1, endianess: .littleEndian)
+        /// Extended (4 bytes)
+        dataStream.write(extended, endianess: .littleEndian)
         
-        /// Unknown2 (4 bytes)
-        dataStream.write(unknown2, endianess: .littleEndian)
+        /// Reserved (4 bytes)
+        dataStream.write(reserved, endianess: .littleEndian)
         
         /// Account Name (variable)
         UTF16String(value: accountName).write(to: &dataStream)
 
-        /// Unknown3 (variable)
-        ASCIIString(value: accountName).write(to: &dataStream)
+        /// Unknown (variable)
+        ASCIIString(value: unknown).write(to: &dataStream)
     }
 }

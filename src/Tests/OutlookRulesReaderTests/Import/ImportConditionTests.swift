@@ -221,7 +221,7 @@ final class ImportConditionTests: XCTestCase {
 
             let condition = file.rules[0].conditions[0].data as! ThroughAccountRuleElementData
             XCTAssertEqual("hughbellars@gmail.com", condition.accountName)
-            XCTAssertEqual("-190692068", condition.unknown3)
+            XCTAssertEqual("-190692068", condition.unknown)
             XCTAssertTrue(file.rules[0].conditions[1].data is OnThisComputerOnlyRuleElementData)
         }
     }
