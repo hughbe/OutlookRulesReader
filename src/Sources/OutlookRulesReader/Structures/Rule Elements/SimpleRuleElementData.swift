@@ -21,7 +21,7 @@ public struct SimpleRuleElementData: RuleElementData {
     public init(dataStream: inout DataStream, version: OutlookRulesVersion) throws {
         /// Extended (4 bytes)
         self.extended = try dataStream.read(endianess: .littleEndian)
-        guard self.extended == 0x00000001 else {
+        guard self.extended == 0x00000000 else {
             throw OutlookRulesReadError.corrupted
         }
     }

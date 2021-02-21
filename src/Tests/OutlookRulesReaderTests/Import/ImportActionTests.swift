@@ -444,7 +444,7 @@ final class ImportActionTests: XCTestCase {
             XCTAssertEqual(0, file.rules[0].exceptions.count)
 
             let action = file.rules[0].actions[0].data as! AutomaticReplyRuleElementData
-            XCTAssertEqual(.privateMessage, action.messageEntryId.messageType)
+            XCTAssertEqual(.privateMessage, (action.messageEntryId as! MessageEntryID).messageType)
             XCTAssertEqual("[No Subject]", action.name)
         }
     }

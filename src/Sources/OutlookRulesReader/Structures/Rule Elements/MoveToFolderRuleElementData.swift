@@ -11,25 +11,21 @@ import MAPI
 public struct MoveToFolderRuleElementData: RuleElementData {
     public var dataSize: UInt32 {
         var baseSize: UInt32 = 8
-        baseSize += 4 + UInt32(folderEntryId.dataSize)
-        baseSize += 4 + UInt32(storeEntryId.dataSize)
+        baseSize += UInt32(FlatEntry(entryID: folderEntryId).dataSize)
+        baseSize += UInt32(FlatEntry(entryID: storeEntryId).dataSize)
         baseSize += UTF16String(value: folderName).dataSize
         return baseSize
     }
 
     public var extended: UInt32 = 1
     public var reserved: UInt32 = 0
-    public var folderEntryIdSize: UInt32
     public var folderEntryId: EntryID
-    public var storeEntryIdSize: UInt32
-    public var storeEntryId: StoreEntryID
+    public var storeEntryId: EntryID
     public var folderName: String
     public var unknown: UInt32? = 0
     
     public init(folderEntryId: FolderEntryID, storeEntryId: StoreEntryID, folderName: String) {
-        self.folderEntryIdSize = UInt32(folderEntryId.dataSize)
         self.folderEntryId = folderEntryId
-        self.storeEntryIdSize = UInt32(storeEntryId.dataSize)
         self.storeEntryId = storeEntryId
         self.folderName = folderName
     }
@@ -43,36 +39,12 @@ public struct MoveToFolderRuleElementData: RuleElementData {
         
         /// Reserved (4 bytes)
         self.reserved = try dataStream.read(endianess: .littleEndian)
-        
-        /// Folder Entry Id Size (4 bytes)
-        self.folderEntryIdSize = try dataStream.read(endianess: .littleEndian)
-        guard self.folderEntryIdSize <= dataStream.remainingCount else {
-            throw OutlookRulesReadError.corrupted
-        }
-        
-        let folderEntryIdStartPosition = dataStream.position
-        
+
         /// Folder Entry Id (variable)
-        self.folderEntryId = try getEntryID(dataStream: &dataStream, size: Int(self.folderEntryIdSize))
+        self.folderEntryId = try FlatEntry(dataStream: &dataStream).entryID
         
-        guard dataStream.position - folderEntryIdStartPosition == self.folderEntryIdSize else {
-            throw OutlookRulesReadError.corrupted
-        }
-        
-        /// Store Entry Id Size (4 bytes)
-        self.storeEntryIdSize = try dataStream.read(endianess: .littleEndian)
-        guard self.storeEntryIdSize <= dataStream.remainingCount else {
-            throw OutlookRulesReadError.corrupted
-        }
-        
-        let storeEntryIdStartPosition = dataStream.position
-        
-        /// Store EntryId (variable)
-        self.storeEntryId = try StoreEntryID(dataStream: &dataStream, size: Int(self.storeEntryIdSize))
-        
-        guard dataStream.position - storeEntryIdStartPosition == self.storeEntryIdSize else {
-            throw OutlookRulesReadError.corrupted
-        }
+        /// Store Entry Id (variable)
+        self.storeEntryId = try FlatEntry(dataStream: &dataStream).entryID
 
         /// Folder Name (variable)
         if version >= .outlook2002 {
@@ -96,17 +68,11 @@ public struct MoveToFolderRuleElementData: RuleElementData {
         /// Reserved (4 bytes)
         dataStream.write(reserved, endianess: .littleEndian)
         
-        /// Folder Entry Id Size (4 bytes)
-        dataStream.write(folderEntryIdSize, endianess: .littleEndian)
+        /// Folder Entry Id (Variable)
+        FlatEntry(entryID: folderEntryId).write(to: &dataStream)
         
-        /// Folder Entry Id (variable)
-        folderEntryId.write(to: &dataStream)
-        
-        /// Store Entry Id Size (4 bytes)
-        dataStream.write(storeEntryIdSize, endianess: .littleEndian)
-        
-        /// Store Id (variable)
-        storeEntryId.write(to: &dataStream)
+        /// Store Entry Id (4 bytes)
+        FlatEntry(entryID: storeEntryId).write(to: &dataStream)
         
         /// Folder Name (variable)
         UTF16String(value: folderName).write(to: &dataStream)
