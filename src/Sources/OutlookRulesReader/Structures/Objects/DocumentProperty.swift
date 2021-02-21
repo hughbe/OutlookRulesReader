@@ -1,5 +1,5 @@
 //
-//  File.swift
+//  DocumentProperty.swift
 //  
 //
 //  Created by Hugh Bellamy on 03/02/2021.
@@ -26,18 +26,21 @@ public struct DocumentProperty {
     public var numberMatchType: DocumentPropertyNumberMatchType {
         return DocumentPropertyNumberMatchType(rawValue: rawNumberMatchType)!
     }
-    public var unknown1: UInt32 = 0
-    public var numberValue: Int32
+    public var numberValue1: Int32
+    public var numberValue2: Int32
 
-    public var boolValue: UInt32
+    public var rawBoolMatchType: UInt32
+    public var boolMatchType: DocumentPropertyBoolMatchType {
+        return DocumentPropertyBoolMatchType(rawValue: rawBoolMatchType)!
+    }
     
-    public var unknown2: UInt32 = 1
+    public var unknown1: UInt32 = 1
     public var rawDateMatchType: UInt32
     public var dateMatchType: DocumentPropertyDateMatchType {
         return DocumentPropertyDateMatchType(rawValue: rawDateMatchType)!
     }
     public var dateValue: OleDateTime
-    public var unknown3: UInt32 = 0
+    public var unknown2: UInt32 = 0
 
     public init(field: String, tag: PropertyTag, matchType: DocumentPropertyStringMatchType, stringValue: String) {
         self.field = field
@@ -46,8 +49,9 @@ public struct DocumentProperty {
         self.stringValue = stringValue
         
         self.rawNumberMatchType = 0
-        self.numberValue = 0
-        self.boolValue = 0
+        self.numberValue1 = 0
+        self.numberValue2 = 0
+        self.rawBoolMatchType = 0
         self.rawDateMatchType = 0
         self.dateValue = OleDateTime()
     }
@@ -56,11 +60,12 @@ public struct DocumentProperty {
         self.field = field
         self.tag = tag
         self.rawNumberMatchType = matchType.rawValue
-        self.numberValue = numberValue
+        self.numberValue2 = numberValue
         
         self.rawStringMatchType = 0
         self.stringValue = ""
-        self.boolValue = 0
+        self.numberValue1 = numberValue
+        self.rawBoolMatchType = 0
         self.rawDateMatchType = 0
         self.dateValue = OleDateTime()
     }
@@ -68,12 +73,13 @@ public struct DocumentProperty {
     public init(field: String, tag: PropertyTag, matchType: DocumentPropertyNumberMatchType, boolValue: Bool) {
         self.field = field
         self.tag = tag
-        self.boolValue = boolValue ? 0 : 1 // Inverted
+        self.rawBoolMatchType = boolValue ? 0 : 1 // Inverted
         
         self.rawStringMatchType = 0
         self.stringValue = ""
         self.rawNumberMatchType = 0
-        self.numberValue = 0
+        self.numberValue1 = 0
+        self.numberValue2 = 0
         self.rawDateMatchType = 0
         self.dateValue = OleDateTime()
     }
@@ -102,17 +108,17 @@ public struct DocumentProperty {
         /// Number Match Type (4 bytes)
         self.rawNumberMatchType = try dataStream.read(endianess: .littleEndian)
         
+        /// Number Value 1 (4 bytes)
+        self.numberValue1 = try dataStream.read(endianess: .littleEndian)
+        
+        /// Number Value 2 (4 bytes)
+        self.numberValue2 = try dataStream.read(endianess: .littleEndian)
+        
+        /// Bool Match Type (4 bytes)
+        self.rawBoolMatchType = try dataStream.read(endianess: .littleEndian)
+        
         /// Unknown1 (4 bytes)
         self.unknown1 = try dataStream.read(endianess: .littleEndian)
-        
-        /// Number Value (4 bytes)
-        self.numberValue = try dataStream.read(endianess: .littleEndian)
-        
-        /// Bool Value (4 bytes)
-        self.boolValue = try dataStream.read(endianess: .littleEndian)
-        
-        /// Unknown2 (4 bytes)
-        self.unknown2 = try dataStream.read(endianess: .littleEndian)
         
         /// Date Match Type (4 bytes)
         self.rawDateMatchType = try dataStream.read(endianess: .littleEndian)
@@ -120,8 +126,8 @@ public struct DocumentProperty {
         /// Date Value (12 bytes)
         self.dateValue = try OleDateTime(dataStream: &dataStream)
         
-        /// Unknown3 (4 bytes)
-        self.unknown3 = try dataStream.read(endianess: .littleEndian)
+        /// Unknown2 (4 bytes)
+        self.unknown2 = try dataStream.read(endianess: .littleEndian)
     }
     
     public func write(to dataStream: inout OutputDataStream) {
@@ -140,17 +146,17 @@ public struct DocumentProperty {
         /// Number Match Type (4 bytes)
         dataStream.write(rawNumberMatchType, endianess: .littleEndian)
         
+        /// Number Value 1 (4 bytes)
+        dataStream.write(numberValue1, endianess: .littleEndian)
+        
+        /// Number Value 2 (4 bytes)
+        dataStream.write(numberValue2, endianess: .littleEndian)
+        
+        /// Bool Match Type (4 bytes)
+        dataStream.write(rawBoolMatchType, endianess: .littleEndian)
+        
         /// Unknown1 (4 bytes)
         dataStream.write(unknown1, endianess: .littleEndian)
-        
-        /// Number Value (4 bytes)
-        dataStream.write(numberValue, endianess: .littleEndian)
-        
-        /// Bool Value (4 bytes)
-        dataStream.write(boolValue, endianess: .littleEndian)
-        
-        /// Unknown2 (4 bytes)
-        dataStream.write(unknown2, endianess: .littleEndian)
         
         /// Date Match Type (4 bytes)
         dataStream.write(rawDateMatchType, endianess: .littleEndian)
@@ -158,7 +164,7 @@ public struct DocumentProperty {
         /// Date Value (12 bytes)
         dateValue.write(to: &dataStream)
         
-        /// Unknown3 (4 bytes)
-        dataStream.write(unknown3, endianess: .littleEndian)
+        /// Unknown2 (4 bytes)
+        dataStream.write(unknown2, endianess: .littleEndian)
     }
 }

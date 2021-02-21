@@ -125,6 +125,7 @@ public enum RuleElementIdentifier: UInt32 {
     case replyUsingTemplateAction = 0x0000012F
     
     /// “display <a specific message> in the New Item Alert window”
+    /// Outlook 98: "notify me using %s"
     case displayMessageInNewItemAlertWindowAction = 0x00000130
     
     /// "flag message for <action in a number of days>"
