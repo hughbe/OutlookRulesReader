@@ -22,7 +22,7 @@ public struct MoveToFolderRuleElementData: RuleElementData {
     public var folderEntryId: EntryID
     public var storeEntryId: EntryID
     public var folderName: String
-    public var unknown: UInt32? = 0
+    public var secondaryUserStore: Bool? = false
     
     public init(folderEntryId: FolderEntryID, storeEntryId: StoreEntryID, folderName: String) {
         self.folderEntryId = folderEntryId
@@ -54,10 +54,10 @@ public struct MoveToFolderRuleElementData: RuleElementData {
         }
         
         if version != .noSignature {
-            /// Unknown (4 bytes)
-            self.unknown = try dataStream.read(endianess: .littleEndian)
+            /// Secondary User Store (4 bytes)
+            self.secondaryUserStore = (try dataStream.read(endianess: .littleEndian) as UInt32) != 0
         } else {
-            self.unknown = nil
+            self.secondaryUserStore = nil
         }
     }
     
@@ -77,9 +77,9 @@ public struct MoveToFolderRuleElementData: RuleElementData {
         /// Folder Name (variable)
         UTF16String(value: folderName).write(to: &dataStream)
         
-        if let unknown = unknown {
-            /// Unknown (4 bytes)
-            dataStream.write(unknown, endianess: .littleEndian)
+        if let secondaryUserStore = secondaryUserStore {
+            /// Secondary User Store (4 bytes)
+            dataStream.write((secondaryUserStore ? 1 : 0) as UInt32, endianess: .littleEndian)
         }
     }
 }
