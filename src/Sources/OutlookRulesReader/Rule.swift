@@ -118,6 +118,8 @@ public struct Rule: CustomDebugStringConvertible {
                 try addCondition(type: SendersListRuleElementData.self)
             case .adultCondition: // 0x00EC
                 try addCondition(type: SendersListRuleElementData.self)
+            case .relevanceInSpecificRangeCondition: // 0x00EE
+                try addCondition(type: RelevanceInSpecificRangeRuleElementData.self)
             case .throughSpecifiedAccountCondition: // 0x00EE
                 try addCondition(type: ThroughAccountRuleElementData.self)
             case .onThisComputerOnlyCondition: // 0x00EF
@@ -172,6 +174,8 @@ public struct Rule: CustomDebugStringConvertible {
                 try addAction(type: SimpleRuleElementData.self)
             case .redirectAction: // 0x0143
                 try addAction(type: PeopleOrPublicGroupListRuleElementData.self)
+            case .addToRelevanceAction: // 0x0145
+                try addAction(type: AddToRelevanceRuleElementData.self)
             case .automaticReply: // 0x0146
                 try addAction(type: AutomaticReplyRuleElementData.self)
             case .forwardAsAttachmentAction: // 0x0147

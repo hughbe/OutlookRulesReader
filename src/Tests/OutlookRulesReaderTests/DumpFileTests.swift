@@ -298,6 +298,13 @@ final class DumpFileTests: XCTestCase {
         files.append(("Outlook2007_WithSelectedPropertiesOfDocumentsOrForms_2002", "rwz"))
         files.append(("Outlook2007_WithSelectedPropertiesOfDocumentsOrForms_Default", "rwz"))
         
+        /// Outlook 2007: with a relevance <in a specific range>
+        /// Note: this is hidden in Outlook by default. Requires the registry key "Computer\HKEY_CURRENT_USER\SOFTWARE\Microsoft\Office\8.0\Outlook\Relevance" to exist
+        files.append(("Outlook2007_RelevanceInSpecificRange_98", "rwz"))
+        files.append(("Outlook2007_RelevanceInSpecificRange_2000", "rwz"))
+        files.append(("Outlook2007_RelevanceInSpecificRange_2002", "rwz"))
+        files.append(("Outlook2007_RelevanceInSpecificRange_Default", "rwz"))
+        
         /// Outlook 2019: “sender is in <specified> Address Book”
         /// Outlook 2007: “sender is in <specified> Address Book”
         files.append(("Outlook2007_SenderInAddressBook_98", "rwz"))
@@ -527,6 +534,13 @@ final class DumpFileTests: XCTestCase {
         files.append(("Outlook2007_DisplaySpecificMessageInNewItemAlertWindow_2000", "rwz"))
         files.append(("Outlook2007_DisplaySpecificMessageInNewItemAlertWindow_2002", "rwz"))
         files.append(("Outlook2007_DisplaySpecificMessageInNewItemAlertWindow_Default", "rwz"))
+        
+        /// Outlook 2007: add <number> to relevance
+        /// Note: this is hidden in Outlook by default. Requires the registry key "Computer\HKEY_CURRENT_USER\SOFTWARE\Microsoft\Office\8.0\Outlook\Relevance" to exist
+        files.append(("Outlook2007_AddToRelevance_98", "rwz"))
+        files.append(("Outlook2007_AddToRelevance_2000", "rwz"))
+        files.append(("Outlook2007_AddToRelevance_2002", "rwz"))
+        files.append(("Outlook2007_AddToRelevance_Default", "rwz"))
         
         /// Outlook 2019: display a Desktop alert
         /// Outlook 2007: display a Desktop alert 

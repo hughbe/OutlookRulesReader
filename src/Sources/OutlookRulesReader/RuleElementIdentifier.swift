@@ -90,6 +90,10 @@ public enum RuleElementIdentifier: UInt32 {
     /// Note: this has been removed in Outlook 2003
     case adultCondition = 0x000000EC
     
+    /// "with a relevance <in a specific range>"
+    /// Note: this is hidden in Outlook by default. Requires the registry key "Computer\HKEY_CURRENT_USER\SOFTWARE\Microsoft\Office\8.0\Outlook\Relevance" to exist
+    case relevanceInSpecificRangeCondition = 0x000000ED
+    
     /// “through the <specified> account”
     case throughSpecifiedAccountCondition = 0x000000EE
     
@@ -171,6 +175,10 @@ public enum RuleElementIdentifier: UInt32 {
     /// "redirect it to <people or public group>"
     case redirectAction = 0x00000144
     
+    /// "add <number> to relevance"
+    /// Note: this is hidden in Outlook by default. Requires the registry key "Computer\HKEY_CURRENT_USER\SOFTWARE\Microsoft\Office\8.0\Outlook\Relevance" to exist
+    case addToRelevanceAction = 0x00000145
+    
     /// “have server reply using <a specific message>”
     case automaticReply = 0x00000146
     
@@ -181,7 +189,7 @@ public enum RuleElementIdentifier: UInt32 {
     case printAction = 0x00000148
 
     /// “start <application>”
-    /// Note: this has been hidden in Outlook 2016
+    /// Note: this is hidden in Outlook 2016
     case startApplicationAction = 0x00000149
 
     /// “permanently delete it”
