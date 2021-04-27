@@ -1,5 +1,5 @@
 //
-//  RecievedInSpecificDateSpanRuleElementData.swift
+//  ReceivedInSpecificDateSpanRuleElementData.swift
 //  
 //
 //  Created by Hugh Bellamy on 08/08/2020.
@@ -8,7 +8,7 @@
 import DataStream
 import Foundation
 
-public struct RecievedInSpecificDateSpanRuleElementData: RuleElementData {
+public struct ReceivedInSpecificDateSpanRuleElementData: RuleElementData {
     public let dataSize: UInt32 = 12
 
     public var extended: UInt32 = 1

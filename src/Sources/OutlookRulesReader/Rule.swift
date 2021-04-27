@@ -101,7 +101,7 @@ public struct Rule: CustomDebugStringConvertible {
             case .sizeInSpecificRangeCondition: // 0x00E0
                 try addCondition(type: SizeInSpecificRangeRuleElementData.self)
             case .receivedInSpecificDateSpanCondition: // 0x00E1
-                try addCondition(type: RecievedInSpecificDateSpanRuleElementData.self)
+                try addCondition(type: ReceivedInSpecificDateSpanRuleElementData.self)
             case .nameInCcBoxCondition: // 0x00E2
                 try addCondition(type: SimpleRuleElementData.self)
             case .nameInToOrCcBoxCondition: // 0x00E3
@@ -118,7 +118,7 @@ public struct Rule: CustomDebugStringConvertible {
                 try addCondition(type: SendersListRuleElementData.self)
             case .adultCondition: // 0x00EC
                 try addCondition(type: SendersListRuleElementData.self)
-            case .relevanceInSpecificRangeCondition: // 0x00EE
+            case .relevanceInSpecificRangeCondition: // 0x00ED
                 try addCondition(type: RelevanceInSpecificRangeRuleElementData.self)
             case .throughSpecifiedAccountCondition: // 0x00EE
                 try addCondition(type: ThroughAccountRuleElementData.self)
@@ -233,7 +233,7 @@ public struct Rule: CustomDebugStringConvertible {
             case .sizeInSpecificRangeException: // 0x020C
                 try addException(type: SizeInSpecificRangeRuleElementData.self)
             case .receivedInSpecificDateSpanException: // 0x020D
-                try addException(type: RecievedInSpecificDateSpanRuleElementData.self)
+                try addException(type: ReceivedInSpecificDateSpanRuleElementData.self)
             case .nameInCcBoxException: // 0x020E
                 try addException(type: SimpleRuleElementData.self)
             case .nameInToOrCcBoxException: // 0x020F
