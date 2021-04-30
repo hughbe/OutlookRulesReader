@@ -1340,9 +1340,9 @@ final class ImportExceptionTests: XCTestCase {
             XCTAssertEqual(0, file.rules[0].actions.count)
             XCTAssertEqual(1, file.rules[0].exceptions.count)
             XCTAssertEqual(.receivedInSpecificDateSpanException, file.rules[0].exceptions[0].identifier)
-            XCTAssertTrue(file.rules[0].exceptions[0].data is RecievedInSpecificDateSpanRuleElementData)
+            XCTAssertTrue(file.rules[0].exceptions[0].data is ReceivedInSpecificDateSpanRuleElementData)
             
-            let exception = file.rules[0].exceptions[0].data as! RecievedInSpecificDateSpanRuleElementData
+            let exception = file.rules[0].exceptions[0].data as! ReceivedInSpecificDateSpanRuleElementData
             XCTAssertTrue(exception.includeAfterDate)
             XCTAssertEqual(calendar.date(from: DateComponents(timeZone: timeZone, year: 2020, month: 08, day: 08, hour: 23, minute: 59, second: 0)), exception.afterDate.date)
             XCTAssertFalse(exception.includeBeforeDate)
@@ -1370,9 +1370,9 @@ final class ImportExceptionTests: XCTestCase {
             XCTAssertEqual(0, file.rules[0].actions.count)
             XCTAssertEqual(1, file.rules[0].exceptions.count)
             XCTAssertEqual(.receivedInSpecificDateSpanException, file.rules[0].exceptions[0].identifier)
-            XCTAssertTrue(file.rules[0].exceptions[0].data is RecievedInSpecificDateSpanRuleElementData)
+            XCTAssertTrue(file.rules[0].exceptions[0].data is ReceivedInSpecificDateSpanRuleElementData)
             
-            let exception = file.rules[0].exceptions[0].data as! RecievedInSpecificDateSpanRuleElementData
+            let exception = file.rules[0].exceptions[0].data as! ReceivedInSpecificDateSpanRuleElementData
             XCTAssertFalse(exception.includeAfterDate)
             XCTAssertEqual(calendar.date(from: DateComponents(timeZone: timeZone, year: 2020, month: 08, day: 09, hour: 23, minute: 59, second: 0)), exception.afterDate.date)
             XCTAssertTrue(exception.includeBeforeDate)
@@ -1400,10 +1400,10 @@ final class ImportExceptionTests: XCTestCase {
             XCTAssertEqual(0, file.rules[0].actions.count)
             XCTAssertEqual(1, file.rules[0].exceptions.count)
             XCTAssertEqual(.receivedInSpecificDateSpanException, file.rules[0].exceptions[0].identifier)
-            XCTAssertTrue(file.rules[0].exceptions[0].data is RecievedInSpecificDateSpanRuleElementData)
+            XCTAssertTrue(file.rules[0].exceptions[0].data is ReceivedInSpecificDateSpanRuleElementData)
             
             let calendar = Calendar(identifier: .gregorian)
-            let exception = file.rules[0].exceptions[0].data as! RecievedInSpecificDateSpanRuleElementData
+            let exception = file.rules[0].exceptions[0].data as! ReceivedInSpecificDateSpanRuleElementData
             XCTAssertTrue(exception.includeAfterDate)
             XCTAssertEqual(calendar.date(from: DateComponents(timeZone: timeZone, year: 2020, month: 08, day: 02, hour: 23, minute: 59, second: 0)), exception.afterDate.date)
             XCTAssertTrue(exception.includeBeforeDate)

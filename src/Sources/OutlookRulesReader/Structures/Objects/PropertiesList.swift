@@ -111,6 +111,8 @@ internal struct PropertiesList {
                 
                 dataStream.position = position
                 break
+            case PropertyType.boolean:
+                value = UInt16(header.data2) != 0
             default:
                 fatalError("NYI: \(header.tag.type.stringRepresentation)")
             }
