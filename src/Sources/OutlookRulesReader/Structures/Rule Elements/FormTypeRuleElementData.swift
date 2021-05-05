@@ -7,7 +7,7 @@
 
 import DataStream
 
-public struct UsesFormRuleElementData: RuleElementData {
+public struct FormTypeRuleElementData: RuleElementData {
     public var dataSize: UInt32 {
         var baseSize: UInt32 = 4
         for form in forms {

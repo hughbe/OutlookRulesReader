@@ -1436,9 +1436,9 @@ final class ImportExceptionTests: XCTestCase {
             XCTAssertEqual(0, file.rules[0].actions.count)
             XCTAssertEqual(1, file.rules[0].exceptions.count)
             XCTAssertEqual(.usesFormException, file.rules[0].exceptions[0].identifier)
-            XCTAssertTrue(file.rules[0].exceptions[0].data is UsesFormRuleElementData)
+            XCTAssertTrue(file.rules[0].exceptions[0].data is FormTypeRuleElementData)
             
-            let exception = file.rules[0].exceptions[0].data as! UsesFormRuleElementData
+            let exception = file.rules[0].exceptions[0].data as! FormTypeRuleElementData
             XCTAssertEqual(1, exception.numberOfForms)
             XCTAssertEqual("Accept Meeting Response", exception.forms[0].name)
             XCTAssertEqual("IPM.Schedule.Meeting.Resp.Pos", exception.forms[0].className)
@@ -1471,9 +1471,9 @@ final class ImportExceptionTests: XCTestCase {
             XCTAssertEqual(0, file.rules[0].actions.count)
             XCTAssertEqual(1, file.rules[0].exceptions.count)
             XCTAssertEqual(.usesFormException, file.rules[0].exceptions[0].identifier)
-            XCTAssertTrue(file.rules[0].exceptions[0].data is UsesFormRuleElementData)
+            XCTAssertTrue(file.rules[0].exceptions[0].data is FormTypeRuleElementData)
             
-            let exception = file.rules[0].exceptions[0].data as! UsesFormRuleElementData
+            let exception = file.rules[0].exceptions[0].data as! FormTypeRuleElementData
             XCTAssertEqual(2, exception.numberOfForms)
             XCTAssertEqual("Accept Meeting Response", exception.forms[0].name)
             XCTAssertEqual("IPM.Schedule.Meeting.Resp.Pos", exception.forms[0].className)
@@ -2206,6 +2206,40 @@ final class ImportExceptionTests: XCTestCase {
             XCTAssertTrue(file.rules[0].exceptions[0].data is SimpleRuleElementData)
         }
     }
+    
+    func testSpecificInfoPathFormException() throws {
+        do {
+            let file = try OutlookRulesFile(data: Data([
+                0x80, 0x4f, 0x12, 0x00, 0x80, 0x4f, 0x12, 0x05, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                0x01, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x80, 0x4f,
+                0x12, 0x00, 0x09, 0x54, 0x00, 0x65, 0x00, 0x6d, 0x00, 0x70, 0x00, 0x6c, 0x00, 0x61, 0x00, 0x74,
+                0x00, 0x65, 0x00, 0x33, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x8a, 0x00, 0x00, 0x00, 0x03, 0x00, 0xff,
+                0xff, 0x00, 0x00, 0x0c, 0x00, 0x43, 0x52, 0x75, 0x6c, 0x65, 0x45, 0x6c, 0x65, 0x6d, 0x65, 0x6e,
+                0x74, 0x90, 0x01, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00,
+                0x00, 0x01, 0x80, 0x64, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01,
+                0x00, 0x00, 0x00, 0x01, 0x80, 0x18, 0x02, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                0x00, 0x09, 0x54, 0x00, 0x65, 0x00, 0x6d, 0x00, 0x70, 0x00, 0x6c, 0x00, 0x61, 0x00, 0x74, 0x00,
+                0x65, 0x00, 0x33, 0x00, 0x32, 0x49, 0x50, 0x4d, 0x2e, 0x49, 0x6e, 0x66, 0x6f, 0x50, 0x61, 0x74,
+                0x68, 0x46, 0x6f, 0x72, 0x6d, 0x2e, 0x32, 0x35, 0x62, 0x63, 0x64, 0x34, 0x64, 0x30, 0x61, 0x30,
+                0x39, 0x35, 0x33, 0x36, 0x31, 0x32, 0x24, 0x37, 0x35, 0x39, 0x66, 0x37, 0x35, 0x30, 0x33, 0x66,
+                0x30, 0x37, 0x34, 0x36, 0x63, 0x63, 0x31, 0x00, 0x00, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00, 0x00,
+                0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+            ]))
+            XCTAssertEqual(1, file.rules.count)
+            XCTAssertEqual(0, file.rules[0].conditions.count)
+            XCTAssertEqual(0, file.rules[0].actions.count)
+            XCTAssertEqual(1, file.rules[0].exceptions.count)
+            XCTAssertEqual(.specificInfoPathFormException, file.rules[0].exceptions[0].identifier)
+            XCTAssertTrue(file.rules[0].exceptions[0].data is FormTypeRuleElementData)
+            
+            let condition = file.rules[0].exceptions[0].data as! FormTypeRuleElementData
+            XCTAssertEqual(1, condition.numberOfForms)
+            XCTAssertEqual("Template3", condition.forms[0].name)
+            XCTAssertEqual("IPM.InfoPathForm.25bcd4d0a0953612$759f7503f0746cc1", condition.forms[0].className)
+        }
+    }
 
     func testMultipleExceptions() throws {
         do {
@@ -2270,6 +2304,7 @@ final class ImportExceptionTests: XCTestCase {
         ("testWhichIsMeetingInvitationOrUpdateException", testWhichIsMeetingInvitationOrUpdateException),
         ("testFromRSSFeedsWithSpecifiedTextInTitleException", testFromRSSFeedsWithSpecifiedTextInTitleException),
         ("testFromAnyRSSFeedException", testFromAnyRSSFeedException),
+        ("testSpecificInfoPathFormException", testSpecificInfoPathFormException),
         ("testMultipleExceptions", testMultipleExceptions),
     ]
 }

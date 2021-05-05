@@ -107,7 +107,7 @@ public struct Rule: CustomDebugStringConvertible {
             case .nameInToOrCcBoxCondition: // 0x00E3
                 try addCondition(type: SimpleRuleElementData.self)
             case .usesFormCondition: // 0x00E4
-                try addCondition(type: UsesFormRuleElementData.self)
+                try addCondition(type: FormTypeRuleElementData.self)
             case .specificWordsInRecipientsAddressCondition: // 0x00E5
                 try addCondition(type: StringsListRuleElementData.self)
             case .specificWordsInSendersAddressCondition: // 0x00E6
@@ -128,6 +128,8 @@ public struct Rule: CustomDebugStringConvertible {
                 try addCondition(type: SenderInSpecifiedAddressBookRuleElementData.self)
             case .whichIsAMeetingInvitationOrInviteCondition: // 0x00F1
                 try addCondition(type: SimpleRuleElementData.self)
+            case .specificInfoPathFormCondition: // 0x00F4
+                try addCondition(type: FormTypeRuleElementData.self)
             case .fromRSSFeedsWithSpecifiedTextInTitleCondition: // 0x00F5
                 try addCondition(type: StringsListRuleElementData.self)
             case .assignedToAnyCategoryCondition: // 0x00F6
@@ -239,7 +241,7 @@ public struct Rule: CustomDebugStringConvertible {
             case .nameInToOrCcBoxException: // 0x020F
                 try addException(type: SimpleRuleElementData.self)
             case .usesFormException: // 0x0210
-                try addException(type: UsesFormRuleElementData.self)
+                try addException(type: FormTypeRuleElementData.self)
             case .specificWordsInRecipientsAddressException: // 0x0211
                 try addException(type: StringsListRuleElementData.self)
             case .specificWordsInSendersAddressException: // 0x0212
@@ -250,8 +252,10 @@ public struct Rule: CustomDebugStringConvertible {
                 try addException(type: ThroughAccountRuleElementData.self)
             case .senderInSpecifiedAddressBookException: // 0x0215
                 try addException(type: SenderInSpecifiedAddressBookRuleElementData.self)
-            case .whichIsAMeetingInvitationOrInviteException: // 0x216
+            case .whichIsAMeetingInvitationOrInviteException: // 0x0216
                 try addException(type: SimpleRuleElementData.self)
+            case .specificInfoPathFormException: // 0x0218
+                try addException(type: FormTypeRuleElementData.self)
             case .fromRSSFeedsWithSpecifiedTextInTitleException: // 0x0219
                 try addException(type: StringsListRuleElementData.self)
             case .assignedToAnyCategoryException: // 0x021A

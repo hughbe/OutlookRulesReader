@@ -98,6 +98,7 @@ public enum RuleElementIdentifier: UInt32 {
     case throughSpecifiedAccountCondition = 0x000000EE
     
     /// “on this computer only”
+    /// Outlook 2007: "on this machine only"
     /// Outlook 2003: "on this machine only"
     case onThisComputerOnlyCondition = 0x000000EF
     
@@ -106,6 +107,10 @@ public enum RuleElementIdentifier: UInt32 {
     
     /// “which is a meeting invitation or update”
     case whichIsAMeetingInvitationOrInviteCondition = 0x000000F1
+    
+    /// “of the <specific> form type"
+    /// Note: this requires Microsoft InfoPath to be installed to be creatable
+    case specificInfoPathFormCondition = 0x000000F4
     
     /// “from RSS feeds with <specified text> in the title”
     case fromRSSFeedsWithSpecifiedTextInTitleCondition = 0x000000F5
@@ -292,6 +297,10 @@ public enum RuleElementIdentifier: UInt32 {
     
     /// “except if it is a meeting invitation or update”
     case whichIsAMeetingInvitationOrInviteException = 0x00000216
+    
+    /// “except if it is of the <specific> form type"
+    /// Note: this requires Microsoft InfoPath to be installed to be creatable
+    case specificInfoPathFormException = 0x00000218
     
     /// “except if it is from RSS Feeds with <specified text> in the title”
     case fromRSSFeedsWithSpecifiedTextInTitleException = 0x00000219

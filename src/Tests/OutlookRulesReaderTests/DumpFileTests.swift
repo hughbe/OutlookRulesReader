@@ -4,7 +4,7 @@ import XCTest
 final class DumpFileTests: XCTestCase {
     func testDumpRwz() throws {
         var files: [(String, String)] = []
-        
+
         // Empty
         files.append(("Outlook97_EmptyRule", "rwz"))
         files.append(("Outlook2000_EmptyRule_98", "rwz"))
@@ -341,6 +341,13 @@ final class DumpFileTests: XCTestCase {
         files.append(("Outlook2007_OnThisMachineOnly_2002", "rwz"))
         files.append(("Outlook2007_OnThisMachineOnly_Default", "rwz"))
         
+        /// Outlook 2007: of the <specific> form type
+        /// Note: this requires Microsoft InfoPath to be installed to be creatable.
+        files.append(("Outlook2007_SpecificInfoPathForm_98", "rwz"))
+        files.append(("Outlook2007_SpecificInfoPathForm_2000", "rwz"))
+        files.append(("Outlook2007_SpecificInfoPathForm_2002", "rwz"))
+        files.append(("Outlook2007_SpecificInfoPathForm_Default", "rwz"))
+        
         /// Outlook 98: suspected to be junk-email or from <Junk Senders>
         files.append(("Outlook98_Junk", "rwz"))
         
@@ -576,6 +583,13 @@ final class DumpFileTests: XCTestCase {
 
         // Exceptions
         files.append(("FormsException", "rwz"))
+        
+        /// Outlook 2007: except if it is of the <specific> form type
+        files.append(("Outlook2007_ExceptSpecificInfoPathForm_98", "rwz"))
+        files.append(("Outlook2007_ExceptSpecificInfoPathForm_2000", "rwz"))
+        files.append(("Outlook2007_ExceptSpecificInfoPathForm_2002", "rwz"))
+        files.append(("Outlook2007_ExceptSpecificInfoPathForm_Default", "rwz"))
+        
         for (name, fileExtension) in files {
             let data = try getData(name: name, fileExtension: fileExtension)
             let rules = try OutlookRulesFile(data: data)
