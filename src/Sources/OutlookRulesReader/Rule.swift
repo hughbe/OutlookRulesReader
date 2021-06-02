@@ -114,6 +114,8 @@ public struct Rule: CustomDebugStringConvertible {
                 try addCondition(type: StringsListRuleElementData.self)
             case .specificWordsInMessageHeaderCondition: // 0x00E8
                 try addCondition(type: StringsListRuleElementData.self)
+            case .sendersOnMyExceptionListCondition: // 0x00E9
+                try addCondition(type: SendersListRuleElementData.self)
             case .junkCondition: // 0x00EB
                 try addCondition(type: SendersListRuleElementData.self)
             case .adultCondition: // 0x00EC
@@ -174,7 +176,9 @@ public struct Rule: CustomDebugStringConvertible {
                 try addAction(type: PerformCustomActionRuleElementData.self)
             case .stopProcessingMoreRulesAction: // 0x0142
                 try addAction(type: SimpleRuleElementData.self)
-            case .redirectAction: // 0x0143
+            case .doNotSearchForCommercialOrAdultContentAction: // 0x0143
+                try addAction(type: SimpleRuleElementData.self)
+            case .redirectAction: // 0x0144
                 try addAction(type: PeopleOrPublicGroupListRuleElementData.self)
             case .addToRelevanceAction: // 0x0145
                 try addAction(type: AddToRelevanceRuleElementData.self)

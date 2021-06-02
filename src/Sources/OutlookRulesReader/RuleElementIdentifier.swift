@@ -82,6 +82,12 @@ public enum RuleElementIdentifier: UInt32 {
     /// “with <specific words> in the message header”
     case specificWordsInMessageHeaderCondition = 0x000000E8
     
+    /// "from senders on my <Exception List>"
+    /// Note: this can't be created through the rule wizard. It requires turning on Junk E-Mail in the Organize view of Outlook.
+    /// This rule element cannot be modified but can be deleted.
+    /// Note: this has been removed in Outlook 2003
+    case exceptionListCondition = 0x000000E9
+    
     /// "suspected to be junk-email or from <Junk Senders>"
     /// Note: this has been removed in Outlook 2003
     case junkCondition = 0x000000EB
@@ -176,6 +182,12 @@ public enum RuleElementIdentifier: UInt32 {
     
     /// “stop processing more rules”
     case stopProcessingMoreRulesAction = 0x00000142
+    
+    /// "do not search message for commercial or adult content"
+    /// Note: this can't be created through the rule wizard. It requires turning on Junk E-Mail in the Organize view of Outlook.
+    /// This rule element cannot be modified but can be deleted.
+    /// Note: this has been removed in Outlook 2003
+    case doNotSearchForCommercialOrAdultContentAction = 0x00000143
     
     /// "redirect it to <people or public group>"
     case redirectAction = 0x00000144
