@@ -589,6 +589,13 @@ final class DumpFileTests: XCTestCase {
         files.append(("Outlook2007_ExceptSpecificInfoPathForm_2000", "rwz"))
         files.append(("Outlook2007_ExceptSpecificInfoPathForm_2002", "rwz"))
         files.append(("Outlook2007_ExceptSpecificInfoPathForm_Default", "rwz"))
+
+        /// Outlook 2000: "from senders on my <Exception List>... Do not search message for commercial or adult content"
+        /// Note: this can't be created through the rule wizard. It requires turning on Junk E-Mail in the Organize view of Outlook.
+        /// This rule element cannot be modified but can be deleted.
+        /// Note: this has been removed in Outlook 2003
+        files.append(("Outlook2000_ExceptionList_98", "rwz"))
+        files.append(("Outlook2000_ExceptionList_Default", "rwz"))
         
         for (name, fileExtension) in files {
             let data = try getData(name: name, fileExtension: fileExtension)
