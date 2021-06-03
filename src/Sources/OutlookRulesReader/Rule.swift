@@ -114,7 +114,7 @@ public struct Rule: CustomDebugStringConvertible {
                 try addCondition(type: StringsListRuleElementData.self)
             case .specificWordsInMessageHeaderCondition: // 0x00E8
                 try addCondition(type: StringsListRuleElementData.self)
-            case .sendersOnMyExceptionListCondition: // 0x00E9
+            case .exceptionListCondition: // 0x00E9
                 try addCondition(type: SendersListRuleElementData.self)
             case .junkCondition: // 0x00EB
                 try addCondition(type: SendersListRuleElementData.self)
@@ -130,6 +130,8 @@ public struct Rule: CustomDebugStringConvertible {
                 try addCondition(type: SenderInSpecifiedAddressBookRuleElementData.self)
             case .whichIsAMeetingInvitationOrInviteCondition: // 0x00F1
                 try addCondition(type: SimpleRuleElementData.self)
+            case .alertCondition: // 0x00F3
+                try addCondition(type: AlertRuleElementData.self)
             case .specificInfoPathFormCondition: // 0x00F4
                 try addCondition(type: FormTypeRuleElementData.self)
             case .fromRSSFeedsWithSpecifiedTextInTitleCondition: // 0x00F5

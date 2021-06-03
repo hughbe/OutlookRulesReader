@@ -114,6 +114,10 @@ public enum RuleElementIdentifier: UInt32 {
     /// “which is a meeting invitation or update”
     case whichIsAMeetingInvitationOrInviteCondition = 0x000000F1
     
+    /// "which is an <alert E-mail>"
+    /// Note: this can't be created through the rule wizard.  It requires the user to setup a Microsoft Office compatible alert source and to create a rule for the alert
+    case alertCondition = 0x000000F3
+    
     /// “of the <specific> form type"
     /// Note: this requires Microsoft InfoPath to be installed to be creatable
     case specificInfoPathFormCondition = 0x000000F4

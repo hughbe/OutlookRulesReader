@@ -353,6 +353,13 @@ final class DumpFileTests: XCTestCase {
         
         /// Outlook 98: containing adult content or from <Adult Content Senders>
         files.append(("Outlook98_Adult", "rwz"))
+        
+        /// Outlook 2007: "which is an <alert E-mail>"
+        /// Note: this requires the user to setup a Microsoft Office compatible alert source and to create a rule for the alert
+        files.append(("Outlook2007_AlertCondition_98", "rwz"))
+        files.append(("Outlook2007_AlertCondition_2000", "rwz"))
+        files.append(("Outlook2007_AlertCondition_2002", "rwz"))
+        files.append(("Outlook2007_AlertCondition_Default", "rwz"))
 
         // Actions
         /// Outlook 2019: move it to the <specified> folder
