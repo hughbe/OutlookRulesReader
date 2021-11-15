@@ -1,5 +1,5 @@
 //
-//  OutlookRulesFileError.swift
+//  OutlookRulesError.swift
 //  
 //
 //  Created by Hugh Bellamy on 28/07/2020.

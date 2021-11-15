@@ -50,7 +50,7 @@ internal struct RulesFooter {
         assert(dataStream.remainingCount == 0)
     }
     
-    public func write(to dataStream: inout OutputDataStream) {
+    public func write(to dataStream: inout OutputDataStream, version: OutlookRulesVersion) {
         /// Template Directory Length (4 bytes)
         dataStream.write(UInt32(templateDirectory.count), endianess: .littleEndian)
         

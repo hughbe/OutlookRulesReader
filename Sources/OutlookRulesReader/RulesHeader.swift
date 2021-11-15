@@ -157,7 +157,7 @@ internal struct RulesHeader {
         self.numberOfRules = try dataStream.read(endianess: .littleEndian)
     }
     
-    public func write(to dataStream: inout OutputDataStream) {
+    public func write(to dataStream: inout OutputDataStream, version: OutlookRulesVersion) {
         if let signature = signature {
             /// Signature (4 bytes)
             dataStream.write(signature, endianess: .littleEndian)
