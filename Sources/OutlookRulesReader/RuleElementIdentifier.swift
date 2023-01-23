@@ -7,7 +7,7 @@
 
 public enum RuleElementIdentifier: UInt32 {
     /// "type of messages to which this rule applies"
-    case applyCondition = 0x00000190
+    case eventFlags = 0x00000190
     
     /// Unknown
     case unknown0x64 = 0x00000064

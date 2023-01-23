@@ -3,7 +3,7 @@ import XCTest
 
 final class ExportTests: XCTestCase {
     func testEmpty() {
-        let file = OutlookRulesFile(rules: [])
+        let file = OutlookRules(rules: [])
         let expected: [UInt8] = [
             0x00, 0x00, 0x14, 0x00, 0x00, 0x00, 0x14, 0x06, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
             0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
@@ -15,8 +15,8 @@ final class ExportTests: XCTestCase {
     }
 
     func testEmptyRule() {
-        let file = OutlookRulesFile(rules: [
-            Rule(applyCondition: .afterReceived, name: "RULENAME")
+        let file = OutlookRules(rules: [
+            Rule(eventFlags: .afterReceived, name: "RULENAME")
         ])
         let expected: [UInt8] = [
             0x00, 0x00, 0x14, 0x00, 0x00, 0x00, 0x14, 0x06, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
@@ -31,13 +31,14 @@ final class ExportTests: XCTestCase {
             0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
             0x00, 0x00, 0x00, 0x00, 0x00
         ]
+        try! OutlookRules(data: Data(expected))
         XCTAssertEqual(expected, [UInt8](file.getData() as NSData))
     }
     
     func testSentOnlyToMe() {
-        let file = OutlookRulesFile(rules: [
-            Rule(applyCondition: .afterReceived, name: "RULENAME", conditions: [
-                RuleElement(identifier: .sentOnlyToMeCondition, data: SimpleRuleElementData())
+        let file = OutlookRules(rules: [
+            Rule(eventFlags: .afterReceived, name: "RULENAME", conditions: [
+                RuleElement(identifier: .sentOnlyToMeCondition)
             ])
         ])
         let expected: [UInt8] = [
@@ -57,9 +58,9 @@ final class ExportTests: XCTestCase {
     }
 
     func testHasAttachment() {
-        let file = OutlookRulesFile(rules: [
-            Rule(applyCondition: .afterReceived, name: "RULENAME", conditions: [
-                RuleElement(identifier: .hasAttachmentCondition, data: SimpleRuleElementData())
+        let file = OutlookRules(rules: [
+            Rule(eventFlags: .afterReceived, name: "RULENAME", conditions: [
+                RuleElement(identifier: .hasAttachmentCondition)
             ])
         ])
         let expected: [UInt8] = [
