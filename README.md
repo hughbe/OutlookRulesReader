@@ -3,7 +3,7 @@
 OutlookRulesReader is a reader of Outlook rules (rwz) files.
 
 ## Outlook Rules Wizard File (.rwz) Specification
-A PDF of the working specification for Outlook rules files (.rwz) files can be found [here](https://github.com/hughbe/OutlookRulesReader/raw/master/docs/RWZ%20Format.pdf).
+A PDF of the working specification for Outlook rules files (.rwz) files can be found [here](https://github.com/hughbe/OutlookRulesReader/blob/main/docs/RWZ%20Format.pdf).
 
 ## Example Usage
 
