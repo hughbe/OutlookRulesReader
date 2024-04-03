@@ -9,7 +9,7 @@ A PDF of the working specification for Outlook rules files (.rwz) files can be f
 
 ```swift
 let data = Data(contentsOfFile: "<path-to-file>.rwz")!
-let file = try OutlookRulesFile(data: data)
+let file = try OutlookRules(data: data)
 print(file.rules.count)
 print(file.rules[0].name)
 print(file.rules[0].enabled)
