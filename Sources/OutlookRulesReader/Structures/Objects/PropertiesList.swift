@@ -114,7 +114,8 @@ internal struct PropertiesList {
             case PropertyType.boolean:
                 value = UInt16(header.data2) != 0
             default:
-                fatalError("NYI: \(header.tag.type.stringRepresentation)")
+                // Property type not yet supported.
+                throw OutlookRulesReadError.corrupted
             }
             
             properties[header.tag.id] = value

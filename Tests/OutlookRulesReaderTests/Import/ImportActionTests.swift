@@ -230,10 +230,10 @@ final class ImportActionTests: XCTestCase {
             XCTAssertEqual(0, file.rules[0].conditions.count)
             XCTAssertEqual(1, file.rules[0].actions.count)
             XCTAssertEqual(.flagAction, file.rules[0].actions[0].identifier)
-            XCTAssertTrue(file.rules[0].actions[0].parameter is FlagRuleElementData)
+            XCTAssertTrue(file.rules[0].actions[0].parameter is FlagParameter)
             XCTAssertEqual(0, file.rules[0].exceptions.count)
 
-            let action = file.rules[0].actions[0].parameter as! FlagRuleElementData
+            let action = file.rules[0].actions[0].parameter as! FlagParameter
             XCTAssertEqual("Action", action.actionName)
             XCTAssertEqual(365, action.days)
         }
@@ -264,10 +264,10 @@ final class ImportActionTests: XCTestCase {
             XCTAssertEqual(0, file.rules[0].conditions.count)
             XCTAssertEqual(1, file.rules[0].actions.count)
             XCTAssertEqual(.flagAction, file.rules[0].actions[0].identifier)
-            XCTAssertTrue(file.rules[0].actions[0].parameter is FlagRuleElementData)
+            XCTAssertTrue(file.rules[0].actions[0].parameter is FlagParameter)
             XCTAssertEqual(0, file.rules[0].exceptions.count)
 
-            let action = file.rules[0].actions[0].parameter as! FlagRuleElementData
+            let action = file.rules[0].actions[0].parameter as! FlagParameter
             XCTAssertEqual("Action", action.actionName)
             XCTAssertEqual(0, action.days)
         }

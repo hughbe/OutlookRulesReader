@@ -83,9 +83,9 @@ public struct Rule: CustomDebugStringConvertible {
             // Second element is unknown (0x0064).
             RuleElement(identifier: .unknown0x64, parameter: Unknown0x64Parameter())
         ]
-        elements.append(contentsOf: conditions)
-        elements.append(contentsOf: actions)
-        elements.append(contentsOf: exceptions)
+        // The mandatory elements above are regenerated, so skip them here. All other elements
+        // are written in their original order.
+        elements.append(contentsOf: self.elements.filter { $0.identifier != .eventFlags && $0.identifier != .unknown0x64 })
 
         let numberOfElements = UInt16(elements.count)
         let separatorDataSize = UInt32(2 * (elements.count - 1))
@@ -99,7 +99,7 @@ public struct Rule: CustomDebugStringConvertible {
         let dataSize = elements.map { $0.dataSize }.reduce(0, +) + separatorDataSize + remainingLength
 
         let header = RuleHeader(name: name, enabled: enabled, numberOfElements: numberOfElements, dataSize: dataSize)
-        header.write(to: &dataStream, index: index)
+        header.write(to: &dataStream, index: index, version: version)
 
         for (i, element) in elements.enumerated() {
             /// Element (variable)

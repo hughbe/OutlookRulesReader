@@ -1,5 +1,5 @@
 //
-//  FlagRuleElementData.swift
+//  FlagParameter.swift
 //
 //
 //  Created by Hugh Bellamy on 08/08/2020.
@@ -7,7 +7,7 @@
 
 import DataStream
 
-public struct FlagRuleElementData: RuleParameter {
+public struct FlagParameter: RuleParameter {
     public var dataSize: UInt32 {
         var baseSize: UInt32 = 12
         baseSize += UTF16String(value: actionName).dataSize
@@ -50,7 +50,11 @@ public struct FlagRuleElementData: RuleParameter {
         dataStream.write(days, endianess: .littleEndian)
         
         /// Action Name (variable)
-        UTF16String(value: actionName).write(to: &dataStream)
+        if version >= .outlook2002 {
+            UTF16String(value: actionName).write(to: &dataStream)
+        } else {
+            ASCIIString(value: actionName).write(to: &dataStream)
+        }
         
         /// Unknown (4 bytes)
         dataStream.write(unknown, endianess: .littleEndian)

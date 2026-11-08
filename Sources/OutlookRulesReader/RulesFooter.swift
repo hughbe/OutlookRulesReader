@@ -51,11 +51,22 @@ internal struct RulesFooter {
     }
     
     public func write(to dataStream: inout OutputDataStream, version: OutlookRulesVersion) {
+        /// The length is measured in UTF-16 code units (Outlook 2002 and above) or bytes (earlier versions).
+        let length: Int
+        let bytes: Data
+        if version >= .outlook2002 {
+            length = templateDirectory.utf16.count
+            bytes = templateDirectory.data(using: .utf16LittleEndian) ?? Data()
+        } else {
+            bytes = templateDirectory.data(using: .isoLatin1, allowLossyConversion: true) ?? Data()
+            length = bytes.count
+        }
+        
         /// Template Directory Length (4 bytes)
-        dataStream.write(UInt32(templateDirectory.count), endianess: .littleEndian)
+        dataStream.write(UInt32(length), endianess: .littleEndian)
         
         /// Template Directory (variable)
-        dataStream.write(templateDirectory, encoding: .utf16LittleEndian)
+        dataStream.write(bytes)
 
         /// Creation Date (12 bytes)
         creationDate.write(to: &dataStream)

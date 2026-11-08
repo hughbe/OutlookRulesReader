@@ -9,7 +9,8 @@ import DataStream
 
 internal struct UTF16String {
     public var dataSize: UInt32 {
-        return (value.count >= 256 ? 3 : 1) + UInt32(value.count) * 2
+        let length = value.utf16.count
+        return (length >= 0xFF ? 3 : 1) + UInt32(length) * 2
     }
     
     public var value: String
@@ -41,12 +42,16 @@ internal struct UTF16String {
     }
     
     public func write(to dataStream: inout OutputDataStream) {
-        /// Length (1 byte or 3 bytes if length >= 256)
-        if value.count < 0xFF {
-            dataStream.write(UInt8(value.count))
+        /// The length is measured in UTF-16 code units, not in Characters (e.g. "\r\n" is one Character
+        /// but two code units).
+        let length = value.utf16.count
+        
+        /// Length (1 byte or 3 bytes if length >= 255)
+        if length < 0xFF {
+            dataStream.write(UInt8(length))
         } else {
             dataStream.write(0xFF as UInt8)
-            dataStream.write(UInt16(value.count), endianess: .littleEndian)
+            dataStream.write(UInt16(length), endianess: .littleEndian)
         }
         
         /// Value (variable)

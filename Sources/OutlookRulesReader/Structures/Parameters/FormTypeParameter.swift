@@ -51,6 +51,6 @@ public struct FormTypeParameter: RuleParameter {
         }
 
         /// Class Name (variable)
-        ASCIIString(value: name).write(to: &dataStream)
+        ASCIIString(value: className).write(to: &dataStream)
     }
 }

@@ -1,3 +1,4 @@
+import Foundation
 import XCTest
 @testable import OutlookRulesReader
 
@@ -31,7 +32,7 @@ final class ExportTests: XCTestCase {
             0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
             0x00, 0x00, 0x00, 0x00, 0x00
         ]
-        try! OutlookRules(data: Data(expected))
+        XCTAssertEqual(1, try OutlookRules(data: Data(expected)).rules.count)
         XCTAssertEqual(expected, [UInt8](file.getData() as NSData))
     }
     
@@ -79,10 +80,135 @@ final class ExportTests: XCTestCase {
         XCTAssertEqual(expected, [UInt8](file.getData() as NSData))
     }
 
+    private let writableVersions: [OutlookRulesVersion] = [.outlook2019, .outlook2007, .outlook2003, .outlook2002, .outlook2000, .outlook98]
+
+    private func summary(of file: OutlookRules) -> [String] {
+        return file.rules.map { rule in
+            let identifiers = rule.elements.map { String($0.identifier.rawValue, radix: 16) }.joined(separator: ",")
+            return "\(rule.name)|\(rule.enabled)|\(rule.eventFlags.rawValue)|\(identifiers)"
+        }
+    }
+
+    func testWriteVersionSignatures() throws {
+        let signatures: [(OutlookRulesVersion, [UInt8])] = [
+            (.outlook2019, [0x00, 0x00, 0x14, 0x00]),
+            (.outlook2007, [0x80, 0x4F, 0x12, 0x00]),
+            (.outlook2003, [0xE0, 0xC8, 0x10, 0x00]),
+            (.outlook2002, [0x40, 0x42, 0x0F, 0x00]),
+            (.outlook2000, [0xBD, 0xF5, 0x0E, 0x00]),
+            (.outlook98, [0x3C, 0xD0, 0x0E, 0x00]),
+        ]
+        for (version, signature) in signatures {
+            let file = OutlookRules(rules: [
+                Rule(eventFlags: .afterReceived, name: "RULENAME", conditions: [
+                    RuleElement(identifier: .hasAttachmentCondition)
+                ], actions: [
+                    RuleElement(identifier: .assignToCategoryAction, parameter: CategoryParameter(categories: ["Red", "Blue"]))
+                ])
+            ])
+            let data = file.getData(version: version)
+            XCTAssertEqual(signature, [UInt8](data.prefix(4)))
+
+            let reread = try OutlookRules(data: data)
+            XCTAssertEqual(1, reread.rules.count)
+            XCTAssertEqual("RULENAME", reread.rules[0].name)
+            XCTAssertEqual(.afterReceived, reread.rules[0].eventFlags)
+            XCTAssertEqual(1, reread.rules[0].conditions.count)
+            XCTAssertEqual(.hasAttachmentCondition, reread.rules[0].conditions[0].identifier)
+            XCTAssertEqual(1, reread.rules[0].actions.count)
+            XCTAssertEqual(.assignToCategoryAction, reread.rules[0].actions[0].identifier)
+            XCTAssertEqual(["Red", "Blue"], (reread.rules[0].actions[0].parameter as? CategoryParameter)?.categories ?? [])
+        }
+    }
+
+    func testWriteNoSignature() throws {
+        let file = OutlookRules(rules: [
+            Rule(eventFlags: .afterReceived, name: "RULENAME", conditions: [
+                RuleElement(identifier: .hasAttachmentCondition)
+            ])
+        ])
+        let reread = try OutlookRules(data: file.getData(version: .noSignature))
+        XCTAssertEqual(1, reread.rules.count)
+        XCTAssertEqual("RULENAME", reread.rules[0].name)
+        XCTAssertEqual(.afterReceived, reread.rules[0].eventFlags)
+        XCTAssertEqual(1, reread.rules[0].conditions.count)
+    }
+
+    func testWriteDefaultsToReadVersion() throws {
+        let data = try getData(name: "Outlook2007_AssignToCategory_Default", fileExtension: "rwz")
+        let file = try OutlookRules(data: data)
+        let written = file.getData()
+        XCTAssertEqual([UInt8](data.prefix(4)), [UInt8](written.prefix(4)))
+        XCTAssertEqual(summary(of: file), summary(of: try OutlookRules(data: written)))
+    }
+
+    func testNameWithCarriageReturnLineFeed() throws {
+        // "\r\n" is a single Character in Swift but two UTF-16 code units / bytes.
+        for version in writableVersions {
+            let file = OutlookRules(rules: [Rule(eventFlags: .afterReceived, name: "Line1\r\nLine2")])
+            let reread = try OutlookRules(data: file.getData(version: version))
+            XCTAssertEqual("Line1\r\nLine2", reread.rules[0].name)
+        }
+    }
+
+    func testElementOrderIsPreserved() throws {
+        var rule = Rule(eventFlags: .afterReceived, name: "RULENAME", conditions: [
+            RuleElement(identifier: .hasAttachmentCondition)
+        ], exceptions: [
+            RuleElement(identifier: .hasAttachmentException)
+        ])
+        rule.elements.insert(RuleElement(identifier: .markAsReadAction), at: 0)
+
+        let reread = try OutlookRules(data: OutlookRules(rules: [rule]).getData())
+        XCTAssertEqual([.markAsReadAction, .hasAttachmentCondition, .hasAttachmentException], reread.rules[0].elements.map { $0.identifier }.filter { $0 != .eventFlags && $0 != .unknown0x64 })
+    }
+
+    func testRoundTripResources() throws {
+        var tested = 0
+        let enumerator = FileManager.default.enumerator(at: Bundle.module.resourceURL!, includingPropertiesForKeys: [.isRegularFileKey])!
+        for case let url as URL in enumerator {
+            guard (try? url.resourceValues(forKeys: [.isRegularFileKey]).isRegularFile) == true,
+                  let data = try? Data(contentsOf: url),
+                  let original = try? OutlookRules(data: data) else {
+                continue
+            }
+
+            // Writing address and entry ID based parameters is not supported yet.
+            let hasUnwritableParameters = original.rules.contains { rule in
+                rule.elements.contains { element in
+                    element.parameters.contains { $0 is AddressParameter || $0 is FolderParameter }
+                }
+            }
+            if hasUnwritableParameters {
+                continue
+            }
+
+            let expected = summary(of: original)
+
+            // Write using the version that the file was read with.
+            XCTAssertEqual(expected, summary(of: try OutlookRules(data: original.getData())), url.lastPathComponent)
+
+            // Write using every other version.
+            for version in writableVersions {
+                XCTAssertEqual(expected, summary(of: try OutlookRules(data: original.getData(version: version))), "\(url.lastPathComponent) as \(version)")
+            }
+            tested += 1
+        }
+
+        XCTAssertTrue(tested > 200, "Only round tripped \(tested) files")
+    }
+
+
     static var allTests = [
         ("testEmpty", testEmpty),
         ("testEmptyRule", testEmptyRule),
         ("testSentOnlyToMe", testSentOnlyToMe),
         ("testHasAttachment", testHasAttachment),
+        ("testWriteVersionSignatures", testWriteVersionSignatures),
+        ("testWriteNoSignature", testWriteNoSignature),
+        ("testWriteDefaultsToReadVersion", testWriteDefaultsToReadVersion),
+        ("testNameWithCarriageReturnLineFeed", testNameWithCarriageReturnLineFeed),
+        ("testElementOrderIsPreserved", testElementOrderIsPreserved),
+        ("testRoundTripResources", testRoundTripResources),
     ]
 }

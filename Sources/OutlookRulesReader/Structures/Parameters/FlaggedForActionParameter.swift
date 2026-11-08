@@ -50,7 +50,11 @@ public struct FlaggedForActionParameter: RuleParameter {
         dataStream.write(unknown1, endianess: .littleEndian)
         
         /// Action (variable)
-        UTF16String(value: action).write(to: &dataStream)
+        if version >= .outlook2002 {
+            UTF16String(value: action).write(to: &dataStream)
+        } else {
+            ASCIIString(value: action).write(to: &dataStream)
+        }
         
         /// Unknown2 (4 bytes)
         dataStream.write(unknown2, endianess: .littleEndian)

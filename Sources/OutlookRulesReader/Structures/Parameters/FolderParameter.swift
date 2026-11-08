@@ -65,7 +65,11 @@ public struct FolderParameter: RuleParameter {
         FlatEntry(entryID: storeEntryId).write(to: &dataStream)
         
         /// Folder Name (variable)
-        UTF16String(value: folderName).write(to: &dataStream)
+        if version >= .outlook2002 {
+            UTF16String(value: folderName).write(to: &dataStream)
+        } else {
+            ASCIIString(value: folderName).write(to: &dataStream)
+        }
         
         if version != .noSignature {
             /// Secondary User Store (4 bytes)

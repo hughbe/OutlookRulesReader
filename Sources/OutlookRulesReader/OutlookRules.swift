@@ -55,15 +55,18 @@ public struct OutlookRules: CustomDebugStringConvertible {
         
         var dataStream = OutputDataStream()
         
-        let header = RulesHeader(numberOfRules: UInt16(rules.count))
+        var header = self.header
+        header.numberOfRules = UInt16(rules.count)
         header.write(to: &dataStream, version: version)
         
         for (index, rule) in rules.enumerated() {
             rule.write(to: &dataStream, index: index, version: version)
         }
         
-        let footer = RulesFooter()
-        footer.write(to: &dataStream, version: version)
+        if version != .noSignature {
+            let footer = self.footer ?? RulesFooter()
+            footer.write(to: &dataStream, version: version)
+        }
         
         return dataStream.data
     }

@@ -49,6 +49,7 @@ public struct RuleElement {
         for _ in 0..<numberOfParameters {
             let parameter: RuleParameter
             switch identifier {
+                /// Elements that don't take parameters are corrupted if they declare any.
                 /// Mandatory Elements
                 case .eventFlags: // 0x0190
                     parameter = try EventParameter(dataStream: &dataStream, version: version)
@@ -57,11 +58,11 @@ public struct RuleElement {
                     
                 /// Conditions
                 case .nameInToBoxCondition: // 0x000C8
-                    continue
+                    throw OutlookRulesReadError.corrupted
                 case .sentOnlyToMeCondition: // 0x000C9
-                    continue
+                    throw OutlookRulesReadError.corrupted
                 case .nameNotInToBoxCondition: // 0x00CA
-                    continue
+                    throw OutlookRulesReadError.corrupted
                 case .fromCondition: // 0x00CB
                     parameter = try AddressParameter(dataStream: &dataStream, version: version)
                 case .sentToCondition: // 0x00CC
@@ -81,9 +82,9 @@ public struct RuleElement {
                 case .assignedToCategoryCondition: // 0x00D7
                     parameter = try CategoryParameter(dataStream: &dataStream, version: version)
                 case .automaticReplyCondition: // 0x00DC
-                    continue
+                    throw OutlookRulesReadError.corrupted
                 case .hasAttachmentCondition: // 0x00DE
-                    continue
+                    throw OutlookRulesReadError.corrupted
                 case .withSelectedPropertiesOfDocumentOrFormsCondition: // 0x00DF
                     parameter = try FormParameter(dataStream: &dataStream, version: version)
                 case .sizeInSpecificRangeCondition: // 0x00E0
@@ -91,9 +92,9 @@ public struct RuleElement {
                 case .receivedInSpecificDateSpanCondition: // 0x00E1
                     parameter = try TimeParameter(dataStream: &dataStream, version: version)
                 case .nameInCcBoxCondition: // 0x00E2
-                    continue
+                    throw OutlookRulesReadError.corrupted
                 case .nameInToOrCcBoxCondition: // 0x00E3
-                    continue
+                    throw OutlookRulesReadError.corrupted
                 case .usesFormCondition: // 0x00E4
                     parameter = try FormTypeParameter(dataStream: &dataStream, version: version)
                 case .specificWordsInRecipientsAddressCondition: // 0x00E5
@@ -117,7 +118,7 @@ public struct RuleElement {
                 case .senderInSpecifiedAddressBookCondition: // 0x00F0
                     parameter = try AddressBookParameter(dataStream: &dataStream, version: version)
                 case .whichIsAMeetingInvitationOrInviteCondition: // 0x00F1
-                    continue
+                    throw OutlookRulesReadError.corrupted
                 case .alertCondition: // 0x00F3
                     parameter = try AlertParameter(dataStream: &dataStream, version: version)
                 case .specificInfoPathFormCondition: // 0x00F4
@@ -125,9 +126,9 @@ public struct RuleElement {
                 case .fromRSSFeedsWithSpecifiedTextInTitleCondition: // 0x00F5
                     parameter = try StringParameter(dataStream: &dataStream, version: version)
                 case .assignedToAnyCategoryCondition: // 0x00F6
-                    continue
+                    throw OutlookRulesReadError.corrupted
                 case .fromAnyRSSFeedCondition: // 0x00F7
-                    continue
+                    throw OutlookRulesReadError.corrupted
                     
                 /// Actions
                 case .forwardAction: // 0x012B
@@ -135,15 +136,15 @@ public struct RuleElement {
                 case .moveToFolderAction: // 0x012C
                     parameter = try FolderParameter(dataStream: &dataStream, version: version)
                 case .deleteAction: // 0x012D
-                    continue
+                    throw OutlookRulesReadError.corrupted
                 case .replyUsingTemplateAction: // 0x012F
                     parameter = try PathParameter(dataStream: &dataStream, version: version)
                 case .displayMessageInNewItemAlertWindowAction: // 0x0130
                     parameter = try MessageParameter(dataStream: &dataStream, version: version)
                 case .flagAction: // 0x0131
-                    parameter = try FlagRuleElementData(dataStream: &dataStream, version: version)
+                    parameter = try FlagParameter(dataStream: &dataStream, version: version)
                 case .clearFlagAction: // 0x0132
-                    continue
+                    throw OutlookRulesReadError.corrupted
                 case .assignToCategoryAction: // 0x0133
                     parameter = try CategoryParameter(dataStream: &dataStream, version: version)
                 case .playSoundAction: // 0x0136
@@ -155,9 +156,9 @@ public struct RuleElement {
                 case .moveCopyToFolderAction: // 0x0139
                     parameter = try FolderParameter(dataStream: &dataStream, version: version)
                 case .notifyReadAction: // 0x013A
-                    continue
+                    throw OutlookRulesReadError.corrupted
                 case .notifyDeliveredAction: // 0x013B
-                    continue
+                    throw OutlookRulesReadError.corrupted
                 case .ccAction: // 0x013C
                     parameter = try AddressParameter(dataStream: &dataStream, version: version)
                 case .deferDeliveryAction: // 0x013E
@@ -165,9 +166,9 @@ public struct RuleElement {
                 case .performCustomActionAction:
                     parameter = try CustomActionParameter(dataStream: &dataStream, version: version)
                 case .stopProcessingMoreRulesAction: // 0x0142
-                    continue
+                    throw OutlookRulesReadError.corrupted
                 case .doNotSearchForCommercialOrAdultContentAction: // 0x0143
-                    continue
+                    throw OutlookRulesReadError.corrupted
                 case .redirectAction: // 0x0144
                     parameter = try AddressParameter(dataStream: &dataStream, version: version)
                 case .addToRelevanceAction: // 0x0145
@@ -177,31 +178,31 @@ public struct RuleElement {
                 case .forwardAsAttachmentAction: // 0x0147
                     parameter = try AddressParameter(dataStream: &dataStream, version: version)
                 case .printAction: // 0x0148
-                    continue
+                    throw OutlookRulesReadError.corrupted
                 case .startApplicationAction: // 0x0149
                     parameter = try PathParameter(dataStream: &dataStream, version: version)
                 case .permanentlyDeleteAction: // 0x014A
-                    continue
+                    throw OutlookRulesReadError.corrupted
                 case .runScriptAction: // 0x014B
                     parameter = try ScriptParameter(dataStream: &dataStream, version: version)
                 case .markAsReadAction: // 0x014C
-                    continue
+                    throw OutlookRulesReadError.corrupted
                 case .displayDesktopAlertAction: // 0x014F
-                    continue
+                    throw OutlookRulesReadError.corrupted
                 case .flagForFollowUpAction: // 0x0151
                     parameter = try FlagForFollowUpParameter(dataStream: &dataStream, version: version)
                 case .clearCategoriesAction: // 0x0152
-                    continue
+                    throw OutlookRulesReadError.corrupted
                 case .applyRetentionPolicyAction: // 0x0153
                     parameter = try RetentionPolicyParameter(dataStream: &dataStream, version: version)
 
                 /// Exceptions
                 case .nameInToBoxException: // 0x01F4
-                    continue
+                    throw OutlookRulesReadError.corrupted
                 case .sentOnlyToMeException: // 0x01F5
-                    continue
+                    throw OutlookRulesReadError.corrupted
                 case .nameNotInToBoxException: // 0x01F6
-                    continue
+                    throw OutlookRulesReadError.corrupted
                 case .fromException: // 0x01F7
                     parameter = try AddressParameter(dataStream: &dataStream, version: version)
                 case .toException: // 0x01F8
@@ -221,9 +222,9 @@ public struct RuleElement {
                 case .assignedToCategoryException: // 0x0203
                     parameter = try CategoryParameter(dataStream: &dataStream, version: version)
                 case .automaticReplyException: // 0x0208
-                    continue
+                    throw OutlookRulesReadError.corrupted
                 case .hasAttachmentException: // 0x020A
-                    continue
+                    throw OutlookRulesReadError.corrupted
                 case .withSelectedPropertiesOfDocumentOrFormsException: // 0x020B
                     parameter = try FormParameter(dataStream: &dataStream, version: version)
                 case .sizeInSpecificRangeException: // 0x020C
@@ -231,9 +232,9 @@ public struct RuleElement {
                 case .receivedInSpecificDateSpanException: // 0x020D
                     parameter = try TimeParameter(dataStream: &dataStream, version: version)
                 case .nameInCcBoxException: // 0x020E
-                    continue
+                    throw OutlookRulesReadError.corrupted
                 case .nameInToOrCcBoxException: // 0x020F
-                    continue
+                    throw OutlookRulesReadError.corrupted
                 case .usesFormException: // 0x0210
                     parameter = try FormTypeParameter(dataStream: &dataStream, version: version)
                 case .specificWordsInRecipientsAddressException: // 0x0211
@@ -247,15 +248,15 @@ public struct RuleElement {
                 case .senderInSpecifiedAddressBookException: // 0x0215
                     parameter = try AddressBookParameter(dataStream: &dataStream, version: version)
                 case .whichIsAMeetingInvitationOrInviteException: // 0x0216
-                    continue
+                    throw OutlookRulesReadError.corrupted
                 case .specificInfoPathFormException: // 0x0218
                     parameter = try FormTypeParameter(dataStream: &dataStream, version: version)
                 case .fromRSSFeedsWithSpecifiedTextInTitleException: // 0x0219
                     parameter = try StringParameter(dataStream: &dataStream, version: version)
                 case .assignedToAnyCategoryException: // 0x021A
-                    continue
+                    throw OutlookRulesReadError.corrupted
                 case .fromAnyRSSFeedException: // 0x021B
-                    continue
+                    throw OutlookRulesReadError.corrupted
             }
             
             parameters.append(parameter)

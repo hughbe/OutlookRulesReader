@@ -84,7 +84,12 @@ public struct FormParameter: RuleParameter {
         dataStream.write(reserved, endianess: .littleEndian)
 
         /// Forms (variable)
-        UTF16String(value: forms.joined(separator: ";")).write(to: &dataStream)
+        let formsValue = forms.joined(separator: ";")
+        if version >= .outlook2002 {
+            UTF16String(value: formsValue).write(to: &dataStream)
+        } else {
+            ASCIIString(value: formsValue).write(to: &dataStream)
+        }
         
         /// Number of Document Properties (2 bytes)
         dataStream.write(UInt16(documentProperties.count), endianess: .littleEndian)

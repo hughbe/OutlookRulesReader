@@ -36,6 +36,10 @@ public struct StringParameter: RuleParameter {
         dataStream.write(flags, endianess: .littleEndian)
         
         /// Value (variable)
-        UTF16String(value: value).write(to: &dataStream)
+        if version >= .outlook2002 {
+            UTF16String(value: value).write(to: &dataStream)
+        } else {
+            ASCIIString(value: value).write(to: &dataStream)
+        }
     }
 }

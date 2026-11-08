@@ -112,14 +112,18 @@ internal struct RuleHeader {
         }
     }
     
-    public func write(to dataStream: inout OutputDataStream, index: Int) {
-        if let signature = signature {
+    public func write(to dataStream: inout OutputDataStream, index: Int, version: OutlookRulesVersion) {
+        if version >= .outlook2002 {
             /// Signature (4 bytes)
-            dataStream.write(signature, endianess: .littleEndian)
+            dataStream.write(RulesHeader.defaultSignature(for: version) ?? 0, endianess: .littleEndian)
         }
         
         /// Name (variable)
-        UTF16String(value: name).write(to: &dataStream)
+        if version >= .outlook2002 {
+            UTF16String(value: name).write(to: &dataStream)
+        } else {
+            ASCIIString(value: name).write(to: &dataStream)
+        }
         
         /// Enabled (4 bytes)
         dataStream.write((enabled ? 1 : 0) as UInt32, endianess: .littleEndian)
@@ -130,19 +134,17 @@ internal struct RuleHeader {
         /// Unknown2 (4 bytes)
         dataStream.write(unknown2, endianess: .littleEndian)
         
-        /// Unknown3 (4 bytes)
-        if let unknown3 = unknown3 {
-            dataStream.write(unknown3, endianess: .littleEndian)
+        if version >= .outlook98 {
+            /// Unknown3 (4 bytes)
+            dataStream.write(unknown3 ?? 0, endianess: .littleEndian)
         }
         
-        /// Unknown4 (4 bytes)
-        if let unknown4 = unknown4 {
-            dataStream.write(unknown4, endianess: .littleEndian)
-        }
-        
-        /// Data Size (4 bytes)
-        if let dataSize = dataSize {
-            dataStream.write(dataSize, endianess: .littleEndian)
+        if version >= .outlook2002 {
+            /// Unknown4 (4 bytes)
+            dataStream.write(unknown4 ?? 0, endianess: .littleEndian)
+            
+            /// Data Size (4 bytes)
+            dataStream.write(dataSize ?? 0, endianess: .littleEndian)
         }
         
         /// Number of Rule Elements (2 bytes)
