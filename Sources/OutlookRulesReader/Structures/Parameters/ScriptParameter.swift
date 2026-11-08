@@ -8,10 +8,6 @@
 import DataStream
 
 public struct ScriptParameter: RuleParameter {
-    public var dataSize: UInt32 {
-        4 +  UTF16String(value: name).dataSize + UTF16String(value: function).dataSize
-    }
-
     public var reserved: UInt32 = 0
     public var name: String
     public var function: String

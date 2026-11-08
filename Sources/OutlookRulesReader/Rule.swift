@@ -13,6 +13,15 @@ public struct Rule: CustomDebugStringConvertible {
     public var eventFlags: RuleEventFlags
     
     public var elements: [RuleElement] = []
+
+    /// Rule flags (spec §4.3.1, Unknown3). Usually 0; 0x20 has only been seen on the built-in junk e-mail
+    /// "Exception List" rule. Not present in Outlook 97 files.
+    public var flags: UInt32 = 0
+
+    /// Fields of the rule header with unknown meaning, preserved when round-tripping (spec §4.3.1).
+    internal var unknown1: UInt32 = 0
+    internal var unknown2: UInt32 = 0
+    internal var unknown4: UInt32 = 0
     
     public var conditions: [RuleElement] {
         elements.filter { $0.identifier.rawValue >= 200 && $0.identifier.rawValue < 300 }
@@ -39,24 +48,30 @@ public struct Rule: CustomDebugStringConvertible {
     }
     
     public init(dataStream: inout DataStream, index: Int, version: OutlookRulesVersion) throws {
-        /// Header (n bytes)
-        let header = try RuleHeader(dataStream: &dataStream, index: index, version: version)
+        /// The class descriptor for `CRuleElement` precedes the first element of the stream.
+        var classDeclared = index != 0
+        try self.init(dataStream: &dataStream, version: version, classDeclared: &classDeclared)
+    }
+
+    internal init(dataStream: inout DataStream, version: OutlookRulesVersion, classDeclared: inout Bool) throws {
+        /// Header (variable)
+        let header = try RuleHeader(dataStream: &dataStream, version: version)
         self.name = header.name
         self.enabled = header.enabled
+        self.unknown1 = header.unknown1
+        self.unknown2 = header.unknown2
+        self.flags = header.unknown3 ?? 0
+        self.unknown4 = header.unknown4 ?? 0
         
         /// Elements (variable)
         var elements: [RuleElement] = []
         elements.reserveCapacity(Int(header.numberOfElements))
-        for i in 0..<header.numberOfElements {
-            elements.append(try RuleElement(dataStream: &dataStream, version: version))
+        for _ in 0..<header.numberOfElements {
+            /// Object Tag (2 bytes, or more for the first element of the stream)
+            try ObjectTag.read(from: &dataStream, classDeclared: &classDeclared)
 
-            /// Separator (2 bytes)
-            if i != header.numberOfElements - 1 {
-                let separator = try dataStream.read(endianess: .littleEndian) as UInt16
-                if separator != 0x8001 {
-                    throw OutlookRulesReadError.invalidSeparator(separator: separator)
-                }
-            }
+            /// Element (variable)
+            elements.append(try RuleElement(dataStream: &dataStream, version: version))
         }
         
         self.elements = elements
@@ -76,6 +91,12 @@ public struct Rule: CustomDebugStringConvertible {
     }
     
     public func write(to dataStream: inout OutputDataStream, index: Int, version: OutlookRulesVersion) {
+        /// The class descriptor for `CRuleElement` precedes the first element of the stream.
+        var classDeclared = index != 0
+        write(to: &dataStream, version: version, classDeclared: &classDeclared)
+    }
+
+    internal func write(to dataStream: inout OutputDataStream, version: OutlookRulesVersion, classDeclared: inout Bool) {
         var elements: [RuleElement] = [
             // First element is rule condition
             RuleElement(identifier: .eventFlags, parameter: EventParameter(flags: self.eventFlags)),
@@ -87,28 +108,26 @@ public struct Rule: CustomDebugStringConvertible {
         // are written in their original order.
         elements.append(contentsOf: self.elements.filter { $0.identifier != .eventFlags && $0.identifier != .unknown0x64 })
 
-        let numberOfElements = UInt16(elements.count)
-        let separatorDataSize = UInt32(2 * (elements.count - 1))
-        
-        /// Number of Rule Elements (2 bytes)
-        /// Separator (2 bytes)
-        /// Padding (2 bytes)
-        /// Class Name Length (2 bytes)
-        /// Class Name (12 bytes - CRuleElement)
-        let remainingLength: UInt32 = 2 + 2 + 2 + 2 + 12
-        let dataSize = elements.map { $0.dataSize }.reduce(0, +) + separatorDataSize + remainingLength
-
-        let header = RuleHeader(name: name, enabled: enabled, numberOfElements: numberOfElements, dataSize: dataSize)
-        header.write(to: &dataStream, index: index, version: version)
-
-        for (i, element) in elements.enumerated() {
-            /// Element (variable)
-            element.write(to: &dataStream, version: version)
+        /// Elements (variable), each preceded by its object tag. These are written first so that the
+        /// header's data size is measured rather than calculated.
+        var elementsStream = OutputDataStream()
+        for element in elements {
+            /// Object Tag (2 bytes, or more for the first element of the stream)
+            ObjectTag.write(to: &elementsStream, classDeclared: &classDeclared)
             
-            if i != elements.count - 1 {
-                /// Separator (2 bytes)
-                dataStream.write(0x8001 as UInt16, endianess: .littleEndian)
-            }
+            /// Element (variable)
+            element.write(to: &elementsStream, version: version)
         }
+
+        /// Data Size counts the Number of Elements field (2 bytes) and everything after it.
+        let dataSize = UInt32(2 + elementsStream.data.count)
+        var header = RuleHeader(name: name, enabled: enabled, numberOfElements: UInt16(elements.count), dataSize: dataSize)
+        header.unknown1 = unknown1
+        header.unknown2 = unknown2
+        header.unknown3 = flags
+        header.unknown4 = unknown4
+        header.write(to: &dataStream, version: version)
+        
+        dataStream.write(elementsStream.data)
     }
 }

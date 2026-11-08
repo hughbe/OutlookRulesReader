@@ -9,8 +9,6 @@ import DataStream
 import WindowsDataTypes
 
 public struct ProfileStampParameter: RuleParameter {
-    public let dataSize: UInt32 = 20
-
     public var reserved: UInt32 = 0
     public var uuid: GUID
     

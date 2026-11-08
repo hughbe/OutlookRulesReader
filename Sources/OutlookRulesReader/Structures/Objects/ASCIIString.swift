@@ -8,10 +8,11 @@
 import DataStream
 import Foundation
 
+/// A length-prefixed string of 8-bit characters (String8 in spec §2.2).
 internal struct ASCIIString {
     public var dataSize: UInt32 {
         let length = bytes.count
-        return (length >= 0xFF ? 3 : 1) + UInt32(length)
+        return StringLength.size(of: length) + UInt32(length)
     }
     
     public var value: String
@@ -27,15 +28,8 @@ internal struct ASCIIString {
     }
     
     public init(dataStream: inout DataStream) throws {
-        /// Length (1 byte or 3 bytes if first byte is 0xFF)
-        var length: Int
-        let byteLength = try dataStream.read() as UInt8
-        if byteLength < 0xFF {
-            length = Int(byteLength)
-        } else {
-            length = Int(try dataStream.read(endianess: .littleEndian) as UInt16)
-        }
-
+        /// Length (1, 3 or 7 bytes)
+        let length = try StringLength.read(from: &dataStream)
         guard length <= dataStream.remainingCount else {
             throw OutlookRulesReadError.corrupted
         }
@@ -51,13 +45,8 @@ internal struct ASCIIString {
     public func write(to dataStream: inout OutputDataStream) {
         let bytes = self.bytes
         
-        /// Length (1 byte or 3 bytes if length >= 255)
-        if bytes.count < 0xFF {
-            dataStream.write(UInt8(bytes.count))
-        } else {
-            dataStream.write(0xFF as UInt8)
-            dataStream.write(UInt16(bytes.count), endianess: .littleEndian)
-        }
+        /// Length (1, 3 or 7 bytes)
+        StringLength.write(bytes.count, to: &dataStream)
         
         /// Value (variable)
         dataStream.write(bytes)

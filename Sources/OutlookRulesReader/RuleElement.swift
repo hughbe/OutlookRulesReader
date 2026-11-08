@@ -101,6 +101,8 @@ public struct RuleElement {
                     parameter = try StringParameter(dataStream: &dataStream, version: version)
                 case .specificWordsInSendersAddressCondition: // 0x00E6
                     parameter = try StringParameter(dataStream: &dataStream, version: version)
+                case .netFoldersCondition: // 0x00E7
+                    throw OutlookRulesReadError.corrupted
                 case .specificWordsInMessageHeaderCondition: // 0x00E8
                     parameter = try StringParameter(dataStream: &dataStream, version: version)
                 case .exceptionListCondition: // 0x00E9
@@ -131,7 +133,7 @@ public struct RuleElement {
                     throw OutlookRulesReadError.corrupted
                     
                 /// Actions
-                case .forwardAction: // 0x012B
+                case .forwardAction: // 0x012E
                     parameter = try AddressParameter(dataStream: &dataStream, version: version)
                 case .moveToFolderAction: // 0x012C
                     parameter = try FolderParameter(dataStream: &dataStream, version: version)
@@ -163,8 +165,10 @@ public struct RuleElement {
                     parameter = try AddressParameter(dataStream: &dataStream, version: version)
                 case .deferDeliveryAction: // 0x013E
                     parameter = try DeferParameter(dataStream: &dataStream, version: version)
-                case .performCustomActionAction:
+                case .performCustomActionAction: // 0x013F
                     parameter = try CustomActionParameter(dataStream: &dataStream, version: version)
+                case .netFoldersAction: // 0x0141
+                    throw OutlookRulesReadError.corrupted
                 case .stopProcessingMoreRulesAction: // 0x0142
                     throw OutlookRulesReadError.corrupted
                 case .doNotSearchForCommercialOrAdultContentAction: // 0x0143

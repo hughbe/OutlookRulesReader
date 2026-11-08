@@ -8,13 +8,6 @@
 import DataStream
 
 public struct AccountParameter: RuleParameter {
-    public var dataSize: UInt32 {
-        var baseSize: UInt32 = 4
-        baseSize += UTF16String(value: accountName).dataSize
-        baseSize += ASCIIString(value: accountName).dataSize
-        return baseSize
-    }
-
     public var reserved: UInt32 = 0
     public var accountName: String
     public var unknown: String

@@ -9,8 +9,6 @@ import DataStream
 import Foundation
 
 public struct TimeParameter: RuleParameter {
-    public let dataSize: UInt32 = 40
-
     public var reserved: UInt32 = 0
     public var includeAfterDate: Bool
     public var afterDate: OleDateTime

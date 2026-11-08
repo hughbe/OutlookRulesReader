@@ -9,6 +9,7 @@ import DataStream
 import Foundation
 import MAPI
 
+/// A serialized MAPI `ADRENTRY` whose `SPropValue` array has its pointers replaced by offsets (spec §6.4).
 internal struct PropertiesList {
     /// A single property, retaining everything needed to write it back byte-for-byte.
     public struct Entry {
@@ -58,7 +59,8 @@ internal struct PropertiesList {
         return UInt32(stream.data.count)
     }
     
-    public var unknown: UInt32 = 0
+    /// `ADRENTRY.ulReserved1`. Often uninitialised memory; preserved when round-tripping.
+    public var reserved1: UInt32 = 0
     public var entries: [Entry]
 
     /// The values of the properties, keyed by property ID.
@@ -72,9 +74,9 @@ internal struct PropertiesList {
         return properties
     }
     
-    public init(entries: [Entry], unknown: UInt32 = 0) {
+    public init(entries: [Entry], reserved1: UInt32 = 0) {
         self.entries = entries
-        self.unknown = unknown
+        self.reserved1 = reserved1
     }
     
     /// Creates a list from property values, reusing the types, order and flags of the properties
@@ -104,12 +106,12 @@ internal struct PropertiesList {
             entries.append(Entry(type: type, id: id, data1: 0, data3: 0, value: value))
         }
         
-        self.init(entries: entries, unknown: previous?.unknown ?? 0)
+        self.init(entries: entries, reserved1: previous?.reserved1 ?? 0)
     }
     
     public init(dataStream: inout DataStream) throws {
-        /// Unknown (4 bytes)
-        self.unknown = try dataStream.read(endianess: .littleEndian)
+        /// Reserved1 (4 bytes)
+        self.reserved1 = try dataStream.read(endianess: .littleEndian)
         
         /// Number of Properties (4 bytes)
         let numberOfProperties: UInt32 = try dataStream.read(endianess: .littleEndian)
@@ -236,8 +238,8 @@ internal struct PropertiesList {
             headers.append((entry.type, entry.id, entry.data1, data2, data3))
         }
         
-        /// Unknown (4 bytes)
-        dataStream.write(unknown, endianess: .littleEndian)
+        /// Reserved1 (4 bytes)
+        dataStream.write(reserved1, endianess: .littleEndian)
         
         /// Number of Properties (4 bytes)
         dataStream.write(UInt32(entries.count), endianess: .littleEndian)

@@ -8,10 +8,6 @@
 import DataStream
 
 public struct SendersListParameter: RuleParameter {
-    public var dataSize: UInt32 {
-        4 +  ASCIIString(value: name).dataSize
-    }
-
     public var reserved: UInt32 = 0
     public var name: String
     

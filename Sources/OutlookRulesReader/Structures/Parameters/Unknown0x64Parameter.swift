@@ -8,8 +8,6 @@
 import DataStream
 
 internal struct Unknown0x64Parameter: RuleParameter {
-    public let dataSize: UInt32 = 8
-
     public var reserved: UInt32 = 0
     public var flags: UInt32 = 1
     

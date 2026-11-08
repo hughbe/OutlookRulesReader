@@ -79,6 +79,10 @@ public enum RuleElementIdentifier: UInt32 {
     /// “with <specific words> in the sender’s address”
     case specificWordsInSendersAddressCondition = 0x000000E6
     
+    /// Used by the hidden "#NET FOLDERS#" rule that Outlook 98/2000's Net Folders feature creates.
+    /// The meaning is inferred from that rule; there is no UI text. Takes no parameters.
+    case netFoldersCondition = 0x000000E7
+    
     /// “with <specific words> in the message header”
     case specificWordsInMessageHeaderCondition = 0x000000E8
     
@@ -183,6 +187,10 @@ public enum RuleElementIdentifier: UInt32 {
     /// "perform <a custom action>"
     /// Removed in Outlook 2010
     case performCustomActionAction = 0x0000013F
+    
+    /// Used by the hidden "#NET FOLDERS#" rule that Outlook 98/2000's Net Folders feature creates.
+    /// The meaning is inferred from that rule; there is no UI text. Takes no parameters.
+    case netFoldersAction = 0x00000141
     
     /// “stop processing more rules”
     case stopProcessingMoreRulesAction = 0x00000142

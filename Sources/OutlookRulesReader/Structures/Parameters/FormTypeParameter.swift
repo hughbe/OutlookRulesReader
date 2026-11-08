@@ -8,13 +8,6 @@
 import DataStream
 
 public struct FormTypeParameter: RuleParameter {
-    public var dataSize: UInt32 {
-        var baseSize: UInt32 = 4
-        baseSize += UTF16String(value: name).dataSize
-        baseSize += ASCIIString(value: className).dataSize
-        return baseSize
-    }
-
     public var reserved: UInt32 = 0
     public var name: String
     public var className: String

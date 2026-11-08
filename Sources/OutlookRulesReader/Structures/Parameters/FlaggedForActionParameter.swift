@@ -8,13 +8,6 @@
 import DataStream
 
 public struct FlaggedForActionParameter: RuleParameter {
-    public var dataSize: UInt32 {
-        var baseSize: UInt32 = 12
-        baseSize += UTF16String(value: action).dataSize
-        baseSize += 4
-        return baseSize
-    }
-
     public var reserved: UInt32 = 0
     public var unknown1: UInt32 = 0
     public var action: String

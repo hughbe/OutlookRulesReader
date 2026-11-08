@@ -32,12 +32,20 @@ public struct OutlookRules: CustomDebugStringConvertible {
     }
     
     public init(dataStream: inout DataStream) throws {
-        self.header = try RulesHeader(dataStream: &dataStream)
+        /// An Outlook 97 stream with no rules is just the two-byte rule count, too short to hold a signature (spec §3).
+        let version: OutlookRulesVersion? = dataStream.remainingCount < 4 ? .noSignature : nil
+        try self.init(dataStream: &dataStream, version: version)
+    }
+
+    private init(dataStream: inout DataStream, version: OutlookRulesVersion?) throws {
+        self.header = try RulesHeader(dataStream: &dataStream, version: version)
         
+        /// The class descriptor for `CRuleElement` is written before the first element of the stream.
+        var classDeclared = false
         var rules: [Rule] = []
         rules.reserveCapacity(Int(header.numberOfRules))
-        for index in 0..<Int(header.numberOfRules) {
-            let rule = try Rule(dataStream: &dataStream, index: index, version: header.version)
+        for _ in 0..<Int(header.numberOfRules) {
+            let rule = try Rule(dataStream: &dataStream, version: header.version, classDeclared: &classDeclared)
             rules.append(rule)
         }
         
@@ -59,8 +67,9 @@ public struct OutlookRules: CustomDebugStringConvertible {
         header.numberOfRules = UInt16(rules.count)
         header.write(to: &dataStream, version: version)
         
-        for (index, rule) in rules.enumerated() {
-            rule.write(to: &dataStream, index: index, version: version)
+        var classDeclared = false
+        for rule in rules {
+            rule.write(to: &dataStream, version: version, classDeclared: &classDeclared)
         }
         
         if version != .noSignature {

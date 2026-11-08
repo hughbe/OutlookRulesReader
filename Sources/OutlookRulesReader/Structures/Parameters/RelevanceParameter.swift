@@ -8,8 +8,6 @@
 import DataStream
 
 internal struct RelevanceParameter: RuleParameter {
-    public let dataSize: UInt32 = 8
-
     public var reserved: UInt32 = 0
     public var value: UInt32 = 1
     

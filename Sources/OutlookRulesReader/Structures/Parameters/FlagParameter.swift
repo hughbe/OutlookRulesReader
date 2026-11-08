@@ -8,12 +8,6 @@
 import DataStream
 
 public struct FlagParameter: RuleParameter {
-    public var dataSize: UInt32 {
-        var baseSize: UInt32 = 12
-        baseSize += UTF16String(value: actionName).dataSize
-        return baseSize
-    }
-
     public var reserved: UInt32 = 0
     public var days: UInt32
     public var actionName: String

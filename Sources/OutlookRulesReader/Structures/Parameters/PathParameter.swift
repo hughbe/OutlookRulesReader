@@ -8,10 +8,6 @@
 import DataStream
 
 public struct PathParameter: RuleParameter {
-    public var dataSize: UInt32 {
-        4 +  UTF16String(value: path).dataSize
-    }
-
     public var reserved: UInt32 = 0
     public var path: String
     

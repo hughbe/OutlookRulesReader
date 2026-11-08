@@ -7,12 +7,8 @@
 
 import DataStream
 
+/// People or public groups, stored as a serialized MAPI `ADRLIST` (spec §6.4).
 public struct AddressParameter: RuleParameter {
-    public var dataSize: UInt32 {
-        // Reserved (4 bytes), Number of Values (4 bytes), Unknown1 (4 bytes), Unknown2 (4 bytes)
-        return 16 + lists.reduce(0) { $0 + $1.dataSize }
-    }
-
     public var reserved: UInt32 = 0
     internal var lists: [PropertiesList] = []
     

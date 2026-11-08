@@ -10,8 +10,11 @@ import Foundation
 import MAPI
 
 public struct DocumentProperty {
+    /// The number of bytes the property occupies when written in the Unicode (Outlook 2002 and later) format.
     public var dataSize: UInt32 {
-        return UTF16String(value: field).dataSize + 2 + 2
+        var dataStream = OutputDataStream()
+        write(to: &dataStream, version: .outlook2019)
+        return UInt32(dataStream.data.count)
     }
 
     public var field: String

@@ -8,6 +8,8 @@
 import DataStream
 import MAPI
 
+/// A serialized MAPI `SPropValue` (spec §6.4): the property tag, `dwAlignPad` (`data1`, uninitialised memory)
+/// and the 8-byte value union (`data2` and `data3`).
 internal struct PropertyValueHeader {
     public static var dataSize: UInt32 = 16
     

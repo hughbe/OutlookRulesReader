@@ -9,10 +9,6 @@ import DataStream
 import WindowsDataTypes
 
 public struct RetentionPolicyParameter: RuleParameter {
-    public var dataSize: UInt32 {
-        return 20 + UTF16String(value: name).dataSize
-    }
-
     public var reserved: UInt32 = 0
     public var guid: GUID
     public var name: String

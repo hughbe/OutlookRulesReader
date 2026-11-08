@@ -9,14 +9,6 @@ import DataStream
 import MAPI
 
 public struct FolderParameter: RuleParameter {
-    public var dataSize: UInt32 {
-        var baseSize: UInt32 = 8
-        baseSize += UInt32(FlatEntry(entryID: folderEntryId).dataSize)
-        baseSize += UInt32(FlatEntry(entryID: storeEntryId).dataSize)
-        baseSize += UTF16String(value: folderName).dataSize
-        return baseSize
-    }
-
     public var reserved: UInt32 = 0
     public var folderEntryId: EntryID
     public var storeEntryId: EntryID

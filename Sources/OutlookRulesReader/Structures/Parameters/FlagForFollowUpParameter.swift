@@ -18,10 +18,6 @@ public enum FollowUp: UInt32 {
 }
 
 public struct FlagForFollowUpParameter: RuleParameter {
-    public var dataSize: UInt32 {
-        4 + UTF16String(value: actionName).dataSize
-    }
-
     public var reserved: UInt32 = 0
     public var rawFollowUp: UInt32
     public var followUp: FollowUp {

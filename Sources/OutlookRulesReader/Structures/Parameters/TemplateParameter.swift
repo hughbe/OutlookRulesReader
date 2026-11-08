@@ -9,13 +9,6 @@ import DataStream
 import MAPI
 
 public struct TemplateParameter: RuleParameter {
-    public var dataSize: UInt32 {
-        var baseSize: UInt32 = 4
-        baseSize += UInt32(FlatEntry(entryID: messageEntryId).dataSize)
-        baseSize += UTF16String(value: name).dataSize
-        return baseSize
-    }
-
     public var reserved: UInt32 = 0
     public var messageEntryId: EntryID
     public var name: String
