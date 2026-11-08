@@ -1,4 +1,6 @@
+import DataStream
 import Foundation
+import MAPI
 import XCTest
 @testable import OutlookRulesReader
 
@@ -173,10 +175,10 @@ final class ExportTests: XCTestCase {
                 continue
             }
 
-            // Writing address and entry ID based parameters is not supported yet.
+            // Writing folder entry IDs needs a version of MAPI that can write StoreEntryIDs.
             let hasUnwritableParameters = original.rules.contains { rule in
                 rule.elements.contains { element in
-                    element.parameters.contains { $0 is AddressParameter || $0 is FolderParameter }
+                    element.parameters.contains { $0 is FolderParameter }
                 }
             }
             if hasUnwritableParameters {
@@ -199,6 +201,71 @@ final class ExportTests: XCTestCase {
     }
 
 
+    func testWriteAddressParameter() throws {
+        let values: [[UInt16: Any]] = [
+            [
+                PropertyId.tagDisplayName.rawValue: "First Last",
+                PropertyId.tagRecipientType.rawValue: 1 as UInt32,
+                PropertyId.tagSmtpAddress.rawValue: MAPI_E.NOT_FOUND.rawValue,
+                PropertyId.tagSearchKey.rawValue: [0x01, 0x02, 0x03] as [UInt8],
+                PropertyId.tagResponsibility.rawValue: true,
+            ],
+            [
+                PropertyId.tagDisplayName.rawValue: "Second",
+            ],
+        ]
+        for version in writableVersions {
+            let file = OutlookRules(rules: [
+                Rule(eventFlags: .afterReceived, name: "RULENAME", conditions: [
+                    RuleElement(identifier: .fromCondition, parameter: AddressParameter(values: values))
+                ])
+            ])
+            let reread = try OutlookRules(data: file.getData(version: version))
+            let parameter = try XCTUnwrap(reread.rules[0].conditions[0].parameter as? AddressParameter)
+            XCTAssertEqual(2, parameter.values.count)
+            XCTAssertEqual(5, parameter.values[0].count)
+            XCTAssertEqual("First Last", parameter.values[0][PropertyId.tagDisplayName.rawValue] as? String)
+            XCTAssertEqual(1, parameter.values[0][PropertyId.tagRecipientType.rawValue] as? UInt32)
+            XCTAssertEqual(MAPI_E.NOT_FOUND.rawValue, parameter.values[0][PropertyId.tagSmtpAddress.rawValue] as? UInt32)
+            XCTAssertEqual([0x01, 0x02, 0x03], parameter.values[0][PropertyId.tagSearchKey.rawValue] as? [UInt8])
+            XCTAssertEqual(true, parameter.values[0][PropertyId.tagResponsibility.rawValue] as? Bool)
+            XCTAssertEqual(1, parameter.values[1].count)
+            XCTAssertEqual("Second", parameter.values[1][PropertyId.tagDisplayName.rawValue] as? String)
+        }
+    }
+
+    func testAddressParameterRoundTripIsLossless() throws {
+        for name in ["Outlook2007_From_Default", "Outlook2007_From_2000", "Outlook97_From", "Outlook98_From"] {
+            let data = try getData(name: name, fileExtension: "rwz")
+            let file = try OutlookRules(data: data)
+            let parameter = try XCTUnwrap(file.rules[0].conditions[0].parameter as? AddressParameter)
+
+            // Writing without changes reproduces the file, and the computed size matches what is written.
+            XCTAssertEqual(data, file.getData(), name)
+            var stream = OutputDataStream()
+            parameter.write(to: &stream, version: .outlook2019)
+            XCTAssertEqual(UInt32(stream.data.count), parameter.dataSize, name)
+        }
+    }
+
+    func testModifyAddressParameter() throws {
+        let data = try getData(name: "Outlook2007_From_Default", fileExtension: "rwz")
+        var file = try OutlookRules(data: data)
+        var rule = file.rules[0]
+        var parameter = try XCTUnwrap(rule.conditions[0].parameter as? AddressParameter)
+        let original = parameter.values[0]
+        parameter.values[0][PropertyId.tagDisplayName.rawValue] = "Renamed"
+        rule.elements[rule.elements.firstIndex { $0.identifier == .fromCondition }!] = RuleElement(identifier: .fromCondition, parameter: parameter)
+        file = OutlookRules(rules: [rule])
+
+        let reread = try OutlookRules(data: file.getData())
+        let rereadParameter = try XCTUnwrap(reread.rules[0].conditions[0].parameter as? AddressParameter)
+        XCTAssertEqual("Renamed", rereadParameter.values[0][PropertyId.tagDisplayName.rawValue] as? String)
+        XCTAssertEqual(original.count, rereadParameter.values[0].count)
+        XCTAssertEqual(original[PropertyId.tagSearchKey.rawValue] as? [UInt8], rereadParameter.values[0][PropertyId.tagSearchKey.rawValue] as? [UInt8])
+        XCTAssertEqual(original[PropertyId.tagEntryId.rawValue] as? [UInt8], rereadParameter.values[0][PropertyId.tagEntryId.rawValue] as? [UInt8])
+    }
+
     static var allTests = [
         ("testEmpty", testEmpty),
         ("testEmptyRule", testEmptyRule),
@@ -210,5 +277,8 @@ final class ExportTests: XCTestCase {
         ("testNameWithCarriageReturnLineFeed", testNameWithCarriageReturnLineFeed),
         ("testElementOrderIsPreserved", testElementOrderIsPreserved),
         ("testRoundTripResources", testRoundTripResources),
+        ("testWriteAddressParameter", testWriteAddressParameter),
+        ("testAddressParameterRoundTripIsLossless", testAddressParameterRoundTripIsLossless),
+        ("testModifyAddressParameter", testModifyAddressParameter),
     ]
 }

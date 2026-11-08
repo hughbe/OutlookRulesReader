@@ -9,15 +9,27 @@ import DataStream
 
 public struct AddressParameter: RuleParameter {
     public var dataSize: UInt32 {
-        let result: UInt32 = 16
-        for _ in values {
-            // TODO
-        }
-        return result
+        // Reserved (4 bytes), Number of Values (4 bytes), Unknown1 (4 bytes), Unknown2 (4 bytes)
+        return 16 + lists.reduce(0) { $0 + $1.dataSize }
     }
 
     public var reserved: UInt32 = 0
-    public var values: [[UInt16 : Any]] = []
+    internal var lists: [PropertiesList] = []
+    
+    /// The properties of each address, keyed by property ID.
+    public var values: [[UInt16 : Any]] {
+        get {
+            return lists.map { $0.properties }
+        }
+        set {
+            // Reuse the types and order of existing properties so that unmodified properties
+            // are written back unchanged.
+            lists = newValue.enumerated().map { index, properties in
+                PropertiesList(properties: properties, reusing: index < lists.count ? lists[index] : nil)
+            }
+        }
+    }
+    
     public var unknown1: UInt32 = 1
     public var unknown2: UInt32 = 0
 
@@ -33,14 +45,13 @@ public struct AddressParameter: RuleParameter {
         let numberOfValues: UInt32 = try dataStream.read(endianess: .littleEndian)
         
         /// Values (variable)
-        var values: [[UInt16 : Any]] = []
-        values.reserveCapacity(Int(numberOfValues))
+        var lists: [PropertiesList] = []
+        lists.reserveCapacity(Int(numberOfValues))
         for _ in 0..<numberOfValues {
-            let list = try PropertiesList(dataStream: &dataStream)
-            values.append(list.properties)
+            lists.append(try PropertiesList(dataStream: &dataStream))
         }
         
-        self.values = values
+        self.lists = lists
         
         /// Unknown1 (4 bytes)
         self.unknown1 = try dataStream.read(endianess: .littleEndian)
@@ -50,6 +61,21 @@ public struct AddressParameter: RuleParameter {
     }
 
     public func write(to dataStream: inout OutputDataStream, version: OutlookRulesVersion) {
-        // TODO
+        /// Reserved (4 bytes)
+        dataStream.write(reserved, endianess: .littleEndian)
+        
+        /// Number of Values (4 bytes)
+        dataStream.write(UInt32(lists.count), endianess: .littleEndian)
+        
+        /// Values (variable)
+        for list in lists {
+            list.write(to: &dataStream)
+        }
+        
+        /// Unknown1 (4 bytes)
+        dataStream.write(unknown1, endianess: .littleEndian)
+        
+        /// Unknown2 (4 bytes)
+        dataStream.write(unknown2, endianess: .littleEndian)
     }
 }

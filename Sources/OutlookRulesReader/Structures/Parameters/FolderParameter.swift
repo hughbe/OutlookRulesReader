@@ -73,7 +73,7 @@ public struct FolderParameter: RuleParameter {
         
         if version != .noSignature {
             /// Secondary User Store (4 bytes)
-            dataStream.write((secondaryUserStore! ? 1 : 0) as UInt32, endianess: .littleEndian)
+            dataStream.write(((secondaryUserStore ?? false) ? 1 : 0) as UInt32, endianess: .littleEndian)
         }
     }
 }

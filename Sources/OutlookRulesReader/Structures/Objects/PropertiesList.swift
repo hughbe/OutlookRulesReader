@@ -6,47 +6,123 @@
 //
 
 import DataStream
+import Foundation
 import MAPI
 
 internal struct PropertiesList {
-    public var dataSize: UInt32 {
-        var baseSize: UInt32 = 12
-        for property in properties {
-            baseSize += PropertyValueHeader.dataSize
-            if let string = property.value as? String {
-                // UTF-16 little-endian encoded string with null-terminator
-                baseSize += UInt32(string.count + 1) * 2
-            } else if let binary = property.value as? [UInt8] {
-                baseSize += UInt32(binary.count)
+    /// A single property, retaining everything needed to write it back byte-for-byte.
+    public struct Entry {
+        public var type: PropertyType
+        public var id: UInt16
+        public var data1: UInt32
+        public var data3: UInt32
+        public var value: Any
+        
+        /// Whether the value is of the Swift type that is used to represent the property type.
+        public func accepts(_ value: Any) -> Bool {
+            switch type {
+            case .integer32, .errorCode:
+                return value is UInt32
+            case .string, .string8:
+                return value is String
+            case .binary:
+                return value is [UInt8]
+            case .boolean:
+                return value is Bool
+            default:
+                return false
             }
         }
         
-        return baseSize
+        /// Infers the property type to use for a value that has no recorded type.
+        public static func inferredType(for value: Any) -> PropertyType? {
+            switch value {
+            case let value as UInt32:
+                // Error codes (e.g. MAPI_E_NOT_FOUND) have the high bit set.
+                return value >= 0x80000000 ? .errorCode : .integer32
+            case is String:
+                return .string
+            case is [UInt8]:
+                return .binary
+            case is Bool:
+                return .boolean
+            default:
+                return nil
+            }
+        }
+    }
+    
+    public var dataSize: UInt32 {
+        var stream = OutputDataStream()
+        write(to: &stream)
+        return UInt32(stream.data.count)
     }
     
     public var unknown: UInt32 = 0
-    public let numberOfProperties: UInt32
-    public let propertyBlockDataSize: UInt32
+    public var entries: [Entry]
 
-    public var properties: [UInt16: Any]
+    /// The values of the properties, keyed by property ID.
+    public var properties: [UInt16: Any] {
+        var properties: [UInt16: Any] = [:]
+        properties.reserveCapacity(entries.count)
+        for entry in entries {
+            properties[entry.id] = entry.value
+        }
+        
+        return properties
+    }
+    
+    public init(entries: [Entry], unknown: UInt32 = 0) {
+        self.entries = entries
+        self.unknown = unknown
+    }
+    
+    /// Creates a list from property values, reusing the types, order and flags of the properties
+    /// in a previous list, if there is one, so that unmodified properties are written back unchanged.
+    public init(properties: [UInt16: Any], reusing previous: PropertiesList? = nil) {
+        var remaining = properties
+        var entries: [Entry] = []
+        entries.reserveCapacity(properties.count)
+        if let previous = previous {
+            for var entry in previous.entries {
+                guard let value = remaining[entry.id], entry.accepts(value) else {
+                    continue
+                }
+                
+                entry.value = value
+                entries.append(entry)
+                remaining[entry.id] = nil
+            }
+        }
+        
+        for id in remaining.keys.sorted() {
+            let value = remaining[id]!
+            guard let type = Entry.inferredType(for: value) else {
+                continue
+            }
+            
+            entries.append(Entry(type: type, id: id, data1: 0, data3: 0, value: value))
+        }
+        
+        self.init(entries: entries, unknown: previous?.unknown ?? 0)
+    }
     
     public init(dataStream: inout DataStream) throws {
         /// Unknown (4 bytes)
         self.unknown = try dataStream.read(endianess: .littleEndian)
         
         /// Number of Properties (4 bytes)
-        self.numberOfProperties = try dataStream.read(endianess: .littleEndian)
+        let numberOfProperties: UInt32 = try dataStream.read(endianess: .littleEndian)
         
         /// Property Block Data Size (4 bytes)
-        self.propertyBlockDataSize = try dataStream.read(endianess: .littleEndian)
+        let propertyBlockDataSize: UInt32 = try dataStream.read(endianess: .littleEndian)
 
         let startPosition = dataStream.position
-        // let dataPosition = startPosition + Int(numberOfProperties * PropertyValueHeader.size)
         let endPosition = dataStream.position + Int(propertyBlockDataSize)
         
-        var properties: [UInt16: Any] = [:]
-        properties.reserveCapacity(Int(numberOfProperties))
-        for _ in 0..<self.numberOfProperties {
+        var entries: [Entry] = []
+        entries.reserveCapacity(Int(numberOfProperties))
+        for _ in 0..<numberOfProperties {
             let header = try PropertyValueHeader(dataStream: &dataStream)
             let position = dataStream.position
 
@@ -93,16 +169,15 @@ internal struct PropertiesList {
                 dataStream.position = position
                 break
             case PropertyType.binary:
-                // Data stored in data block.
-                let offset = Int(header.data2)
-                guard offset >= 0 && offset <= endPosition else {
+                // Data stored in data block. Like an SBinary, the value is a length followed by the location of the data.
+                let length = Int(header.data2)
+                let offset = Int(header.data3)
+                guard offset >= 0 && offset <= endPosition - startPosition else {
                     throw OutlookRulesReadError.corrupted
                 }
 
                 dataStream.position = startPosition + offset
                 
-                // Read length number of bytes.
-                let length = Int(header.data3)
                 guard length >= 0 && dataStream.position + length <= endPosition else {
                     throw OutlookRulesReadError.corrupted
                 }
@@ -112,16 +187,74 @@ internal struct PropertiesList {
                 dataStream.position = position
                 break
             case PropertyType.boolean:
-                value = UInt16(header.data2) != 0
+                value = UInt16(truncatingIfNeeded: header.data2) != 0
             default:
                 // Property type not yet supported.
                 throw OutlookRulesReadError.corrupted
             }
             
-            properties[header.tag.id] = value
+            entries.append(Entry(type: header.tag.type, id: header.tag.id, data1: header.data1, data3: header.data3, value: value))
         }
         
-        self.properties = properties
+        self.entries = entries
         dataStream.position = endPosition
+    }
+    
+    public func write(to dataStream: inout OutputDataStream) {
+        // Property headers are followed by a data block that holds strings and binary values.
+        var dataBlock = OutputDataStream()
+        var headers: [(type: PropertyType, id: UInt16, data1: UInt32, data2: UInt32, data3: UInt32)] = []
+        headers.reserveCapacity(entries.count)
+        let dataBlockOffset = entries.count * Int(PropertyValueHeader.dataSize)
+        
+        for entry in entries {
+            var data2: UInt32 = 0
+            var data3 = entry.data3
+            switch entry.type {
+            case .integer32, .errorCode:
+                data2 = (entry.value as? UInt32) ?? 0
+            case .boolean:
+                data2 = ((entry.value as? Bool) ?? false) ? 1 : 0
+            case .string:
+                data2 = UInt32(dataBlockOffset + dataBlock.data.count)
+                dataBlock.write((entry.value as? String) ?? "", encoding: .utf16LittleEndian)
+                dataBlock.write(0 as UInt16, endianess: .littleEndian)
+            case .string8:
+                data2 = UInt32(dataBlockOffset + dataBlock.data.count)
+                let bytes = ((entry.value as? String) ?? "").data(using: .isoLatin1, allowLossyConversion: true) ?? Data()
+                dataBlock.write(bytes)
+                dataBlock.write(0 as UInt8)
+            case .binary:
+                let bytes = (entry.value as? [UInt8]) ?? []
+                data2 = UInt32(bytes.count)
+                data3 = UInt32(dataBlockOffset + dataBlock.data.count)
+                dataBlock.write(Data(bytes))
+            default:
+                break
+            }
+            
+            headers.append((entry.type, entry.id, entry.data1, data2, data3))
+        }
+        
+        /// Unknown (4 bytes)
+        dataStream.write(unknown, endianess: .littleEndian)
+        
+        /// Number of Properties (4 bytes)
+        dataStream.write(UInt32(entries.count), endianess: .littleEndian)
+        
+        /// Property Block Data Size (4 bytes)
+        dataStream.write(UInt32(dataBlockOffset + dataBlock.data.count), endianess: .littleEndian)
+        
+        /// Property Headers (variable)
+        for header in headers {
+            dataStream.write(header.type.rawValue, endianess: .littleEndian)
+            dataStream.write(header.id, endianess: .littleEndian)
+            dataStream.write(header.data1, endianess: .littleEndian)
+            dataStream.write(header.data2, endianess: .littleEndian)
+            dataStream.write(header.data3, endianess: .littleEndian)
+        }
+        
+        /// Data Block (variable)
+        dataStream.write(dataBlock.data)
     }
 }
