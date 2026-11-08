@@ -175,16 +175,6 @@ final class ExportTests: XCTestCase {
                 continue
             }
 
-            // Writing folder entry IDs needs a version of MAPI that can write StoreEntryIDs.
-            let hasUnwritableParameters = original.rules.contains { rule in
-                rule.elements.contains { element in
-                    element.parameters.contains { $0 is FolderParameter }
-                }
-            }
-            if hasUnwritableParameters {
-                continue
-            }
-
             let expected = summary(of: original)
 
             // Write using the version that the file was read with.
