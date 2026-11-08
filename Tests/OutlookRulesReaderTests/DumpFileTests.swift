@@ -606,7 +606,7 @@ final class DumpFileTests: XCTestCase {
         
         for (name, fileExtension) in files {
             let data = try getData(name: name, fileExtension: fileExtension)
-            let rules = try OutlookRulesFile(data: data)
+            let rules = try OutlookRules(data: data)
             print(rules)
         }
     }

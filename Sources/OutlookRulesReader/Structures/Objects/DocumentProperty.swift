@@ -130,9 +130,13 @@ public struct DocumentProperty {
         self.unknown2 = try dataStream.read(endianess: .littleEndian)
     }
     
-    public func write(to dataStream: inout OutputDataStream) {
+    public func write(to dataStream: inout OutputDataStream, version: OutlookRulesVersion) {
         /// Field (variable)
-        UTF16String(value: field).write(to: &dataStream)
+        if version >= .outlook2002 {
+            UTF16String(value: field).write(to: &dataStream)
+        } else {
+            ASCIIString(value: field).write(to: &dataStream)
+        }
 
         /// Tag (4 bytes)
         tag.write(to: &dataStream)
@@ -141,7 +145,11 @@ public struct DocumentProperty {
         dataStream.write(rawStringMatchType, endianess: .littleEndian)
 
         /// String Value (variable)
-        UTF16String(value: stringValue).write(to: &dataStream)
+        if version >= .outlook2002 {
+            UTF16String(value: stringValue).write(to: &dataStream)
+        } else {
+            ASCIIString(value: stringValue).write(to: &dataStream)
+        }
         
         /// Number Match Type (4 bytes)
         dataStream.write(rawNumberMatchType, endianess: .littleEndian)

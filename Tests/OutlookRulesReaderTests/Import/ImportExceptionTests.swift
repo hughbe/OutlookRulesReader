@@ -5,7 +5,7 @@ import MAPI
 final class ImportExceptionTests: XCTestCase {
     func testFromException() throws {
         do {
-            let file = try OutlookRulesFile(data: Data([
+            let file = try OutlookRules(data: Data([
                 0x00, 0x00, 0x14, 0x00, 0x00, 0x00, 0x14, 0x06, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                 0x01, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00,
@@ -38,9 +38,9 @@ final class ImportExceptionTests: XCTestCase {
             XCTAssertEqual(0, file.rules[0].actions.count)
             XCTAssertEqual(1, file.rules[0].exceptions.count)
             XCTAssertEqual(.fromException, file.rules[0].exceptions[0].identifier)
-            XCTAssertTrue(file.rules[0].exceptions[0].data is PeopleOrPublicGroupListRuleElementData)
+            XCTAssertTrue(file.rules[0].exceptions[0].parameter is AddressParameter)
 
-            let exception = file.rules[0].exceptions[0].data as! PeopleOrPublicGroupListRuleElementData
+            let exception = file.rules[0].exceptions[0].parameter as!AddressParameter
             XCTAssertEqual(1, exception.values.count)
             XCTAssertEqual(6, exception.values[0].count)
             XCTAssertEqual(MAPI_E.NOT_FOUND.rawValue, exception.values[0][PropertyId.tagSmtpAddress.rawValue] as! UInt32)
@@ -51,7 +51,7 @@ final class ImportExceptionTests: XCTestCase {
             XCTAssertEqual(1, exception.values[0][PropertyId.tagRecipientType.rawValue] as! UInt32)
         }
         do {
-            let file = try OutlookRulesFile(data: Data([
+            let file = try OutlookRules(data: Data([
                 0x00, 0x00, 0x14, 0x00, 0x00, 0x00, 0x14, 0x06, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                 0x01, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00,
@@ -121,9 +121,9 @@ final class ImportExceptionTests: XCTestCase {
             XCTAssertEqual(0, file.rules[0].actions.count)
             XCTAssertEqual(1, file.rules[0].exceptions.count)
             XCTAssertEqual(.fromException, file.rules[0].exceptions[0].identifier)
-            XCTAssertTrue(file.rules[0].exceptions[0].data is PeopleOrPublicGroupListRuleElementData)
+            XCTAssertTrue(file.rules[0].exceptions[0].parameter is AddressParameter)
 
-            let exception = file.rules[0].exceptions[0].data as! PeopleOrPublicGroupListRuleElementData
+            let exception = file.rules[0].exceptions[0].parameter as!AddressParameter
             XCTAssertEqual(2, exception.values.count)
             XCTAssertEqual(11, exception.values[0].count)
             XCTAssertEqual(MAPI_E.NOT_FOUND.rawValue, exception.values[0][PropertyId.tagSmtpAddress.rawValue] as! UInt32)
@@ -145,7 +145,7 @@ final class ImportExceptionTests: XCTestCase {
 
     func testSpecificWordsInSubjectException() throws {
         do {
-            let file = try OutlookRulesFile(data: Data([
+            let file = try OutlookRules(data: Data([
                 0x00, 0x00, 0x14, 0x00, 0x00, 0x00, 0x14, 0x06, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                 0x01, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00,
@@ -164,13 +164,13 @@ final class ImportExceptionTests: XCTestCase {
             XCTAssertEqual(0, file.rules[0].actions.count)
             XCTAssertEqual(1, file.rules[0].exceptions.count)
             XCTAssertEqual(.specificWordsInSubjectException, file.rules[0].exceptions[0].identifier)
-            XCTAssertTrue(file.rules[0].exceptions[0].data is StringsListRuleElementData)
+            XCTAssertTrue(file.rules[0].exceptions[0].parameter is StringParameter)
 
-            let exception = file.rules[0].exceptions[0].data as! StringsListRuleElementData
-            XCTAssertEqual(["phrase"], exception.entries)
+            let exception = file.rules[0].exceptions[0].parameter as! StringParameter
+            XCTAssertEqual("phrase", exception.value)
         }
         do {
-            let file = try OutlookRulesFile(data: Data([
+            let file = try OutlookRules(data: Data([
                 0x00, 0x00, 0x14, 0x00, 0x00, 0x00, 0x14, 0x06, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                 0x01, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00,
@@ -190,16 +190,20 @@ final class ImportExceptionTests: XCTestCase {
             XCTAssertEqual(0, file.rules[0].actions.count)
             XCTAssertEqual(1, file.rules[0].exceptions.count)
             XCTAssertEqual(.specificWordsInSubjectException, file.rules[0].exceptions[0].identifier)
-            XCTAssertTrue(file.rules[0].exceptions[0].data is StringsListRuleElementData)
-            
-            let exception = file.rules[0].exceptions[0].data as! StringsListRuleElementData
-            XCTAssertEqual(["phrase", "other"], exception.entries)
+            XCTAssertEqual(2, file.rules[0].exceptions[0].parameters.count)
+            XCTAssertTrue(file.rules[0].exceptions[0].parameters[0] is StringParameter)
+            XCTAssertTrue(file.rules[0].exceptions[0].parameters[1] is StringParameter)
+
+            let exception1 = file.rules[0].exceptions[0].parameters[0] as! StringParameter
+            XCTAssertEqual("phrase", exception1.value)
+            let exception2 = file.rules[0].exceptions[0].parameters[1] as! StringParameter
+            XCTAssertEqual("other", exception2.value)
         }
     }
 
     func testThroughAccountException() throws {
         do {
-            let file = try OutlookRulesFile(data: Data([
+            let file = try OutlookRules(data: Data([
                 0x00, 0x00, 0x14, 0x00, 0x00, 0x00, 0x14, 0x06, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                 0x01, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00,
@@ -228,14 +232,14 @@ final class ImportExceptionTests: XCTestCase {
             XCTAssertEqual(0, file.rules[0].actions.count)
             XCTAssertEqual(1, file.rules[0].exceptions.count)
             XCTAssertEqual(.throughSpecifiedAccountException, file.rules[0].exceptions[0].identifier)
-            XCTAssertTrue(file.rules[0].exceptions[0].data is ThroughAccountRuleElementData)
+            XCTAssertTrue(file.rules[0].exceptions[0].parameter is AccountParameter)
 
-            let exception = file.rules[0].exceptions[0].data as! ThroughAccountRuleElementData
+            let exception = file.rules[0].exceptions[0].parameter as! AccountParameter
             XCTAssertEqual("hughbellars@gmail.com", exception.accountName)
             XCTAssertEqual("-190692068", exception.unknown)
         }
         do {
-            let file = try OutlookRulesFile(data: Data([
+            let file = try OutlookRules(data: Data([
                 0x00, 0x00, 0x14, 0x00, 0x00, 0x00, 0x14, 0x06, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                 0x01, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00,
@@ -257,13 +261,13 @@ final class ImportExceptionTests: XCTestCase {
             XCTAssertEqual(1, file.rules.count)
             XCTAssertEqual(1, file.rules[0].conditions.count)
             XCTAssertEqual(.onThisComputerOnlyCondition, file.rules[0].conditions[0].identifier)
-            XCTAssertTrue(file.rules[0].conditions[0].data is OnThisComputerOnlyRuleElementData)
+            XCTAssertTrue(file.rules[0].conditions[0].parameter is ProfileStampParameter)
             XCTAssertEqual(0, file.rules[0].actions.count)
             XCTAssertEqual(1, file.rules[0].exceptions.count)
             XCTAssertEqual(.throughSpecifiedAccountException, file.rules[0].exceptions[0].identifier)
-            XCTAssertTrue(file.rules[0].exceptions[0].data is ThroughAccountRuleElementData)
+            XCTAssertTrue(file.rules[0].exceptions[0].parameter is AccountParameter)
 
-            let exception = file.rules[0].exceptions[0].data as! ThroughAccountRuleElementData
+            let exception = file.rules[0].exceptions[0].parameter as! AccountParameter
             XCTAssertEqual("hughbellars@gmail.com", exception.accountName)
             XCTAssertEqual("-190692068", exception.unknown)
         }
@@ -271,7 +275,7 @@ final class ImportExceptionTests: XCTestCase {
 
     func testSentOnlyToMeException() throws {
         do {
-            let file = try OutlookRulesFile(data: Data([
+            let file = try OutlookRules(data: Data([
                 0x00, 0x00, 0x14, 0x00, 0x00, 0x00, 0x14, 0x06, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                 0x01, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00,
@@ -289,13 +293,13 @@ final class ImportExceptionTests: XCTestCase {
             XCTAssertEqual(0, file.rules[0].actions.count)
             XCTAssertEqual(1, file.rules[0].exceptions.count)
             XCTAssertEqual(.sentOnlyToMeException, file.rules[0].exceptions[0].identifier)
-            XCTAssertTrue(file.rules[0].exceptions[0].data is SimpleRuleElementData)
+            XCTAssertEqual(0, file.rules[0].exceptions[0].parameters.count)
         }
     }
 
     func testNameInToBoxException() throws {
         do {
-            let file = try OutlookRulesFile(data: Data([
+            let file = try OutlookRules(data: Data([
                 0x00, 0x00, 0x14, 0x00, 0x00, 0x00, 0x14, 0x06, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                 0x01, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00,
@@ -313,13 +317,13 @@ final class ImportExceptionTests: XCTestCase {
             XCTAssertEqual(0, file.rules[0].actions.count)
             XCTAssertEqual(1, file.rules[0].exceptions.count)
             XCTAssertEqual(.nameInToBoxException, file.rules[0].exceptions[0].identifier)
-            XCTAssertTrue(file.rules[0].exceptions[0].data is SimpleRuleElementData)
+            XCTAssertEqual(0, file.rules[0].exceptions[0].parameters.count)
         }
     }
 
     func testImportanceException() throws {
         do {
-            let file = try OutlookRulesFile(data: Data([
+            let file = try OutlookRules(data: Data([
                 0x00, 0x00, 0x14, 0x00, 0x00, 0x00, 0x14, 0x06, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                 0x01, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00,
@@ -338,13 +342,13 @@ final class ImportExceptionTests: XCTestCase {
             XCTAssertEqual(0, file.rules[0].actions.count)
             XCTAssertEqual(1, file.rules[0].exceptions.count)
             XCTAssertEqual(.importanceException, file.rules[0].exceptions[0].identifier)
-            XCTAssertTrue(file.rules[0].exceptions[0].data is ImportanceRuleElementData)
-            
-            let exception = file.rules[0].exceptions[0].data as! ImportanceRuleElementData
+            XCTAssertTrue(file.rules[0].exceptions[0].parameter is ImportanceParameter)
+
+            let exception = file.rules[0].exceptions[0].parameter as! ImportanceParameter
             XCTAssertEqual(MessageImportance.low, exception.importance)
         }
         do {
-            let file = try OutlookRulesFile(data: Data([
+            let file = try OutlookRules(data: Data([
                 0x00, 0x00, 0x14, 0x00, 0x00, 0x00, 0x14, 0x06, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                 0x01, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00,
@@ -363,13 +367,13 @@ final class ImportExceptionTests: XCTestCase {
             XCTAssertEqual(0, file.rules[0].actions.count)
             XCTAssertEqual(1, file.rules[0].exceptions.count)
             XCTAssertEqual(.importanceException, file.rules[0].exceptions[0].identifier)
-            XCTAssertTrue(file.rules[0].exceptions[0].data is ImportanceRuleElementData)
-            
-            let exception = file.rules[0].exceptions[0].data as! ImportanceRuleElementData
+            XCTAssertTrue(file.rules[0].exceptions[0].parameter is ImportanceParameter)
+
+            let exception = file.rules[0].exceptions[0].parameter as! ImportanceParameter
             XCTAssertEqual(MessageImportance.normal, exception.importance)
         }
         do {
-            let file = try OutlookRulesFile(data: Data([
+            let file = try OutlookRules(data: Data([
                 0x00, 0x00, 0x14, 0x00, 0x00, 0x00, 0x14, 0x06, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                 0x01, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00,
@@ -388,13 +392,13 @@ final class ImportExceptionTests: XCTestCase {
             XCTAssertEqual(0, file.rules[0].actions.count)
             XCTAssertEqual(1, file.rules[0].exceptions.count)
             XCTAssertEqual(.importanceException, file.rules[0].exceptions[0].identifier)
-            XCTAssertTrue(file.rules[0].exceptions[0].data is ImportanceRuleElementData)
-            
-            let exception = file.rules[0].exceptions[0].data as! ImportanceRuleElementData
+            XCTAssertTrue(file.rules[0].exceptions[0].parameter is ImportanceParameter)
+
+            let exception = file.rules[0].exceptions[0].parameter as! ImportanceParameter
             XCTAssertEqual(MessageImportance.high, exception.importance)
         }
         do {
-            let file = try OutlookRulesFile(data: Data([
+            let file = try OutlookRules(data: Data([
                 0x00, 0x00, 0x14, 0x00, 0x00, 0x00, 0x14, 0x06, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                 0x01, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00,
@@ -413,16 +417,16 @@ final class ImportExceptionTests: XCTestCase {
             XCTAssertEqual(0, file.rules[0].actions.count)
             XCTAssertEqual(1, file.rules[0].exceptions.count)
             XCTAssertEqual(.importanceException, file.rules[0].exceptions[0].identifier)
-            XCTAssertTrue(file.rules[0].exceptions[0].data is ImportanceRuleElementData)
-            
-            let exception = file.rules[0].exceptions[0].data as! ImportanceRuleElementData
+            XCTAssertTrue(file.rules[0].exceptions[0].parameter is ImportanceParameter)
+
+            let exception = file.rules[0].exceptions[0].parameter as! ImportanceParameter
             XCTAssertEqual(0x03, exception.rawImportance)
         }
     }
 
     func testsensitivityCondition() throws {
         do {
-            let file = try OutlookRulesFile(data: Data([
+            let file = try OutlookRules(data: Data([
                 0x00, 0x00, 0x14, 0x00, 0x00, 0x00, 0x14, 0x06, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                 0x01, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00,
@@ -441,13 +445,13 @@ final class ImportExceptionTests: XCTestCase {
             XCTAssertEqual(0, file.rules[0].actions.count)
             XCTAssertEqual(1, file.rules[0].exceptions.count)
             XCTAssertEqual(.sensitivityConditionException, file.rules[0].exceptions[0].identifier)
-            XCTAssertTrue(file.rules[0].exceptions[0].data is SensitivityRuleElementData)
-            
-            let exception = file.rules[0].exceptions[0].data as! SensitivityRuleElementData
+            XCTAssertTrue(file.rules[0].exceptions[0].parameter is SensitivityParameter)
+
+            let exception = file.rules[0].exceptions[0].parameter as! SensitivityParameter
             XCTAssertEqual(MessageSensitivity.normal, exception.sensitivity)
         }
         do {
-            let file = try OutlookRulesFile(data: Data([
+            let file = try OutlookRules(data: Data([
                 0x00, 0x00, 0x14, 0x00, 0x00, 0x00, 0x14, 0x06, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                 0x01, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00,
@@ -466,13 +470,13 @@ final class ImportExceptionTests: XCTestCase {
             XCTAssertEqual(0, file.rules[0].actions.count)
             XCTAssertEqual(1, file.rules[0].exceptions.count)
             XCTAssertEqual(.sensitivityConditionException, file.rules[0].exceptions[0].identifier)
-            XCTAssertTrue(file.rules[0].exceptions[0].data is SensitivityRuleElementData)
-            
-            let exception = file.rules[0].exceptions[0].data as! SensitivityRuleElementData
+            XCTAssertTrue(file.rules[0].exceptions[0].parameter is SensitivityParameter)
+
+            let exception = file.rules[0].exceptions[0].parameter as! SensitivityParameter
             XCTAssertEqual(MessageSensitivity.personal, exception.sensitivity)
         }
         do {
-            let file = try OutlookRulesFile(data: Data([
+            let file = try OutlookRules(data: Data([
                 0x00, 0x00, 0x14, 0x00, 0x00, 0x00, 0x14, 0x06, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                 0x01, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00,
@@ -491,13 +495,13 @@ final class ImportExceptionTests: XCTestCase {
             XCTAssertEqual(0, file.rules[0].actions.count)
             XCTAssertEqual(1, file.rules[0].exceptions.count)
             XCTAssertEqual(.sensitivityConditionException, file.rules[0].exceptions[0].identifier)
-            XCTAssertTrue(file.rules[0].exceptions[0].data is SensitivityRuleElementData)
-            
-            let exception = file.rules[0].exceptions[0].data as! SensitivityRuleElementData
+            XCTAssertTrue(file.rules[0].exceptions[0].parameter is SensitivityParameter)
+
+            let exception = file.rules[0].exceptions[0].parameter as! SensitivityParameter
             XCTAssertEqual(MessageSensitivity.`private`, exception.sensitivity)
         }
         do {
-            let file = try OutlookRulesFile(data: Data([
+            let file = try OutlookRules(data: Data([
                 0x00, 0x00, 0x14, 0x00, 0x00, 0x00, 0x14, 0x06, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                 0x01, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00,
@@ -516,13 +520,13 @@ final class ImportExceptionTests: XCTestCase {
             XCTAssertEqual(0, file.rules[0].actions.count)
             XCTAssertEqual(1, file.rules[0].exceptions.count)
             XCTAssertEqual(.sensitivityConditionException, file.rules[0].exceptions[0].identifier)
-            XCTAssertTrue(file.rules[0].exceptions[0].data is SensitivityRuleElementData)
-            
-            let exception = file.rules[0].exceptions[0].data as! SensitivityRuleElementData
+            XCTAssertTrue(file.rules[0].exceptions[0].parameter is SensitivityParameter)
+
+            let exception = file.rules[0].exceptions[0].parameter as! SensitivityParameter
             XCTAssertEqual(MessageSensitivity.confidential, exception.sensitivity)
         }
         do {
-            let file = try OutlookRulesFile(data: Data([
+            let file = try OutlookRules(data: Data([
                 0x00, 0x00, 0x14, 0x00, 0x00, 0x00, 0x14, 0x06, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                 0x01, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00,
@@ -541,16 +545,16 @@ final class ImportExceptionTests: XCTestCase {
             XCTAssertEqual(0, file.rules[0].actions.count)
             XCTAssertEqual(1, file.rules[0].exceptions.count)
             XCTAssertEqual(.sensitivityConditionException, file.rules[0].exceptions[0].identifier)
-            XCTAssertTrue(file.rules[0].exceptions[0].data is SensitivityRuleElementData)
-            
-            let exception = file.rules[0].exceptions[0].data as! SensitivityRuleElementData
+            XCTAssertTrue(file.rules[0].exceptions[0].parameter is SensitivityParameter)
+
+            let exception = file.rules[0].exceptions[0].parameter as! SensitivityParameter
             XCTAssertEqual(0x04, exception.rawSensitivity)
         }
     }
 
     func testFlaggedForActionException() throws {
         do {
-            let file = try OutlookRulesFile(data: Data([
+            let file = try OutlookRules(data: Data([
                 0x00, 0x00, 0x14, 0x00, 0x00, 0x00, 0x14, 0x06, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                 0x01, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00,
@@ -570,16 +574,16 @@ final class ImportExceptionTests: XCTestCase {
             XCTAssertEqual(0, file.rules[0].actions.count)
             XCTAssertEqual(1, file.rules[0].exceptions.count)
             XCTAssertEqual(.flaggedForActionException, file.rules[0].exceptions[0].identifier)
-            XCTAssertTrue(file.rules[0].exceptions[0].data is FlaggedForActionRuleElementData)
-            
-            let exception = file.rules[0].exceptions[0].data as! FlaggedForActionRuleElementData
+            XCTAssertTrue(file.rules[0].exceptions[0].parameter is FlaggedForActionParameter)
+
+            let exception = file.rules[0].exceptions[0].parameter as! FlaggedForActionParameter
             XCTAssertEqual("Follow up", exception.action)
         }
     }
-    
+
     func testNameInCcBoxException() throws {
         do {
-            let file = try OutlookRulesFile(data: Data([
+            let file = try OutlookRules(data: Data([
                 0x00, 0x00, 0x14, 0x00, 0x00, 0x00, 0x14, 0x06, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                 0x01, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00,
@@ -597,13 +601,13 @@ final class ImportExceptionTests: XCTestCase {
             XCTAssertEqual(0, file.rules[0].actions.count)
             XCTAssertEqual(1, file.rules[0].exceptions.count)
             XCTAssertEqual(.nameInCcBoxException, file.rules[0].exceptions[0].identifier)
-            XCTAssertTrue(file.rules[0].exceptions[0].data is SimpleRuleElementData)
+            XCTAssertEqual(0, file.rules[0].exceptions[0].parameters.count)
         }
     }
 
     func testNameInToOrCcBoxException() throws {
         do {
-            let file = try OutlookRulesFile(data: Data([
+            let file = try OutlookRules(data: Data([
                 0x00, 0x00, 0x14, 0x00, 0x00, 0x00, 0x14, 0x06, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                 0x01, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00,
@@ -621,13 +625,13 @@ final class ImportExceptionTests: XCTestCase {
             XCTAssertEqual(0, file.rules[0].actions.count)
             XCTAssertEqual(1, file.rules[0].exceptions.count)
             XCTAssertEqual(.nameInToOrCcBoxException, file.rules[0].exceptions[0].identifier)
-            XCTAssertTrue(file.rules[0].exceptions[0].data is SimpleRuleElementData)
+            XCTAssertEqual(0, file.rules[0].exceptions[0].parameters.count)
         }
     }
 
     func testNameNotInToBoxException() throws {
         do {
-            let file = try OutlookRulesFile(data: Data([
+            let file = try OutlookRules(data: Data([
                 0x00, 0x00, 0x14, 0x00, 0x00, 0x00, 0x14, 0x06, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                 0x01, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00,
@@ -643,7 +647,7 @@ final class ImportExceptionTests: XCTestCase {
             XCTAssertEqual(1, file.rules.count)
             XCTAssertEqual(0, file.rules[0].conditions.count)
             XCTAssertEqual(.nameNotInToBoxException, file.rules[0].exceptions[0].identifier)
-            XCTAssertTrue(file.rules[0].exceptions[0].data is SimpleRuleElementData)
+            XCTAssertEqual(0, file.rules[0].exceptions[0].parameters.count)
             XCTAssertEqual(0, file.rules[0].actions.count)
             XCTAssertEqual(1, file.rules[0].exceptions.count)
         }
@@ -651,7 +655,7 @@ final class ImportExceptionTests: XCTestCase {
 
     func testToException() throws {
         do {
-            let file = try OutlookRulesFile(data: Data([
+            let file = try OutlookRules(data: Data([
                 0x00, 0x00, 0x14, 0x00, 0x00, 0x00, 0x14, 0x06, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                 0x01, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00,
@@ -678,9 +682,9 @@ final class ImportExceptionTests: XCTestCase {
             XCTAssertEqual(0, file.rules[0].actions.count)
             XCTAssertEqual(1, file.rules[0].exceptions.count)
             XCTAssertEqual(.toException, file.rules[0].exceptions[0].identifier)
-            XCTAssertTrue(file.rules[0].exceptions[0].data is PeopleOrPublicGroupListRuleElementData)
-            
-            let exception = file.rules[0].exceptions[0].data as! PeopleOrPublicGroupListRuleElementData
+            XCTAssertTrue(file.rules[0].exceptions[0].parameter is AddressParameter)
+
+            let exception = file.rules[0].exceptions[0].parameter as!AddressParameter
             XCTAssertEqual(1, exception.values.count)
             XCTAssertEqual(6, exception.values[0].count)
             XCTAssertEqual(MAPI_E.NOT_FOUND.rawValue, exception.values[0][PropertyId.tagSmtpAddress.rawValue] as! UInt32)
@@ -691,7 +695,7 @@ final class ImportExceptionTests: XCTestCase {
             XCTAssertEqual(1, exception.values[0][PropertyId.tagRecipientType.rawValue] as! UInt32)
         }
         do {
-            let file = try OutlookRulesFile(data: Data([
+            let file = try OutlookRules(data: Data([
                 0x00, 0x00, 0x14, 0x00, 0x00, 0x00, 0x14, 0x06, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                 0x01, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00,
@@ -761,9 +765,9 @@ final class ImportExceptionTests: XCTestCase {
             XCTAssertEqual(0, file.rules[0].actions.count)
             XCTAssertEqual(1, file.rules[0].exceptions.count)
             XCTAssertEqual(.toException, file.rules[0].exceptions[0].identifier)
-            XCTAssertTrue(file.rules[0].exceptions[0].data is PeopleOrPublicGroupListRuleElementData)
-            
-            let exception = file.rules[0].exceptions[0].data as! PeopleOrPublicGroupListRuleElementData
+            XCTAssertTrue(file.rules[0].exceptions[0].parameter is AddressParameter)
+
+            let exception = file.rules[0].exceptions[0].parameter as!AddressParameter
             XCTAssertEqual(2, exception.values.count)
             XCTAssertEqual(11, exception.values[0].count)
             XCTAssertEqual(MAPI_E.NOT_FOUND.rawValue, exception.values[0][PropertyId.tagSmtpAddress.rawValue] as! UInt32)
@@ -785,7 +789,7 @@ final class ImportExceptionTests: XCTestCase {
 
     func testSpecificWordsInBodyException() throws {
         do {
-            let file = try OutlookRulesFile(data: Data([
+            let file = try OutlookRules(data: Data([
                 0x00, 0x00, 0x14, 0x00, 0x00, 0x00, 0x14, 0x06, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                 0x01, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00,
@@ -804,13 +808,13 @@ final class ImportExceptionTests: XCTestCase {
             XCTAssertEqual(0, file.rules[0].actions.count)
             XCTAssertEqual(1, file.rules[0].exceptions.count)
             XCTAssertEqual(.specificWordsInBodyException, file.rules[0].exceptions[0].identifier)
-            XCTAssertTrue(file.rules[0].exceptions[0].data is StringsListRuleElementData)
-            
-            let exception = file.rules[0].exceptions[0].data as! StringsListRuleElementData
-            XCTAssertEqual(["phrase"], exception.entries)
+            XCTAssertTrue(file.rules[0].exceptions[0].parameter is StringParameter)
+
+            let exception = file.rules[0].exceptions[0].parameter as! StringParameter
+            XCTAssertEqual("phrase", exception.value)
         }
         do {
-            let file = try OutlookRulesFile(data: Data([
+            let file = try OutlookRules(data: Data([
                 0x00, 0x00, 0x14, 0x00, 0x00, 0x00, 0x14, 0x06, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                 0x01, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00,
@@ -830,16 +834,20 @@ final class ImportExceptionTests: XCTestCase {
             XCTAssertEqual(0, file.rules[0].actions.count)
             XCTAssertEqual(1, file.rules[0].exceptions.count)
             XCTAssertEqual(.specificWordsInBodyException, file.rules[0].exceptions[0].identifier)
-            XCTAssertTrue(file.rules[0].exceptions[0].data is StringsListRuleElementData)
-            
-            let exception = file.rules[0].exceptions[0].data as! StringsListRuleElementData
-            XCTAssertEqual(["phrase", "other"], exception.entries)
+            XCTAssertEqual(2, file.rules[0].exceptions[0].parameters.count)
+            XCTAssertTrue(file.rules[0].exceptions[0].parameters[0] is StringParameter)
+            XCTAssertTrue(file.rules[0].exceptions[0].parameters[1] is StringParameter)
+
+            let exception1 = file.rules[0].exceptions[0].parameters[0] as! StringParameter
+            XCTAssertEqual("phrase", exception1.value)
+            let exception2 = file.rules[0].exceptions[0].parameters[1] as! StringParameter
+            XCTAssertEqual("other", exception2.value)
         }
     }
 
     func testSpecificWordsInSubjectOrBodyException() throws {
         do {
-            let file = try OutlookRulesFile(data: Data([
+            let file = try OutlookRules(data: Data([
                 0x00, 0x00, 0x14, 0x00, 0x00, 0x00, 0x14, 0x06, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                 0x01, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00,
@@ -858,13 +866,13 @@ final class ImportExceptionTests: XCTestCase {
             XCTAssertEqual(0, file.rules[0].actions.count)
             XCTAssertEqual(1, file.rules[0].exceptions.count)
             XCTAssertEqual(.specificWordsInSubjectOrBodyException, file.rules[0].exceptions[0].identifier)
-            XCTAssertTrue(file.rules[0].exceptions[0].data is StringsListRuleElementData)
-            
-            let exception = file.rules[0].exceptions[0].data as! StringsListRuleElementData
-            XCTAssertEqual(["phrase"], exception.entries)
+            XCTAssertTrue(file.rules[0].exceptions[0].parameter is StringParameter)
+
+            let exception = file.rules[0].exceptions[0].parameter as! StringParameter
+            XCTAssertEqual("phrase", exception.value)
         }
         do {
-            let file = try OutlookRulesFile(data: Data([
+            let file = try OutlookRules(data: Data([
                 0x00, 0x00, 0x14, 0x00, 0x00, 0x00, 0x14, 0x06, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                 0x01, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00,
@@ -884,16 +892,20 @@ final class ImportExceptionTests: XCTestCase {
             XCTAssertEqual(0, file.rules[0].actions.count)
             XCTAssertEqual(1, file.rules[0].exceptions.count)
             XCTAssertEqual(.specificWordsInSubjectOrBodyException, file.rules[0].exceptions[0].identifier)
-            XCTAssertTrue(file.rules[0].exceptions[0].data is StringsListRuleElementData)
-            
-            let exception = file.rules[0].exceptions[0].data as! StringsListRuleElementData
-            XCTAssertEqual(["phrase", "other"], exception.entries)
+            XCTAssertEqual(2, file.rules[0].exceptions[0].parameters.count)
+            XCTAssertTrue(file.rules[0].exceptions[0].parameters[0] is StringParameter)
+            XCTAssertTrue(file.rules[0].exceptions[0].parameters[1] is StringParameter)
+
+            let exception1 = file.rules[0].exceptions[0].parameters[0] as! StringParameter
+            XCTAssertEqual("phrase", exception1.value)
+            let exception2 = file.rules[0].exceptions[0].parameters[1] as! StringParameter
+            XCTAssertEqual("other", exception2.value)
         }
     }
 
     func testSpecificWordsInMessageHeaderException() throws {
         do {
-            let file = try OutlookRulesFile(data: Data([
+            let file = try OutlookRules(data: Data([
                 0x00, 0x00, 0x14, 0x00, 0x00, 0x00, 0x14, 0x06, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                 0x01, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00,
@@ -912,13 +924,13 @@ final class ImportExceptionTests: XCTestCase {
             XCTAssertEqual(0, file.rules[0].actions.count)
             XCTAssertEqual(1, file.rules[0].exceptions.count)
             XCTAssertEqual(.specificWordsInMessageHeaderException, file.rules[0].exceptions[0].identifier)
-            XCTAssertTrue(file.rules[0].exceptions[0].data is StringsListRuleElementData)
-            
-            let exception = file.rules[0].exceptions[0].data as! StringsListRuleElementData
-            XCTAssertEqual(["phrase"], exception.entries)
+            XCTAssertTrue(file.rules[0].exceptions[0].parameter is StringParameter)
+
+            let exception = file.rules[0].exceptions[0].parameter as! StringParameter
+            XCTAssertEqual("phrase", exception.value)
         }
         do {
-            let file = try OutlookRulesFile(data: Data([
+            let file = try OutlookRules(data: Data([
                 0x00, 0x00, 0x14, 0x00, 0x00, 0x00, 0x14, 0x06, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                 0x01, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00,
@@ -938,16 +950,20 @@ final class ImportExceptionTests: XCTestCase {
             XCTAssertEqual(0, file.rules[0].actions.count)
             XCTAssertEqual(1, file.rules[0].exceptions.count)
             XCTAssertEqual(.specificWordsInMessageHeaderException, file.rules[0].exceptions[0].identifier)
-            XCTAssertTrue(file.rules[0].exceptions[0].data is StringsListRuleElementData)
-            
-            let exception = file.rules[0].exceptions[0].data as! StringsListRuleElementData
-            XCTAssertEqual(["phrase", "other"], exception.entries)
+            XCTAssertEqual(2, file.rules[0].exceptions[0].parameters.count)
+            XCTAssertTrue(file.rules[0].exceptions[0].parameters[0] is StringParameter)
+            XCTAssertTrue(file.rules[0].exceptions[0].parameters[1] is StringParameter)
+
+            let exception1 = file.rules[0].exceptions[0].parameters[0] as! StringParameter
+            XCTAssertEqual("phrase", exception1.value)
+            let exception2 = file.rules[0].exceptions[0].parameters[1] as! StringParameter
+            XCTAssertEqual("other", exception2.value)
         }
     }
 
     func testSpecificWordsInSendersAddressException() throws {
         do {
-            let file = try OutlookRulesFile(data: Data([
+            let file = try OutlookRules(data: Data([
                 0x00, 0x00, 0x14, 0x00, 0x00, 0x00, 0x14, 0x06, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                 0x01, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00,
@@ -966,13 +982,13 @@ final class ImportExceptionTests: XCTestCase {
             XCTAssertEqual(0, file.rules[0].actions.count)
             XCTAssertEqual(1, file.rules[0].exceptions.count)
             XCTAssertEqual(.specificWordsInSendersAddressException, file.rules[0].exceptions[0].identifier)
-            XCTAssertTrue(file.rules[0].exceptions[0].data is StringsListRuleElementData)
-            
-            let exception = file.rules[0].exceptions[0].data as! StringsListRuleElementData
-            XCTAssertEqual(["phrase"], exception.entries)
+            XCTAssertTrue(file.rules[0].exceptions[0].parameter is StringParameter)
+
+            let exception = file.rules[0].exceptions[0].parameter as! StringParameter
+            XCTAssertEqual("phrase", exception.value)
         }
         do {
-            let file = try OutlookRulesFile(data: Data([
+            let file = try OutlookRules(data: Data([
                 0x00, 0x00, 0x14, 0x00, 0x00, 0x00, 0x14, 0x06, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                 0x01, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00,
@@ -992,16 +1008,20 @@ final class ImportExceptionTests: XCTestCase {
             XCTAssertEqual(0, file.rules[0].actions.count)
             XCTAssertEqual(1, file.rules[0].exceptions.count)
             XCTAssertEqual(.specificWordsInSendersAddressException, file.rules[0].exceptions[0].identifier)
-            XCTAssertTrue(file.rules[0].exceptions[0].data is StringsListRuleElementData)
-            
-            let exception = file.rules[0].exceptions[0].data as! StringsListRuleElementData
-            XCTAssertEqual(["phrase", "other"], exception.entries)
+            XCTAssertEqual(2, file.rules[0].exceptions[0].parameters.count)
+            XCTAssertTrue(file.rules[0].exceptions[0].parameters[0] is StringParameter)
+            XCTAssertTrue(file.rules[0].exceptions[0].parameters[1] is StringParameter)
+
+            let exception1 = file.rules[0].exceptions[0].parameters[0] as! StringParameter
+            XCTAssertEqual("phrase", exception1.value)
+            let exception2 = file.rules[0].exceptions[0].parameters[1] as! StringParameter
+            XCTAssertEqual("other", exception2.value)
         }
     }
 
     func testSpecificWordsInRecipientsAddressException() throws {
         do {
-            let file = try OutlookRulesFile(data: Data([
+            let file = try OutlookRules(data: Data([
                 0x00, 0x00, 0x14, 0x00, 0x00, 0x00, 0x14, 0x06, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                 0x01, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00,
@@ -1020,13 +1040,13 @@ final class ImportExceptionTests: XCTestCase {
             XCTAssertEqual(0, file.rules[0].actions.count)
             XCTAssertEqual(1, file.rules[0].exceptions.count)
             XCTAssertEqual(.specificWordsInRecipientsAddressException, file.rules[0].exceptions[0].identifier)
-            XCTAssertTrue(file.rules[0].exceptions[0].data is StringsListRuleElementData)
-            
-            let exception = file.rules[0].exceptions[0].data as! StringsListRuleElementData
-            XCTAssertEqual(["phrase"], exception.entries)
+            XCTAssertTrue(file.rules[0].exceptions[0].parameter is StringParameter)
+
+            let exception = file.rules[0].exceptions[0].parameter as! StringParameter
+            XCTAssertEqual("phrase", exception.value)
         }
         do {
-            let file = try OutlookRulesFile(data: Data([
+            let file = try OutlookRules(data: Data([
                 0x00, 0x00, 0x14, 0x00, 0x00, 0x00, 0x14, 0x06, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                 0x01, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00,
@@ -1046,16 +1066,20 @@ final class ImportExceptionTests: XCTestCase {
             XCTAssertEqual(0, file.rules[0].actions.count)
             XCTAssertEqual(1, file.rules[0].exceptions.count)
             XCTAssertEqual(.specificWordsInRecipientsAddressException, file.rules[0].exceptions[0].identifier)
-            XCTAssertTrue(file.rules[0].exceptions[0].data is StringsListRuleElementData)
-            
-            let exception = file.rules[0].exceptions[0].data as! StringsListRuleElementData
-            XCTAssertEqual(["phrase", "other"], exception.entries)
+            XCTAssertEqual(2, file.rules[0].exceptions[0].parameters.count)
+            XCTAssertTrue(file.rules[0].exceptions[0].parameters[0] is StringParameter)
+            XCTAssertTrue(file.rules[0].exceptions[0].parameters[1] is StringParameter)
+
+            let exception1 = file.rules[0].exceptions[0].parameters[0] as! StringParameter
+            XCTAssertEqual("phrase", exception1.value)
+            let exception2 = file.rules[0].exceptions[0].parameters[1] as! StringParameter
+            XCTAssertEqual("other", exception2.value)
         }
     }
 
     func testAssignedToCategoryException() throws {
         do {
-            let file = try OutlookRulesFile(data: Data([
+            let file = try OutlookRules(data: Data([
                 0x00, 0x00, 0x14, 0x00, 0x00, 0x00, 0x14, 0x06, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                 0x01, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00,
@@ -1075,13 +1099,13 @@ final class ImportExceptionTests: XCTestCase {
             XCTAssertEqual(0, file.rules[0].actions.count)
             XCTAssertEqual(1, file.rules[0].exceptions.count)
             XCTAssertEqual(.assignedToCategoryException, file.rules[0].exceptions[0].identifier)
-            XCTAssertTrue(file.rules[0].exceptions[0].data is CategoriesListRuleElementData)
-            
-            let exception = file.rules[0].exceptions[0].data as! CategoriesListRuleElementData
+            XCTAssertTrue(file.rules[0].exceptions[0].parameter is CategoryParameter)
+
+            let exception = file.rules[0].exceptions[0].parameter as!CategoryParameter
             XCTAssertEqual(["Blue Category"], exception.categories)
         }
         do {
-            let file = try OutlookRulesFile(data: Data([
+            let file = try OutlookRules(data: Data([
                 0x00, 0x00, 0x14, 0x00, 0x00, 0x00, 0x14, 0x06, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                 0x01, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00,
@@ -1102,16 +1126,16 @@ final class ImportExceptionTests: XCTestCase {
             XCTAssertEqual(0, file.rules[0].actions.count)
             XCTAssertEqual(1, file.rules[0].exceptions.count)
             XCTAssertEqual(.assignedToCategoryException, file.rules[0].exceptions[0].identifier)
-            XCTAssertTrue(file.rules[0].exceptions[0].data is CategoriesListRuleElementData)
-            
-            let exception = file.rules[0].exceptions[0].data as! CategoriesListRuleElementData
+            XCTAssertTrue(file.rules[0].exceptions[0].parameter is CategoryParameter)
+
+            let exception = file.rules[0].exceptions[0].parameter as!CategoryParameter
             XCTAssertEqual(["Blue Category", "Other"], exception.categories)
         }
     }
 
     func testAssignedToAnyCategoryException() throws {
         do {
-            let file = try OutlookRulesFile(data: Data([
+            let file = try OutlookRules(data: Data([
                 0x00, 0x00, 0x14, 0x00, 0x00, 0x00, 0x14, 0x06, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                 0x01, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00,
@@ -1129,13 +1153,13 @@ final class ImportExceptionTests: XCTestCase {
             XCTAssertEqual(0, file.rules[0].actions.count)
             XCTAssertEqual(1, file.rules[0].exceptions.count)
             XCTAssertEqual(.assignedToAnyCategoryException, file.rules[0].exceptions[0].identifier)
-            XCTAssertTrue(file.rules[0].exceptions[0].data is SimpleRuleElementData)
+            XCTAssertEqual(0, file.rules[0].exceptions[0].parameters.count)
         }
     }
 
     func testWhichIsAnAutomaticReplyException() throws {
         do {
-            let file = try OutlookRulesFile(data: Data([
+            let file = try OutlookRules(data: Data([
                 0x00, 0x00, 0x14, 0x00, 0x00, 0x00, 0x14, 0x06, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                 0x01, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00,
@@ -1153,13 +1177,13 @@ final class ImportExceptionTests: XCTestCase {
             XCTAssertEqual(0, file.rules[0].actions.count)
             XCTAssertEqual(1, file.rules[0].exceptions.count)
             XCTAssertEqual(.automaticReplyException, file.rules[0].exceptions[0].identifier)
-            XCTAssertTrue(file.rules[0].exceptions[0].data is SimpleRuleElementData)
+            XCTAssertEqual(0, file.rules[0].exceptions[0].parameters.count)
         }
     }
 
     func testHasAttachmentException() throws {
         do {
-            let file = try OutlookRulesFile(data: Data([
+            let file = try OutlookRules(data: Data([
                 0x00, 0x00, 0x14, 0x00, 0x00, 0x00, 0x14, 0x06, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                 0x01, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00,
@@ -1177,13 +1201,13 @@ final class ImportExceptionTests: XCTestCase {
             XCTAssertEqual(0, file.rules[0].actions.count)
             XCTAssertEqual(1, file.rules[0].exceptions.count)
             XCTAssertEqual(.hasAttachmentException, file.rules[0].exceptions[0].identifier)
-            XCTAssertTrue(file.rules[0].exceptions[0].data is SimpleRuleElementData)
+            XCTAssertEqual(0, file.rules[0].exceptions[0].parameters.count)
         }
     }
 
     func testSizeInSpecificRangeException() throws {
         do {
-            let file = try OutlookRulesFile(data: Data([
+            let file = try OutlookRules(data: Data([
                 0x00, 0x00, 0x14, 0x00, 0x00, 0x00, 0x14, 0x06, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                 0x01, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00,
@@ -1202,14 +1226,14 @@ final class ImportExceptionTests: XCTestCase {
             XCTAssertEqual(0, file.rules[0].actions.count)
             XCTAssertEqual(1, file.rules[0].exceptions.count)
             XCTAssertEqual(.sizeInSpecificRangeException, file.rules[0].exceptions[0].identifier)
-            XCTAssertTrue(file.rules[0].exceptions[0].data is SizeInSpecificRangeRuleElementData)
-            
-            let exception = file.rules[0].exceptions[0].data as! SizeInSpecificRangeRuleElementData
+            XCTAssertTrue(file.rules[0].exceptions[0].parameter is SizeParameter)
+
+            let exception = file.rules[0].exceptions[0].parameter as! SizeParameter
             XCTAssertEqual(0, exception.minSizeInKilobytes)
             XCTAssertEqual(0, exception.maxSizeInKilobytes)
         }
         do {
-            let file = try OutlookRulesFile(data: Data([
+            let file = try OutlookRules(data: Data([
                 0x00, 0x00, 0x14, 0x00, 0x00, 0x00, 0x14, 0x06, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                 0x01, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00,
@@ -1228,14 +1252,14 @@ final class ImportExceptionTests: XCTestCase {
             XCTAssertEqual(0, file.rules[0].actions.count)
             XCTAssertEqual(1, file.rules[0].exceptions.count)
             XCTAssertEqual(.sizeInSpecificRangeException, file.rules[0].exceptions[0].identifier)
-            XCTAssertTrue(file.rules[0].exceptions[0].data is SizeInSpecificRangeRuleElementData)
-            
-            let exception = file.rules[0].exceptions[0].data as! SizeInSpecificRangeRuleElementData
+            XCTAssertTrue(file.rules[0].exceptions[0].parameter is SizeParameter)
+
+            let exception = file.rules[0].exceptions[0].parameter as! SizeParameter
             XCTAssertEqual(1, exception.minSizeInKilobytes)
             XCTAssertEqual(0, exception.maxSizeInKilobytes)
         }
         do {
-            let file = try OutlookRulesFile(data: Data([
+            let file = try OutlookRules(data: Data([
                 0x00, 0x00, 0x14, 0x00, 0x00, 0x00, 0x14, 0x06, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                 0x01, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00,
@@ -1254,14 +1278,14 @@ final class ImportExceptionTests: XCTestCase {
             XCTAssertEqual(0, file.rules[0].actions.count)
             XCTAssertEqual(1, file.rules[0].exceptions.count)
             XCTAssertEqual(.sizeInSpecificRangeException, file.rules[0].exceptions[0].identifier)
-            XCTAssertTrue(file.rules[0].exceptions[0].data is SizeInSpecificRangeRuleElementData)
-            
-            let exception = file.rules[0].exceptions[0].data as! SizeInSpecificRangeRuleElementData
+            XCTAssertTrue(file.rules[0].exceptions[0].parameter is SizeParameter)
+
+            let exception = file.rules[0].exceptions[0].parameter as! SizeParameter
             XCTAssertEqual(0, exception.minSizeInKilobytes)
             XCTAssertEqual(1, exception.maxSizeInKilobytes)
         }
         do {
-            let file = try OutlookRulesFile(data: Data([
+            let file = try OutlookRules(data: Data([
                 0x00, 0x00, 0x14, 0x00, 0x00, 0x00, 0x14, 0x06, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                 0x01, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00,
@@ -1280,14 +1304,14 @@ final class ImportExceptionTests: XCTestCase {
             XCTAssertEqual(0, file.rules[0].actions.count)
             XCTAssertEqual(1, file.rules[0].exceptions.count)
             XCTAssertEqual(.sizeInSpecificRangeException, file.rules[0].exceptions[0].identifier)
-            XCTAssertTrue(file.rules[0].exceptions[0].data is SizeInSpecificRangeRuleElementData)
-            
-            let exception = file.rules[0].exceptions[0].data as! SizeInSpecificRangeRuleElementData
+            XCTAssertTrue(file.rules[0].exceptions[0].parameter is SizeParameter)
+
+            let exception = file.rules[0].exceptions[0].parameter as! SizeParameter
             XCTAssertEqual(1, exception.minSizeInKilobytes)
             XCTAssertEqual(1, exception.maxSizeInKilobytes)
         }
         do {
-            let file = try OutlookRulesFile(data: Data([
+            let file = try OutlookRules(data: Data([
                 0x00, 0x00, 0x14, 0x00, 0x00, 0x00, 0x14, 0x06, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                 0x01, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00,
@@ -1306,9 +1330,9 @@ final class ImportExceptionTests: XCTestCase {
             XCTAssertEqual(0, file.rules[0].actions.count)
             XCTAssertEqual(1, file.rules[0].exceptions.count)
             XCTAssertEqual(.sizeInSpecificRangeException, file.rules[0].exceptions[0].identifier)
-            XCTAssertTrue(file.rules[0].exceptions[0].data is SizeInSpecificRangeRuleElementData)
-            
-            let exception = file.rules[0].exceptions[0].data as! SizeInSpecificRangeRuleElementData
+            XCTAssertTrue(file.rules[0].exceptions[0].parameter is SizeParameter)
+
+            let exception = file.rules[0].exceptions[0].parameter as! SizeParameter
             XCTAssertEqual(1, exception.minSizeInKilobytes)
             XCTAssertEqual(999999, exception.maxSizeInKilobytes)
         }
@@ -1319,7 +1343,7 @@ final class ImportExceptionTests: XCTestCase {
         var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = timeZone
         do {
-            let file = try OutlookRulesFile(data: Data([
+            let file = try OutlookRules(data: Data([
                 0x00, 0x00, 0x14, 0x00, 0x00, 0x00, 0x14, 0x06, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                 0x01, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00,
@@ -1340,16 +1364,16 @@ final class ImportExceptionTests: XCTestCase {
             XCTAssertEqual(0, file.rules[0].actions.count)
             XCTAssertEqual(1, file.rules[0].exceptions.count)
             XCTAssertEqual(.receivedInSpecificDateSpanException, file.rules[0].exceptions[0].identifier)
-            XCTAssertTrue(file.rules[0].exceptions[0].data is ReceivedInSpecificDateSpanRuleElementData)
-            
-            let exception = file.rules[0].exceptions[0].data as! ReceivedInSpecificDateSpanRuleElementData
+            XCTAssertTrue(file.rules[0].exceptions[0].parameter is TimeParameter)
+
+            let exception = file.rules[0].exceptions[0].parameter as! TimeParameter
             XCTAssertTrue(exception.includeAfterDate)
             XCTAssertEqual(calendar.date(from: DateComponents(timeZone: timeZone, year: 2020, month: 08, day: 08, hour: 23, minute: 59, second: 0)), exception.afterDate.date)
             XCTAssertFalse(exception.includeBeforeDate)
                 XCTAssertEqual(calendar.date(from: DateComponents(timeZone: timeZone, year: 2020, month: 08, day: 09)), exception.beforeDate.date)
         }
         do {
-            let file = try OutlookRulesFile(data: Data([
+            let file = try OutlookRules(data: Data([
                 0x00, 0x00, 0x14, 0x00, 0x00, 0x00, 0x14, 0x06, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                 0x01, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00,
@@ -1370,16 +1394,16 @@ final class ImportExceptionTests: XCTestCase {
             XCTAssertEqual(0, file.rules[0].actions.count)
             XCTAssertEqual(1, file.rules[0].exceptions.count)
             XCTAssertEqual(.receivedInSpecificDateSpanException, file.rules[0].exceptions[0].identifier)
-            XCTAssertTrue(file.rules[0].exceptions[0].data is ReceivedInSpecificDateSpanRuleElementData)
-            
-            let exception = file.rules[0].exceptions[0].data as! ReceivedInSpecificDateSpanRuleElementData
+            XCTAssertTrue(file.rules[0].exceptions[0].parameter is TimeParameter)
+
+            let exception = file.rules[0].exceptions[0].parameter as! TimeParameter
             XCTAssertFalse(exception.includeAfterDate)
             XCTAssertEqual(calendar.date(from: DateComponents(timeZone: timeZone, year: 2020, month: 08, day: 09, hour: 23, minute: 59, second: 0)), exception.afterDate.date)
             XCTAssertTrue(exception.includeBeforeDate)
             XCTAssertEqual(calendar.date(from: DateComponents(timeZone: timeZone, year: 2020, month: 08, day: 02)), exception.beforeDate.date)
         }
         do {
-            let file = try OutlookRulesFile(data: Data([
+            let file = try OutlookRules(data: Data([
                 0x00, 0x00, 0x14, 0x00, 0x00, 0x00, 0x14, 0x06, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                 0x01, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00,
@@ -1400,10 +1424,10 @@ final class ImportExceptionTests: XCTestCase {
             XCTAssertEqual(0, file.rules[0].actions.count)
             XCTAssertEqual(1, file.rules[0].exceptions.count)
             XCTAssertEqual(.receivedInSpecificDateSpanException, file.rules[0].exceptions[0].identifier)
-            XCTAssertTrue(file.rules[0].exceptions[0].data is ReceivedInSpecificDateSpanRuleElementData)
-            
+            XCTAssertTrue(file.rules[0].exceptions[0].parameter is TimeParameter)
+
             let calendar = Calendar(identifier: .gregorian)
-            let exception = file.rules[0].exceptions[0].data as! ReceivedInSpecificDateSpanRuleElementData
+            let exception = file.rules[0].exceptions[0].parameter as! TimeParameter
             XCTAssertTrue(exception.includeAfterDate)
             XCTAssertEqual(calendar.date(from: DateComponents(timeZone: timeZone, year: 2020, month: 08, day: 02, hour: 23, minute: 59, second: 0)), exception.afterDate.date)
             XCTAssertTrue(exception.includeBeforeDate)
@@ -1413,7 +1437,7 @@ final class ImportExceptionTests: XCTestCase {
 
     func testUsesFormException() throws {
         do {
-            let file = try OutlookRulesFile(data: Data([
+            let file = try OutlookRules(data: Data([
                 0x00, 0x00, 0x14, 0x00, 0x00, 0x00, 0x14, 0x06, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                 0x01, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00,
@@ -1436,15 +1460,15 @@ final class ImportExceptionTests: XCTestCase {
             XCTAssertEqual(0, file.rules[0].actions.count)
             XCTAssertEqual(1, file.rules[0].exceptions.count)
             XCTAssertEqual(.usesFormException, file.rules[0].exceptions[0].identifier)
-            XCTAssertTrue(file.rules[0].exceptions[0].data is FormTypeRuleElementData)
-            
-            let exception = file.rules[0].exceptions[0].data as! FormTypeRuleElementData
-            XCTAssertEqual(1, exception.numberOfForms)
-            XCTAssertEqual("Accept Meeting Response", exception.forms[0].name)
-            XCTAssertEqual("IPM.Schedule.Meeting.Resp.Pos", exception.forms[0].className)
+            XCTAssertEqual(1, file.rules[0].exceptions[0].parameters.count)
+            XCTAssertTrue(file.rules[0].exceptions[0].parameter is FormTypeParameter)
+
+            let exception = file.rules[0].exceptions[0].parameter as! FormTypeParameter
+            XCTAssertEqual("Accept Meeting Response", exception.name)
+            XCTAssertEqual("IPM.Schedule.Meeting.Resp.Pos", exception.className)
         }
         do {
-            let file = try OutlookRulesFile(data: Data([
+            let file = try OutlookRules(data: Data([
                 0x00, 0x00, 0x14, 0x00, 0x00, 0x00, 0x14, 0x06, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                 0x01, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00,
@@ -1471,21 +1495,23 @@ final class ImportExceptionTests: XCTestCase {
             XCTAssertEqual(0, file.rules[0].actions.count)
             XCTAssertEqual(1, file.rules[0].exceptions.count)
             XCTAssertEqual(.usesFormException, file.rules[0].exceptions[0].identifier)
-            XCTAssertTrue(file.rules[0].exceptions[0].data is FormTypeRuleElementData)
-            
-            let exception = file.rules[0].exceptions[0].data as! FormTypeRuleElementData
-            XCTAssertEqual(2, exception.numberOfForms)
-            XCTAssertEqual("Accept Meeting Response", exception.forms[0].name)
-            XCTAssertEqual("IPM.Schedule.Meeting.Resp.Pos", exception.forms[0].className)
-            XCTAssertEqual("Text Message", exception.forms[1].name)
-            XCTAssertEqual("IPM.Note.Mobile.SMS", exception.forms[1].className)
+            XCTAssertEqual(2, file.rules[0].exceptions[0].parameters.count)
+            XCTAssertTrue(file.rules[0].exceptions[0].parameters[0] is FormTypeParameter)
+            XCTAssertTrue(file.rules[0].exceptions[0].parameters[1] is FormTypeParameter)
+
+            let exception1 = file.rules[0].exceptions[0].parameters[0] as! FormTypeParameter
+            XCTAssertEqual("Accept Meeting Response", exception1.name)
+            XCTAssertEqual("IPM.Schedule.Meeting.Resp.Pos", exception1.className)
+            let exception2 = file.rules[0].exceptions[0].parameters[1] as! FormTypeParameter
+            XCTAssertEqual("Text Message", exception2.name)
+            XCTAssertEqual("IPM.Note.Mobile.SMS", exception2.className)
         }
     }
 
     func testWithSelectedPropertiesOfDocumentOrFormsException() throws {
         // String, contains
         do {
-            let file = try OutlookRulesFile(data: Data([
+            let file = try OutlookRules(data: Data([
                 0x00, 0x00, 0x14, 0x00, 0x00, 0x00, 0x14, 0x06, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                 0x01, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00,
@@ -1511,9 +1537,9 @@ final class ImportExceptionTests: XCTestCase {
             XCTAssertEqual(0, file.rules[0].actions.count)
             XCTAssertEqual(1, file.rules[0].exceptions.count)
             XCTAssertEqual(.withSelectedPropertiesOfDocumentOrFormsException, file.rules[0].exceptions[0].identifier)
-            XCTAssertTrue(file.rules[0].exceptions[0].data is WithSelectedPropertiesOfDocumentOrFormsRuleElementData)
-            
-            let exception = file.rules[0].exceptions[0].data as! WithSelectedPropertiesOfDocumentOrFormsRuleElementData
+            XCTAssertTrue(file.rules[0].exceptions[0].parameter is FormParameter)
+
+            let exception = file.rules[0].exceptions[0].parameter as! FormParameter
             XCTAssertEqual(["Accept Meeting Response"], exception.forms)
             XCTAssertEqual(1, exception.documentProperties.count)
             XCTAssertEqual("Author", exception.documentProperties[0].field)
@@ -1529,7 +1555,7 @@ final class ImportExceptionTests: XCTestCase {
         }
         // String, isEqual
         do {
-            let file = try OutlookRulesFile(data: Data([
+            let file = try OutlookRules(data: Data([
                 0x00, 0x00, 0x14, 0x00, 0x00, 0x00, 0x14, 0x06, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                 0x01, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00,
@@ -1553,9 +1579,9 @@ final class ImportExceptionTests: XCTestCase {
             XCTAssertEqual(0, file.rules[0].actions.count)
             XCTAssertEqual(1, file.rules[0].exceptions.count)
             XCTAssertEqual(.withSelectedPropertiesOfDocumentOrFormsException, file.rules[0].exceptions[0].identifier)
-            XCTAssertTrue(file.rules[0].exceptions[0].data is WithSelectedPropertiesOfDocumentOrFormsRuleElementData)
-            
-            let exception = file.rules[0].exceptions[0].data as! WithSelectedPropertiesOfDocumentOrFormsRuleElementData
+            XCTAssertTrue(file.rules[0].exceptions[0].parameter is FormParameter)
+
+            let exception = file.rules[0].exceptions[0].parameter as! FormParameter
             XCTAssertEqual([], exception.forms)
             XCTAssertEqual(1, exception.documentProperties.count)
             XCTAssertEqual("Author", exception.documentProperties[0].field)
@@ -1571,7 +1597,7 @@ final class ImportExceptionTests: XCTestCase {
         }
         // String, doesNotContain
         do {
-            let file = try OutlookRulesFile(data: Data([
+            let file = try OutlookRules(data: Data([
                 0x00, 0x00, 0x14, 0x00, 0x00, 0x00, 0x14, 0x06, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                 0x01, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00,
@@ -1595,9 +1621,9 @@ final class ImportExceptionTests: XCTestCase {
             XCTAssertEqual(0, file.rules[0].actions.count)
             XCTAssertEqual(1, file.rules[0].exceptions.count)
             XCTAssertEqual(.withSelectedPropertiesOfDocumentOrFormsException, file.rules[0].exceptions[0].identifier)
-            XCTAssertTrue(file.rules[0].exceptions[0].data is WithSelectedPropertiesOfDocumentOrFormsRuleElementData)
-            
-            let exception = file.rules[0].exceptions[0].data as! WithSelectedPropertiesOfDocumentOrFormsRuleElementData
+            XCTAssertTrue(file.rules[0].exceptions[0].parameter is FormParameter)
+
+            let exception = file.rules[0].exceptions[0].parameter as! FormParameter
             XCTAssertEqual([], exception.forms)
             XCTAssertEqual(1, exception.documentProperties.count)
             XCTAssertEqual("Author", exception.documentProperties[0].field)
@@ -1613,7 +1639,7 @@ final class ImportExceptionTests: XCTestCase {
         }
         // Number, equals (positive)
         do {
-            let file = try OutlookRulesFile(data: Data([
+            let file = try OutlookRules(data: Data([
                 0x00, 0x00, 0x14, 0x00, 0x00, 0x00, 0x14, 0x06, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                 0x01, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00,
@@ -1636,9 +1662,9 @@ final class ImportExceptionTests: XCTestCase {
             XCTAssertEqual(0, file.rules[0].actions.count)
             XCTAssertEqual(1, file.rules[0].exceptions.count)
             XCTAssertEqual(.withSelectedPropertiesOfDocumentOrFormsException, file.rules[0].exceptions[0].identifier)
-            XCTAssertTrue(file.rules[0].exceptions[0].data is WithSelectedPropertiesOfDocumentOrFormsRuleElementData)
-            
-            let exception = file.rules[0].exceptions[0].data as! WithSelectedPropertiesOfDocumentOrFormsRuleElementData
+            XCTAssertTrue(file.rules[0].exceptions[0].parameter is FormParameter)
+
+            let exception = file.rules[0].exceptions[0].parameter as! FormParameter
             XCTAssertEqual([], exception.forms)
             XCTAssertEqual(1, exception.documentProperties.count)
             XCTAssertEqual("Bytes", exception.documentProperties[0].field)
@@ -1654,7 +1680,7 @@ final class ImportExceptionTests: XCTestCase {
         }
         // Number, equals (negative)
         do {
-            let file = try OutlookRulesFile(data: Data([
+            let file = try OutlookRules(data: Data([
                 0x00, 0x00, 0x14, 0x00, 0x00, 0x00, 0x14, 0x06, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                 0x01, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00,
@@ -1677,9 +1703,9 @@ final class ImportExceptionTests: XCTestCase {
             XCTAssertEqual(0, file.rules[0].actions.count)
             XCTAssertEqual(1, file.rules[0].exceptions.count)
             XCTAssertEqual(.withSelectedPropertiesOfDocumentOrFormsException, file.rules[0].exceptions[0].identifier)
-            XCTAssertTrue(file.rules[0].exceptions[0].data is WithSelectedPropertiesOfDocumentOrFormsRuleElementData)
-            
-            let exception = file.rules[0].exceptions[0].data as! WithSelectedPropertiesOfDocumentOrFormsRuleElementData
+            XCTAssertTrue(file.rules[0].exceptions[0].parameter is FormParameter)
+
+            let exception = file.rules[0].exceptions[0].parameter as! FormParameter
             XCTAssertEqual([], exception.forms)
             XCTAssertEqual(1, exception.documentProperties.count)
             XCTAssertEqual("Bytes", exception.documentProperties[0].field)
@@ -1695,7 +1721,7 @@ final class ImportExceptionTests: XCTestCase {
         }
         // Number, not equal to
         do {
-            let file = try OutlookRulesFile(data: Data([
+            let file = try OutlookRules(data: Data([
                 0x00, 0x00, 0x14, 0x00, 0x00, 0x00, 0x14, 0x06, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                 0x01, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00,
@@ -1718,9 +1744,9 @@ final class ImportExceptionTests: XCTestCase {
             XCTAssertEqual(0, file.rules[0].actions.count)
             XCTAssertEqual(1, file.rules[0].exceptions.count)
             XCTAssertEqual(.withSelectedPropertiesOfDocumentOrFormsException, file.rules[0].exceptions[0].identifier)
-            XCTAssertTrue(file.rules[0].exceptions[0].data is WithSelectedPropertiesOfDocumentOrFormsRuleElementData)
-            
-            let exception = file.rules[0].exceptions[0].data as! WithSelectedPropertiesOfDocumentOrFormsRuleElementData
+            XCTAssertTrue(file.rules[0].exceptions[0].parameter is FormParameter)
+
+            let exception = file.rules[0].exceptions[0].parameter as! FormParameter
             XCTAssertEqual([], exception.forms)
             XCTAssertEqual(1, exception.documentProperties.count)
             XCTAssertEqual("Bytes", exception.documentProperties[0].field)
@@ -1736,7 +1762,7 @@ final class ImportExceptionTests: XCTestCase {
         }
         // Number, is at most
         do {
-            let file = try OutlookRulesFile(data: Data([
+            let file = try OutlookRules(data: Data([
                 0x00, 0x00, 0x14, 0x00, 0x00, 0x00, 0x14, 0x06, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                 0x01, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00,
@@ -1759,9 +1785,9 @@ final class ImportExceptionTests: XCTestCase {
             XCTAssertEqual(0, file.rules[0].actions.count)
             XCTAssertEqual(1, file.rules[0].exceptions.count)
             XCTAssertEqual(.withSelectedPropertiesOfDocumentOrFormsException, file.rules[0].exceptions[0].identifier)
-            XCTAssertTrue(file.rules[0].exceptions[0].data is WithSelectedPropertiesOfDocumentOrFormsRuleElementData)
-            
-            let exception = file.rules[0].exceptions[0].data as! WithSelectedPropertiesOfDocumentOrFormsRuleElementData
+            XCTAssertTrue(file.rules[0].exceptions[0].parameter is FormParameter)
+
+            let exception = file.rules[0].exceptions[0].parameter as! FormParameter
             XCTAssertEqual([], exception.forms)
             XCTAssertEqual(1, exception.documentProperties.count)
             XCTAssertEqual("Bytes", exception.documentProperties[0].field)
@@ -1777,7 +1803,7 @@ final class ImportExceptionTests: XCTestCase {
         }
         // Number, is at least
         do {
-            let file = try OutlookRulesFile(data: Data([
+            let file = try OutlookRules(data: Data([
                 0x00, 0x00, 0x14, 0x00, 0x00, 0x00, 0x14, 0x06, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                 0x01, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00,
@@ -1800,9 +1826,9 @@ final class ImportExceptionTests: XCTestCase {
             XCTAssertEqual(0, file.rules[0].actions.count)
             XCTAssertEqual(1, file.rules[0].exceptions.count)
             XCTAssertEqual(.withSelectedPropertiesOfDocumentOrFormsException, file.rules[0].exceptions[0].identifier)
-            XCTAssertTrue(file.rules[0].exceptions[0].data is WithSelectedPropertiesOfDocumentOrFormsRuleElementData)
-            
-            let exception = file.rules[0].exceptions[0].data as! WithSelectedPropertiesOfDocumentOrFormsRuleElementData
+            XCTAssertTrue(file.rules[0].exceptions[0].parameter is FormParameter)
+
+            let exception = file.rules[0].exceptions[0].parameter as! FormParameter
             XCTAssertEqual([], exception.forms)
             XCTAssertEqual(1, exception.documentProperties.count)
             XCTAssertEqual("Bytes", exception.documentProperties[0].field)
@@ -1818,7 +1844,7 @@ final class ImportExceptionTests: XCTestCase {
         }
         // Number, is more than
         do {
-            let file = try OutlookRulesFile(data: Data([
+            let file = try OutlookRules(data: Data([
                 0x00, 0x00, 0x14, 0x00, 0x00, 0x00, 0x14, 0x06, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                 0x01, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00,
@@ -1841,9 +1867,9 @@ final class ImportExceptionTests: XCTestCase {
             XCTAssertEqual(0, file.rules[0].actions.count)
             XCTAssertEqual(1, file.rules[0].exceptions.count)
             XCTAssertEqual(.withSelectedPropertiesOfDocumentOrFormsException, file.rules[0].exceptions[0].identifier)
-            XCTAssertTrue(file.rules[0].exceptions[0].data is WithSelectedPropertiesOfDocumentOrFormsRuleElementData)
-            
-            let exception = file.rules[0].exceptions[0].data as! WithSelectedPropertiesOfDocumentOrFormsRuleElementData
+            XCTAssertTrue(file.rules[0].exceptions[0].parameter is FormParameter)
+
+            let exception = file.rules[0].exceptions[0].parameter as! FormParameter
             XCTAssertEqual([], exception.forms)
             XCTAssertEqual(1, exception.documentProperties.count)
             XCTAssertEqual("Bytes", exception.documentProperties[0].field)
@@ -1859,7 +1885,7 @@ final class ImportExceptionTests: XCTestCase {
         }
         // Number, is less than
         do {
-            let file = try OutlookRulesFile(data: Data([
+            let file = try OutlookRules(data: Data([
                 0x00, 0x00, 0x14, 0x00, 0x00, 0x00, 0x14, 0x06, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                 0x01, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00,
@@ -1882,9 +1908,9 @@ final class ImportExceptionTests: XCTestCase {
             XCTAssertEqual(0, file.rules[0].actions.count)
             XCTAssertEqual(1, file.rules[0].exceptions.count)
             XCTAssertEqual(.withSelectedPropertiesOfDocumentOrFormsException, file.rules[0].exceptions[0].identifier)
-            XCTAssertTrue(file.rules[0].exceptions[0].data is WithSelectedPropertiesOfDocumentOrFormsRuleElementData)
-            
-            let exception = file.rules[0].exceptions[0].data as! WithSelectedPropertiesOfDocumentOrFormsRuleElementData
+            XCTAssertTrue(file.rules[0].exceptions[0].parameter is FormParameter)
+
+            let exception = file.rules[0].exceptions[0].parameter as! FormParameter
             XCTAssertEqual([], exception.forms)
             XCTAssertEqual(1, exception.documentProperties.count)
             XCTAssertEqual("Bytes", exception.documentProperties[0].field)
@@ -1903,7 +1929,7 @@ final class ImportExceptionTests: XCTestCase {
         calendar.timeZone = timeZone
         // Date, before
         do {
-            let file = try OutlookRulesFile(data: Data([
+            let file = try OutlookRules(data: Data([
                 0x00, 0x00, 0x14, 0x00, 0x00, 0x00, 0x14, 0x06, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                 0x01, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00,
@@ -1927,9 +1953,9 @@ final class ImportExceptionTests: XCTestCase {
             XCTAssertEqual(0, file.rules[0].actions.count)
             XCTAssertEqual(1, file.rules[0].exceptions.count)
             XCTAssertEqual(.withSelectedPropertiesOfDocumentOrFormsException, file.rules[0].exceptions[0].identifier)
-            XCTAssertTrue(file.rules[0].exceptions[0].data is WithSelectedPropertiesOfDocumentOrFormsRuleElementData)
-            
-            let exception = file.rules[0].exceptions[0].data as! WithSelectedPropertiesOfDocumentOrFormsRuleElementData
+            XCTAssertTrue(file.rules[0].exceptions[0].parameter is FormParameter)
+
+            let exception = file.rules[0].exceptions[0].parameter as! FormParameter
             XCTAssertEqual([], exception.forms)
             XCTAssertEqual(1, exception.documentProperties.count)
             XCTAssertEqual("Creation Time", exception.documentProperties[0].field)
@@ -1946,7 +1972,7 @@ final class ImportExceptionTests: XCTestCase {
         }
         // Date, after
         do {
-            let file = try OutlookRulesFile(data: Data([
+            let file = try OutlookRules(data: Data([
                 0x00, 0x00, 0x14, 0x00, 0x00, 0x00, 0x14, 0x06, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                 0x01, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00,
@@ -1970,9 +1996,9 @@ final class ImportExceptionTests: XCTestCase {
             XCTAssertEqual(0, file.rules[0].actions.count)
             XCTAssertEqual(1, file.rules[0].exceptions.count)
             XCTAssertEqual(.withSelectedPropertiesOfDocumentOrFormsException, file.rules[0].exceptions[0].identifier)
-            XCTAssertTrue(file.rules[0].exceptions[0].data is WithSelectedPropertiesOfDocumentOrFormsRuleElementData)
-            
-            let exception = file.rules[0].exceptions[0].data as! WithSelectedPropertiesOfDocumentOrFormsRuleElementData
+            XCTAssertTrue(file.rules[0].exceptions[0].parameter is FormParameter)
+
+            let exception = file.rules[0].exceptions[0].parameter as! FormParameter
             XCTAssertEqual([], exception.forms)
             XCTAssertEqual(1, exception.documentProperties.count)
             XCTAssertEqual("Creation Time", exception.documentProperties[0].field)
@@ -1989,7 +2015,7 @@ final class ImportExceptionTests: XCTestCase {
         }
         // Multiple
         do {
-            let file = try OutlookRulesFile(data: Data([
+            let file = try OutlookRules(data: Data([
                 0x00, 0x00, 0x14, 0x00, 0x00, 0x00, 0x14, 0x06, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                 0x01, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00,
@@ -2025,9 +2051,9 @@ final class ImportExceptionTests: XCTestCase {
             XCTAssertEqual(0, file.rules[0].actions.count)
             XCTAssertEqual(1, file.rules[0].exceptions.count)
             XCTAssertEqual(.withSelectedPropertiesOfDocumentOrFormsException, file.rules[0].exceptions[0].identifier)
-            XCTAssertTrue(file.rules[0].exceptions[0].data is WithSelectedPropertiesOfDocumentOrFormsRuleElementData)
-            
-            let exception = file.rules[0].exceptions[0].data as! WithSelectedPropertiesOfDocumentOrFormsRuleElementData
+            XCTAssertTrue(file.rules[0].exceptions[0].parameter is FormParameter)
+
+            let exception = file.rules[0].exceptions[0].parameter as! FormParameter
             XCTAssertEqual(["Accept Meeting Response", " Text Message", " Task"], exception.forms)
             XCTAssertEqual(2, exception.documentProperties.count)
             XCTAssertEqual("Bytes", exception.documentProperties[0].field)
@@ -2054,7 +2080,7 @@ final class ImportExceptionTests: XCTestCase {
 
     func testSenderInSpecifiedAddressBookException() throws {
         do {
-            let file = try OutlookRulesFile(data: Data([
+            let file = try OutlookRules(data: Data([
                 0x00, 0x00, 0x14, 0x00, 0x00, 0x00, 0x14, 0x06, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                 0x01, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00,
@@ -2086,20 +2112,20 @@ final class ImportExceptionTests: XCTestCase {
             XCTAssertEqual(1, file.rules.count)
             XCTAssertEqual(1, file.rules[0].conditions.count)
             XCTAssertEqual(.onThisComputerOnlyCondition, file.rules[0].conditions[0].identifier)
-            XCTAssertTrue(file.rules[0].conditions[0].data is OnThisComputerOnlyRuleElementData)
+            XCTAssertTrue(file.rules[0].conditions[0].parameter is ProfileStampParameter)
             XCTAssertEqual(0, file.rules[0].actions.count)
             XCTAssertEqual(1, file.rules[0].exceptions.count)
             XCTAssertEqual(.senderInSpecifiedAddressBookException, file.rules[0].exceptions[0].identifier)
-            XCTAssertTrue(file.rules[0].exceptions[0].data is SenderInSpecifiedAddressBookRuleElementData)
-            
-            let exception = file.rules[0].exceptions[0].data as! SenderInSpecifiedAddressBookRuleElementData
+            XCTAssertTrue(file.rules[0].exceptions[0].parameter is AddressBookParameter)
+
+            let exception = file.rules[0].exceptions[0].parameter as! AddressBookParameter
             XCTAssertEqual("Contacts (This computer only)", exception.name)
         }
     }
 
     func testWhichIsMeetingInvitationOrUpdateException() throws {
         do {
-            let file = try OutlookRulesFile(data: Data([
+            let file = try OutlookRules(data: Data([
                 0x00, 0x00, 0x14, 0x00, 0x00, 0x00, 0x14, 0x06, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                 0x01, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00,
@@ -2115,7 +2141,7 @@ final class ImportExceptionTests: XCTestCase {
             XCTAssertEqual(1, file.rules.count)
             XCTAssertEqual(0, file.rules[0].conditions.count)
             XCTAssertEqual(.whichIsAMeetingInvitationOrInviteException, file.rules[0].exceptions[0].identifier)
-            XCTAssertTrue(file.rules[0].exceptions[0].data is SimpleRuleElementData)
+            XCTAssertEqual(0, file.rules[0].exceptions[0].parameters.count)
             XCTAssertEqual(0, file.rules[0].actions.count)
             XCTAssertEqual(1, file.rules[0].exceptions.count)
         }
@@ -2123,7 +2149,7 @@ final class ImportExceptionTests: XCTestCase {
 
     func testFromRSSFeedsWithSpecifiedTextInTitleException() throws {
         do {
-            let file = try OutlookRulesFile(data: Data([
+            let file = try OutlookRules(data: Data([
                 0x00, 0x00, 0x14, 0x00, 0x00, 0x00, 0x14, 0x06, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                 0x01, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00,
@@ -2145,13 +2171,13 @@ final class ImportExceptionTests: XCTestCase {
             XCTAssertEqual(0, file.rules[0].actions.count)
             XCTAssertEqual(1, file.rules[0].exceptions.count)
             XCTAssertEqual(.fromRSSFeedsWithSpecifiedTextInTitleException, file.rules[0].exceptions[0].identifier)
-            XCTAssertTrue(file.rules[0].exceptions[0].data is StringsListRuleElementData)
-            
-            let exception = file.rules[0].exceptions[0].data as! StringsListRuleElementData
-            XCTAssertEqual(["ISS On-Orbit Status Report"], exception.entries)
+            XCTAssertTrue(file.rules[0].exceptions[0].parameter is StringParameter)
+
+            let exception = file.rules[0].exceptions[0].parameter as! StringParameter
+            XCTAssertEqual("ISS On-Orbit Status Report", exception.value)
         }
         do {
-            let file = try OutlookRulesFile(data: Data([
+            let file = try OutlookRules(data: Data([
                 0x00, 0x00, 0x14, 0x00, 0x00, 0x00, 0x14, 0x06, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                 0x01, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00,
@@ -2176,16 +2202,20 @@ final class ImportExceptionTests: XCTestCase {
             XCTAssertEqual(0, file.rules[0].actions.count)
             XCTAssertEqual(1, file.rules[0].exceptions.count)
             XCTAssertEqual(.fromRSSFeedsWithSpecifiedTextInTitleException, file.rules[0].exceptions[0].identifier)
-            XCTAssertTrue(file.rules[0].exceptions[0].data is StringsListRuleElementData)
-            
-            let exception = file.rules[0].exceptions[0].data as! StringsListRuleElementData
-            XCTAssertEqual(["ISS On-Orbit Status Report", "NASA Breaking News"], exception.entries)
+            XCTAssertEqual(2, file.rules[0].exceptions[0].parameters.count)
+            XCTAssertTrue(file.rules[0].exceptions[0].parameters[0] is StringParameter)
+            XCTAssertTrue(file.rules[0].exceptions[0].parameters[1] is StringParameter)
+
+            let exception1 = file.rules[0].exceptions[0].parameters[0] as! StringParameter
+            XCTAssertEqual("ISS On-Orbit Status Report", exception1.value)
+            let exception2 = file.rules[0].exceptions[0].parameters[1] as! StringParameter
+            XCTAssertEqual("NASA Breaking News", exception2.value)
         }
     }
 
     func testFromAnyRSSFeedException() throws {
         do {
-            let file = try OutlookRulesFile(data: Data([
+            let file = try OutlookRules(data: Data([
                 0x00, 0x00, 0x14, 0x00, 0x00, 0x00, 0x14, 0x06, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                 0x01, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00,
@@ -2203,13 +2233,13 @@ final class ImportExceptionTests: XCTestCase {
             XCTAssertEqual(0, file.rules[0].actions.count)
             XCTAssertEqual(1, file.rules[0].exceptions.count)
             XCTAssertEqual(.fromAnyRSSFeedException, file.rules[0].exceptions[0].identifier)
-            XCTAssertTrue(file.rules[0].exceptions[0].data is SimpleRuleElementData)
+            XCTAssertEqual(0, file.rules[0].exceptions[0].parameters.count)
         }
     }
-    
+
     func testSpecificInfoPathFormException() throws {
         do {
-            let file = try OutlookRulesFile(data: Data([
+            let file = try OutlookRules(data: Data([
                 0x80, 0x4f, 0x12, 0x00, 0x80, 0x4f, 0x12, 0x05, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                 0x01, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x80, 0x4f,
@@ -2232,18 +2262,18 @@ final class ImportExceptionTests: XCTestCase {
             XCTAssertEqual(0, file.rules[0].actions.count)
             XCTAssertEqual(1, file.rules[0].exceptions.count)
             XCTAssertEqual(.specificInfoPathFormException, file.rules[0].exceptions[0].identifier)
-            XCTAssertTrue(file.rules[0].exceptions[0].data is FormTypeRuleElementData)
-            
-            let condition = file.rules[0].exceptions[0].data as! FormTypeRuleElementData
-            XCTAssertEqual(1, condition.numberOfForms)
-            XCTAssertEqual("Template3", condition.forms[0].name)
-            XCTAssertEqual("IPM.InfoPathForm.25bcd4d0a0953612$759f7503f0746cc1", condition.forms[0].className)
+            XCTAssertEqual(1, file.rules[0].exceptions[0].parameters.count)
+            XCTAssertTrue(file.rules[0].exceptions[0].parameter is FormTypeParameter)
+
+            let condition = file.rules[0].exceptions[0].parameter as! FormTypeParameter
+            XCTAssertEqual("Template3", condition.name)
+            XCTAssertEqual("IPM.InfoPathForm.25bcd4d0a0953612$759f7503f0746cc1", condition.className)
         }
     }
 
     func testMultipleExceptions() throws {
         do {
-            let file = try OutlookRulesFile(data: Data([
+            let file = try OutlookRules(data: Data([
                 0x00, 0x00, 0x14, 0x00, 0x00, 0x00, 0x14, 0x06, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                 0x01, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00,
@@ -2269,9 +2299,9 @@ final class ImportExceptionTests: XCTestCase {
             XCTAssertEqual(0, file.rules[0].actions.count)
             XCTAssertEqual(2, file.rules[0].exceptions.count)
             XCTAssertEqual(.nameInToBoxException, file.rules[0].exceptions[0].identifier)
-            XCTAssertTrue(file.rules[0].exceptions[0].data is SimpleRuleElementData)
+            XCTAssertEqual(0, file.rules[0].exceptions[0].parameters.count)
             XCTAssertEqual(.sentOnlyToMeException, file.rules[0].exceptions[1].identifier)
-            XCTAssertTrue(file.rules[0].exceptions[1].data is SimpleRuleElementData)
+            XCTAssertEqual(0, file.rules[0].exceptions[1].parameters.count)
         }
     }
 

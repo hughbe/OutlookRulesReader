@@ -22,11 +22,32 @@ internal struct RulesHeader {
     public var unknown9: UInt32? = 0
     public var numberOfRules: UInt16
     
-    public init(numberOfRules: UInt16) {
-        self.version = .outlook2019
-        self.signature = 0x00140000
-        self.flags = 0x06140000
+    public init(numberOfRules: UInt16, version: OutlookRulesVersion = .outlook2019) {
+        self.version = version
+        self.signature = RulesHeader.defaultSignature(for: version)
+        self.flags = RulesHeader.defaultFlags(for: version)
         self.numberOfRules = numberOfRules
+    }
+    
+    static func defaultSignature(for version: OutlookRulesVersion) -> UInt32? {
+        switch version {
+        case .outlook2019: return 1310720
+        case .outlook2007: return 1200000
+        case .outlook2003: return 1100000
+        case .outlook2002: return 1000000
+        case .outlook2000: return 980413
+        case .outlook98: return 970812
+        case .noSignatureOutlook2003, .noSignature: return nil
+        }
+    }
+    
+    private static func defaultFlags(for version: OutlookRulesVersion) -> UInt32? {
+        switch version {
+        case .outlook2019, .outlook2007: return 0x06140000
+        case .outlook2003: return 0x04140000
+        case .outlook2002: return 0x03140000
+        case .outlook2000, .outlook98, .noSignatureOutlook2003, .noSignature: return nil
+        }
     }
     
     public init(dataStream: inout DataStream) throws {
@@ -119,7 +140,7 @@ internal struct RulesHeader {
         if version != .noSignature {
             self.unknown5 = try dataStream.read(endianess: .littleEndian)
         } else {
-            self.unknown6 = nil
+            self.unknown5 = nil
         }
         
         /// Unknown6 (4 bytes)
@@ -143,7 +164,7 @@ internal struct RulesHeader {
                 throw OutlookRulesReadError.corrupted
             }
         } else {
-            self.unknown9 = nil
+            self.unknown8 = nil
         }
         
         /// Unknown9 (4 bytes)
@@ -157,60 +178,51 @@ internal struct RulesHeader {
         self.numberOfRules = try dataStream.read(endianess: .littleEndian)
     }
     
-    public func write(to dataStream: inout OutputDataStream) {
-        if let signature = signature {
+    /// Writes the header in the layout of the specified version.
+    /// Fields that were read from a file of the same version are preserved; fields that are
+    /// not present in this header (e.g. when converting between versions) use sensible defaults.
+    public func write(to dataStream: inout OutputDataStream, version: OutlookRulesVersion) {
+        let source = version == self.version ? self : RulesHeader(numberOfRules: numberOfRules, version: version)
+
+        if version >= .outlook98 {
             /// Signature (4 bytes)
-            dataStream.write(signature, endianess: .littleEndian)
+            dataStream.write(source.signature ?? RulesHeader.defaultSignature(for: version) ?? 0, endianess: .littleEndian)
         }
 
-        if let flags = flags {
+        if version >= .outlook2002 {
             /// Flags (4 bytes)
-            dataStream.write(flags, endianess: .littleEndian)
+            dataStream.write(source.flags ?? RulesHeader.defaultFlags(for: version) ?? 0, endianess: .littleEndian)
         }
         
-        if let unknown1 = unknown1 {
+        if version != .noSignature {
             /// Unknown1 (4 bytes)
-            dataStream.write(unknown1, endianess: .littleEndian)
-        }
-        
-        if let unknown2 = unknown2 {
+            dataStream.write(source.unknown1 ?? 0, endianess: .littleEndian)
+            
             /// Unknown2 (4 bytes)
-            dataStream.write(unknown2, endianess: .littleEndian)
-        }
-        
-        if let unknown3 = unknown3 {
+            dataStream.write(source.unknown2 ?? 0, endianess: .littleEndian)
+            
             /// Unknown3 (4 bytes)
-        dataStream.write(unknown3, endianess: .littleEndian)
-        }
-        
-        if let unknown4 = unknown4 {
+            dataStream.write(source.unknown3 ?? 0, endianess: .littleEndian)
+            
             /// Unknown4 (4 bytes)
-            dataStream.write(unknown4, endianess: .littleEndian)
-        }
-        
-        if let unknown5 = unknown5 {
+            dataStream.write(source.unknown4 ?? 0, endianess: .littleEndian)
+            
             /// Unknown5 (4 bytes)
-            dataStream.write(unknown5, endianess: .littleEndian)
-        }
-        
-        if let unknown6 = unknown6 {
+            dataStream.write(source.unknown5 ?? 0, endianess: .littleEndian)
+            
             /// Unknown6 (4 bytes)
-            dataStream.write(unknown6, endianess: .littleEndian)
-        }
-        
-        if let unknown7 = unknown7 {
+            dataStream.write(source.unknown6 ?? 0, endianess: .littleEndian)
+            
             /// Unknown7 (4 bytes)
-            dataStream.write(unknown7, endianess: .littleEndian)
-        }
-        
-        if let unknown8 = unknown8 {
+            dataStream.write(source.unknown7 ?? 1, endianess: .littleEndian)
+            
             /// Unknown8 (4 bytes)
-            dataStream.write(unknown8, endianess: .littleEndian)
+            dataStream.write(source.unknown8 ?? 1, endianess: .littleEndian)
         }
         
-        /// Unknown9 (4 bytes)
-        if let unknown9 = unknown9 {
-            dataStream.write(unknown9, endianess: .littleEndian)
+        if version >= .outlook2002 || version == .noSignatureOutlook2003 {
+            /// Unknown9 (4 bytes)
+            dataStream.write(source.unknown9 ?? 0, endianess: .littleEndian)
         }
         
         /// Number of Rules (2 bytes)
