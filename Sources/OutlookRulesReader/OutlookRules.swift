@@ -8,6 +8,22 @@
 import DataStream
 import Foundation
 
+/// The Rules Wizard's "Update server" option (spec §4.2).
+public struct ServerUpdateMode: RawRepresentable, Equatable {
+    public let rawValue: UInt32
+
+    public init(rawValue: UInt32) {
+        self.rawValue = rawValue
+    }
+
+    /// Not set. Written by Outlook 2010 and later.
+    public static let notSet = ServerUpdateMode(rawValue: 0)
+    /// Update the server copy only when the user clicks "Update Now".
+    public static let manually = ServerUpdateMode(rawValue: 1)
+    /// Update the server copy whenever the rules change.
+    public static let automatically = ServerUpdateMode(rawValue: 2)
+}
+
 public struct OutlookRules: CustomDebugStringConvertible {
     public let rules: [Rule]
     private var header: RulesHeader
@@ -18,6 +34,31 @@ public struct OutlookRules: CustomDebugStringConvertible {
         } set {
             footer?.templateDirectory = newValue
         }
+    }
+    
+    /// Whether the copy of the rules on the Exchange server is out of date and should be updated (spec §4.2).
+    /// Always false for Outlook 97 exports, which have no header.
+    public var serverRulesOutOfDate: Bool {
+        get { (header.serverRulesOutOfDate ?? 0) != 0 }
+        set { header.serverRulesOutOfDate = newValue ? 1 : 0 }
+    }
+
+    /// How the copy of the rules on the Exchange server is updated: the Rules Wizard's "Update server" option (spec §4.2).
+    public var serverUpdateMode: ServerUpdateMode {
+        get { ServerUpdateMode(rawValue: header.serverUpdateMode ?? 0) }
+        set { header.serverUpdateMode = newValue.rawValue }
+    }
+
+    /// Whether Outlook prompts to convert Exchange Inbox Assistant rules into Rules Wizard rules (spec §4.2).
+    public var promptToConvertInboxAssistantRules: Bool {
+        get { (header.promptToConvertInboxAssistantRules ?? 1) != 0 }
+        set { header.promptToConvertInboxAssistantRules = newValue ? 1 : 0 }
+    }
+
+    /// The last answer to the Inbox Assistant conversion prompt: true = convert (spec §4.2).
+    public var convertInboxAssistantRules: Bool {
+        get { (header.convertInboxAssistantRules ?? 1) != 0 }
+        set { header.convertInboxAssistantRules = newValue ? 1 : 0 }
     }
     
     public init(rules: [Rule] = []) {

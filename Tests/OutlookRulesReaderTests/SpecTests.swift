@@ -79,8 +79,8 @@ final class SpecTests: XCTestCase {
         XCTAssertEqual(.noSignatureOutlook2003, header.version)
         XCTAssertEqual(0, header.signature)
         XCTAssertEqual(1, header.unknown4)
-        XCTAssertEqual(1, header.unknown7)
-        XCTAssertEqual(1, header.unknown8)
+        XCTAssertEqual(1, header.promptToConvertInboxAssistantRules)
+        XCTAssertEqual(1, header.convertInboxAssistantRules)
         XCTAssertNil(header.unknown9)
         XCTAssertEqual(2, header.numberOfRules)
     }
@@ -198,6 +198,64 @@ final class SpecTests: XCTestCase {
         XCTAssertTrue(try OutlookRules(data: OutlookRules(rules: [rule]).getData()).rules[0].isServerRule)
     }
 
+    /// Header Unknown5-8 are the Rules Wizard's server and Inbox Assistant settings (spec §4.2).
+    func testHeaderSettings() throws {
+        let outlook98 = try OutlookRules(data: try getData(name: "Outlook98_Delete", fileExtension: "rwz"))
+        XCTAssertTrue(outlook98.serverRulesOutOfDate)
+        XCTAssertEqual(.automatically, outlook98.serverUpdateMode)
+        XCTAssertTrue(outlook98.promptToConvertInboxAssistantRules)
+        XCTAssertTrue(outlook98.convertInboxAssistantRules)
+
+        let outlook2007 = try OutlookRules(data: try getData(name: "Outlook2007_Delete_Default", fileExtension: "rwz"))
+        XCTAssertFalse(outlook2007.serverRulesOutOfDate)
+        XCTAssertEqual(.notSet, outlook2007.serverUpdateMode)
+
+        // Outlook 97 exports have no header.
+        let outlook97 = try OutlookRules(data: try getData(name: "Outlook97_Delete", fileExtension: "rwz"))
+        XCTAssertFalse(outlook97.serverRulesOutOfDate)
+        XCTAssertEqual(.notSet, outlook97.serverUpdateMode)
+
+        // The settings are written back, and kept when converting to another version.
+        var file = OutlookRules(rules: [Rule(eventFlags: .afterReceived, name: "Rule")])
+        file.serverUpdateMode = .manually
+        file.serverRulesOutOfDate = true
+        file.promptToConvertInboxAssistantRules = false
+        file.convertInboxAssistantRules = false
+        for version in [OutlookRulesVersion.outlook2019, .outlook2000] {
+            let reread = try OutlookRules(data: file.getData(version: version))
+            XCTAssertEqual(.manually, reread.serverUpdateMode)
+            XCTAssertTrue(reread.serverRulesOutOfDate)
+            XCTAssertFalse(reread.promptToConvertInboxAssistantRules)
+            XCTAssertFalse(reread.convertInboxAssistantRules)
+        }
+    }
+
+    /// A user who answered "No" to the Inbox Assistant prompt has Unknown8 = 0, which must be accepted (spec §4.2).
+    func testHeaderWithInboxAssistantAnswerNo() throws {
+        var data = try getData(name: "Outlook98_Delete", fileExtension: "rwz")
+        // Signature (4) + Unknown1-7 (28) puts Unknown8 at offset 32.
+        XCTAssertEqual(1, data[32])
+        data[32] = 0
+        let file = try OutlookRules(data: data)
+        XCTAssertFalse(file.convertInboxAssistantRules)
+        XCTAssertEqual(data, file.getData())
+    }
+
+    /// DocumentProperty Unknown2 is "match if the property is missing" (spec §6.9).
+    func testDocumentPropertyMatchIfMissing() throws {
+        let file = try OutlookRules(data: try getData(name: "Outlook2007_WithSelectedPropertiesOfDocumentsOrForms_Default", fileExtension: "rwz"))
+        let parameter = try XCTUnwrap(file.rules[0].conditions[0].parameter as? FormParameter)
+        XCTAssertFalse(parameter.documentProperties.isEmpty)
+        XCTAssertTrue(parameter.documentProperties.allSatisfy { !$0.matchIfMissing && $0.unknown1 == 1 })
+
+        var property = parameter.documentProperties[0]
+        property.matchIfMissing = true
+        var stream = OutputDataStream()
+        property.write(to: &stream, version: .outlook2019)
+        var reader = DataStream(stream.data)
+        XCTAssertTrue(try DocumentProperty(dataStream: &reader, version: .outlook2019).matchIfMissing)
+    }
+
     static var allTests = [
         ("testAllSamplesRoundTrip", testAllSamplesRoundTrip),
         ("testParameterDataSizeMatchesWrittenSize", testParameterDataSizeMatchesWrittenSize),
@@ -213,6 +271,9 @@ final class SpecTests: XCTestCase {
         ("testAddressParameterMatchAnyAndCc", testAddressParameterMatchAnyAndCc),
         ("testFlagIsCondition", testFlagIsCondition),
         ("testServerRule", testServerRule),
+        ("testHeaderSettings", testHeaderSettings),
+        ("testHeaderWithInboxAssistantAnswerNo", testHeaderWithInboxAssistantAnswerNo),
+        ("testDocumentPropertyMatchIfMissing", testDocumentPropertyMatchIfMissing),
     ]
 }
 

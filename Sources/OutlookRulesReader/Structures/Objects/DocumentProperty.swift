@@ -29,7 +29,9 @@ public struct DocumentProperty {
     public var numberMatchType: DocumentPropertyNumberMatchType {
         return DocumentPropertyNumberMatchType(rawValue: rawNumberMatchType)!
     }
+    /// The value compared with 16-bit (PT_I2) properties (spec §6.9).
     public var numberValue1: Int32
+    /// The value compared with 32-bit (PT_LONG) properties (spec §6.9).
     public var numberValue2: Int32
 
     public var rawBoolMatchType: UInt32
@@ -37,13 +39,15 @@ public struct DocumentProperty {
         return DocumentPropertyBoolMatchType(rawValue: rawBoolMatchType)!
     }
     
+    /// Unknown. Outlook 97 defaults it to 1 and never reads it (spec §6.9).
     public var unknown1: UInt32 = 1
     public var rawDateMatchType: UInt32
     public var dateMatchType: DocumentPropertyDateMatchType {
         return DocumentPropertyDateMatchType(rawValue: rawDateMatchType)!
     }
     public var dateValue: OleDateTime
-    public var unknown2: UInt32 = 0
+    /// Whether a message that does not have the property counts as a match (spec §6.9).
+    public var matchIfMissing: Bool = false
 
     public init(field: String, tag: PropertyTag, matchType: DocumentPropertyStringMatchType, stringValue: String) {
         self.field = field
@@ -129,8 +133,8 @@ public struct DocumentProperty {
         /// Date Value (12 bytes)
         self.dateValue = try OleDateTime(dataStream: &dataStream)
         
-        /// Unknown2 (4 bytes)
-        self.unknown2 = try dataStream.read(endianess: .littleEndian)
+        /// Match If Missing (4 bytes)
+        self.matchIfMissing = (try dataStream.read(endianess: .littleEndian) as UInt32) != 0
     }
     
     public func write(to dataStream: inout OutputDataStream, version: OutlookRulesVersion) {
@@ -175,7 +179,7 @@ public struct DocumentProperty {
         /// Date Value (12 bytes)
         dateValue.write(to: &dataStream)
         
-        /// Unknown2 (4 bytes)
-        dataStream.write(unknown2, endianess: .littleEndian)
+        /// Match If Missing (4 bytes)
+        dataStream.write((matchIfMissing ? 1 : 0) as UInt32, endianess: .littleEndian)
     }
 }

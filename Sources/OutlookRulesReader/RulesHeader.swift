@@ -21,10 +21,14 @@ internal struct RulesHeader {
     public var unknown2: UInt32? = 0
     public var unknown3: UInt32? = 0
     public var unknown4: UInt32? = 0
-    public var unknown5: UInt32? = 0
-    public var unknown6: UInt32? = 0
-    public var unknown7: UInt32? = 1
-    public var unknown8: UInt32? = 1
+    /// 1 when the copy of the rules on the Exchange server is out of date (spec §4.2).
+    public var serverRulesOutOfDate: UInt32? = 0
+    /// how the server copy is updated: 0 = not set, 1 = manually, 2 = automatically (spec §4.2).
+    public var serverUpdateMode: UInt32? = 0
+    /// 1 to prompt to convert Exchange Inbox Assistant rules (spec §4.2).
+    public var promptToConvertInboxAssistantRules: UInt32? = 1
+    /// the last answer to that prompt: 1 = convert (spec §4.2).
+    public var convertInboxAssistantRules: UInt32? = 1
     public var unknown9: UInt32? = 0
     public var numberOfRules: UInt16
 
@@ -91,10 +95,10 @@ internal struct RulesHeader {
             self.unknown2 = nil
             self.unknown3 = nil
             self.unknown4 = nil
-            self.unknown5 = nil
-            self.unknown6 = nil
-            self.unknown7 = nil
-            self.unknown8 = nil
+            self.serverRulesOutOfDate = nil
+            self.serverUpdateMode = nil
+            self.promptToConvertInboxAssistantRules = nil
+            self.convertInboxAssistantRules = nil
             self.unknown9 = nil
 
             /// Number of Rules (2 bytes)
@@ -127,20 +131,17 @@ internal struct RulesHeader {
         /// Unknown4 (4 bytes)
         self.unknown4 = try dataStream.read(endianess: .littleEndian)
 
-        /// Unknown5 (4 bytes)
-        self.unknown5 = try dataStream.read(endianess: .littleEndian)
+        /// Server Rules Out Of Date (4 bytes)
+        self.serverRulesOutOfDate = try dataStream.read(endianess: .littleEndian)
 
-        /// Unknown6 (4 bytes)
-        self.unknown6 = try dataStream.read(endianess: .littleEndian)
+        /// Server Update Mode (4 bytes)
+        self.serverUpdateMode = try dataStream.read(endianess: .littleEndian)
 
-        /// Unknown7 (4 bytes)
-        self.unknown7 = try dataStream.read(endianess: .littleEndian)
+        /// Prompt To Convert Inbox Assistant Rules (4 bytes)
+        self.promptToConvertInboxAssistantRules = try dataStream.read(endianess: .littleEndian)
 
-        /// Unknown8 (4 bytes)
-        self.unknown8 = try dataStream.read(endianess: .littleEndian)
-        guard self.unknown8 == 0x00000001 else {
-            throw OutlookRulesReadError.corrupted
-        }
+        /// Convert Inbox Assistant Rules (4 bytes)
+        self.convertInboxAssistantRules = try dataStream.read(endianess: .littleEndian)
 
         /// Unknown9 (4 bytes)
         if version >= .outlook2002 {
@@ -157,7 +158,14 @@ internal struct RulesHeader {
     /// Fields that were read from a file of the same version are preserved; fields that are
     /// not present in this header (e.g. when converting between versions) use sensible defaults.
     public func write(to dataStream: inout OutputDataStream, version: OutlookRulesVersion) {
-        let source = version == self.version ? self : RulesHeader(numberOfRules: numberOfRules, version: version)
+        var source = version == self.version ? self : RulesHeader(numberOfRules: numberOfRules, version: version)
+        if version != self.version {
+            /// These settings mean the same in every version that has a header, so keep them when converting.
+            source.serverRulesOutOfDate = serverRulesOutOfDate ?? source.serverRulesOutOfDate
+            source.serverUpdateMode = serverUpdateMode ?? source.serverUpdateMode
+            source.promptToConvertInboxAssistantRules = promptToConvertInboxAssistantRules ?? source.promptToConvertInboxAssistantRules
+            source.convertInboxAssistantRules = convertInboxAssistantRules ?? source.convertInboxAssistantRules
+        }
 
         if version != .noSignature {
             /// Signature (4 bytes)
@@ -180,17 +188,17 @@ internal struct RulesHeader {
             /// Unknown4 (4 bytes)
             dataStream.write(source.unknown4 ?? 0, endianess: .littleEndian)
 
-            /// Unknown5 (4 bytes)
-            dataStream.write(source.unknown5 ?? 0, endianess: .littleEndian)
+            /// Server Rules Out Of Date (4 bytes)
+            dataStream.write(source.serverRulesOutOfDate ?? 0, endianess: .littleEndian)
 
-            /// Unknown6 (4 bytes)
-            dataStream.write(source.unknown6 ?? 0, endianess: .littleEndian)
+            /// Server Update Mode (4 bytes)
+            dataStream.write(source.serverUpdateMode ?? 0, endianess: .littleEndian)
 
-            /// Unknown7 (4 bytes)
-            dataStream.write(source.unknown7 ?? 1, endianess: .littleEndian)
+            /// Prompt To Convert Inbox Assistant Rules (4 bytes)
+            dataStream.write(source.promptToConvertInboxAssistantRules ?? 1, endianess: .littleEndian)
 
-            /// Unknown8 (4 bytes)
-            dataStream.write(source.unknown8 ?? 1, endianess: .littleEndian)
+            /// Convert Inbox Assistant Rules (4 bytes)
+            dataStream.write(source.convertInboxAssistantRules ?? 1, endianess: .littleEndian)
 
             if version >= .outlook2002 {
                 /// Unknown9 (4 bytes)
