@@ -157,7 +157,7 @@ internal enum ObjectTag {
                 throw OutlookRulesReadError.corrupted
             }
         default:
-            throw OutlookRulesReadError.invalidSeparator(separator: tag)
+            throw OutlookRulesReadError.invalidObjectTag(tag: tag)
         }
     }
 

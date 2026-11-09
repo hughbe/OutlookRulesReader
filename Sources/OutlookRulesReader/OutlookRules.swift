@@ -74,7 +74,7 @@ public struct OutlookRules: CustomDebugStringConvertible {
     
     public init(dataStream: inout DataStream) throws {
         /// An Outlook 97 stream with no rules is just the two-byte rule count, too short to hold a signature (spec §3).
-        let version: OutlookRulesVersion? = dataStream.remainingCount < 4 ? .noSignature : nil
+        let version: OutlookRulesVersion? = dataStream.remainingCount < 4 ? .outlook97 : nil
         try self.init(dataStream: &dataStream, version: version)
     }
 
@@ -92,7 +92,7 @@ public struct OutlookRules: CustomDebugStringConvertible {
         
         self.rules = rules
         
-        if header.version != .noSignature {
+        if header.version != .outlook97 {
             self.footer = try RulesFooter(dataStream: &dataStream, version: header.version)
         } else {
             self.footer = nil
@@ -113,7 +113,7 @@ public struct OutlookRules: CustomDebugStringConvertible {
             rule.write(to: &dataStream, version: version, classDeclared: &classDeclared)
         }
         
-        if version != .noSignature {
+        if version != .outlook97 {
             let footer = self.footer ?? RulesFooter()
             footer.write(to: &dataStream, version: version)
         }

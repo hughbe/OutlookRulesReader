@@ -38,7 +38,7 @@ public struct FolderParameter: RuleParameter {
             self.folderName = try ASCIIString(dataStream: &dataStream).value
         }
         
-        if version != .noSignature {
+        if FolderParameter.hasSecondaryStore(version) {
             /// Secondary User Store (4 bytes)
             self.secondaryUserStore = (try dataStream.read(endianess: .littleEndian) as UInt32) != 0
         } else {
@@ -63,9 +63,15 @@ public struct FolderParameter: RuleParameter {
             ASCIIString(value: folderName).write(to: &dataStream)
         }
         
-        if version != .noSignature {
+        if FolderParameter.hasSecondaryStore(version) {
             /// Secondary User Store (4 bytes)
             dataStream.write(((secondaryUserStore ?? false) ? 1 : 0) as UInt32, endianess: .littleEndian)
         }
+    }
+
+    /// The secondary-store field was added in version 970718 (spec §6.19), so Outlook 97's formats don't have it.
+    /// Signature-0 streams are assumed to have it.
+    static func hasSecondaryStore(_ version: OutlookRulesVersion) -> Bool {
+        return version != .outlook97 && version != .outlook97Profile
     }
 }

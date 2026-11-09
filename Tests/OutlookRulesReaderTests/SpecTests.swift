@@ -36,7 +36,7 @@ final class SpecTests: XCTestCase {
                 for element in rule.elements {
                     for parameter in element.parameters {
                         var dataStream = OutputDataStream()
-                        parameter.write(to: &dataStream, version: .outlook2019)
+                        parameter.write(to: &dataStream, version: .outlook2010)
                         XCTAssertEqual(UInt32(dataStream.data.count), parameter.dataSize, "\(url.lastPathComponent) \(element.identifier)")
                     }
                 }
@@ -76,7 +76,7 @@ final class SpecTests: XCTestCase {
     func testSignatureZeroHeader() throws {
         var dataStream = DataStream(try getData(name: "Outlook2003Multiple", fileExtension: "rwz"))
         let header = try RulesHeader(dataStream: &dataStream)
-        XCTAssertEqual(.noSignatureOutlook2003, header.version)
+        XCTAssertEqual(.signatureZero, header.version)
         XCTAssertEqual(0, header.signature)
         XCTAssertEqual(1, header.unknown4)
         XCTAssertEqual(1, header.promptToConvertInboxAssistantRules)
@@ -97,7 +97,7 @@ final class SpecTests: XCTestCase {
     /// Lengths of 0xFFFF characters or more use the four-byte length form (spec §2.2).
     func testLongStrings() throws {
         let name = String(repeating: "a", count: 0x10000)
-        for version in [OutlookRulesVersion.outlook2019, .outlook2000] {
+        for version in [OutlookRulesVersion.outlook2010, .outlook2000] {
             let file = OutlookRules(rules: [Rule(eventFlags: .afterReceived, name: name)])
             let data = file.getData(version: version)
             let reread = try OutlookRules(data: data)
@@ -221,7 +221,7 @@ final class SpecTests: XCTestCase {
         file.serverRulesOutOfDate = true
         file.promptToConvertInboxAssistantRules = false
         file.convertInboxAssistantRules = false
-        for version in [OutlookRulesVersion.outlook2019, .outlook2000] {
+        for version in [OutlookRulesVersion.outlook2010, .outlook2000] {
             let reread = try OutlookRules(data: file.getData(version: version))
             XCTAssertEqual(.manually, reread.serverUpdateMode)
             XCTAssertTrue(reread.serverRulesOutOfDate)
@@ -251,9 +251,9 @@ final class SpecTests: XCTestCase {
         var property = parameter.documentProperties[0]
         property.matchIfMissing = true
         var stream = OutputDataStream()
-        property.write(to: &stream, version: .outlook2019)
+        property.write(to: &stream, version: .outlook2010)
         var reader = DataStream(stream.data)
-        XCTAssertTrue(try DocumentProperty(dataStream: &reader, version: .outlook2019).matchIfMissing)
+        XCTAssertTrue(try DocumentProperty(dataStream: &reader, version: .outlook2010).matchIfMissing)
     }
 
     /// Element IDs that only Outlook 97's rule evaluator knows (spec Appendix D.4) can be read and written back.
@@ -280,6 +280,23 @@ final class SpecTests: XCTestCase {
         XCTAssertEqual(meeting, meetingFile.getData())
     }
 
+    /// Signature 970102 is Outlook 97's profile copy of the rules: the Outlook 98 layout without rule flags
+    /// (added in 970812) or the folder's secondary-store field (added in 970718) (spec §4.1).
+    func testOutlook97Profile() throws {
+        let file = try OutlookRules(data: try getData(name: "Outlook2007_MoveToFolder_Default", fileExtension: "rwz"))
+        XCTAssertEqual(1, file.rules.count)
+
+        let profile = file.getData(version: .outlook97Profile)
+        let outlook98 = file.getData(version: .outlook98)
+        XCTAssertEqual([0x76, 0xCD, 0x0E, 0x00], [UInt8](profile.prefix(4)))
+        XCTAssertEqual(8, outlook98.count - profile.count)
+
+        let reread = try OutlookRules(data: profile)
+        XCTAssertEqual(profile, reread.getData())
+        let folder = try XCTUnwrap(reread.rules[0].actions.first { $0.parameter is FolderParameter }?.parameter as? FolderParameter)
+        XCTAssertNil(folder.secondaryUserStore)
+    }
+
     static var allTests = [
         ("testAllSamplesRoundTrip", testAllSamplesRoundTrip),
         ("testParameterDataSizeMatchesWrittenSize", testParameterDataSizeMatchesWrittenSize),
@@ -299,6 +316,7 @@ final class SpecTests: XCTestCase {
         ("testHeaderWithInboxAssistantAnswerNo", testHeaderWithInboxAssistantAnswerNo),
         ("testDocumentPropertyMatchIfMissing", testDocumentPropertyMatchIfMissing),
         ("testEvaluatorOnlyElements", testEvaluatorOnlyElements),
+        ("testOutlook97Profile", testOutlook97Profile),
     ]
 }
 

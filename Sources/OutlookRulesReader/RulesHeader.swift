@@ -32,7 +32,7 @@ internal struct RulesHeader {
     public var unknown9: UInt32? = 0
     public var numberOfRules: UInt16
 
-    public init(numberOfRules: UInt16, version: OutlookRulesVersion = .outlook2019) {
+    public init(numberOfRules: UInt16, version: OutlookRulesVersion = .outlook2010) {
         self.version = version
         self.signature = RulesHeader.defaultSignature(for: version)
         self.writerVersion = RulesHeader.defaultWriterVersion(for: version)
@@ -41,23 +41,24 @@ internal struct RulesHeader {
 
     static func defaultSignature(for version: OutlookRulesVersion) -> UInt32? {
         switch version {
-        case .outlook2019: return 0x00140000
+        case .outlook2010: return 0x00140000
         case .outlook2007: return 1200000
         case .outlook2003: return 1100000
         case .outlook2002: return 1000000
         case .outlook2000: return 980413
         case .outlook98: return 970812
-        case .noSignatureOutlook2003: return 0
-        case .noSignature: return nil
+        case .outlook97Profile: return 970102
+        case .signatureZero: return 0
+        case .outlook97: return nil
         }
     }
 
     private static func defaultWriterVersion(for version: OutlookRulesVersion) -> UInt32? {
         switch version {
-        case .outlook2019, .outlook2007: return 0x06140000
+        case .outlook2010, .outlook2007: return 0x06140000
         case .outlook2003: return 0x04140000
         case .outlook2002: return 0x03140000
-        case .outlook2000, .outlook98, .noSignatureOutlook2003, .noSignature: return nil
+        case .outlook2000, .outlook98, .outlook97Profile, .signatureZero, .outlook97: return nil
         }
     }
 
@@ -65,7 +66,7 @@ internal struct RulesHeader {
     static func detectVersion(signature: UInt32) -> OutlookRulesVersion {
         switch signature {
         case 0x00140000:
-            return .outlook2019
+            return .outlook2010
         case 1200000:
             return .outlook2007
         case 1100000:
@@ -76,10 +77,12 @@ internal struct RulesHeader {
             return .outlook2000
         case 970812:
             return .outlook98
+        case 970102:
+            return .outlook97Profile
         case 0:
-            return .noSignatureOutlook2003
+            return .signatureZero
         default:
-            return .noSignature
+            return .outlook97
         }
     }
 
@@ -87,7 +90,7 @@ internal struct RulesHeader {
         let version = try version ?? RulesHeader.detectVersion(signature: dataStream.peek(endianess: .littleEndian))
         self.version = version
 
-        guard version != .noSignature else {
+        guard version != .outlook97 else {
             /// Outlook 97 streams have no header other than the number of rules.
             self.signature = nil
             self.writerVersion = nil
@@ -167,7 +170,7 @@ internal struct RulesHeader {
             source.convertInboxAssistantRules = convertInboxAssistantRules ?? source.convertInboxAssistantRules
         }
 
-        if version != .noSignature {
+        if version != .outlook97 {
             /// Signature (4 bytes)
             dataStream.write(source.signature ?? RulesHeader.defaultSignature(for: version) ?? 0, endianess: .littleEndian)
 

@@ -13,7 +13,7 @@ public struct DocumentProperty {
     /// The number of bytes the property occupies when written in the Unicode (Outlook 2002 and later) format.
     public var dataSize: UInt32 {
         var dataStream = OutputDataStream()
-        write(to: &dataStream, version: .outlook2019)
+        write(to: &dataStream, version: .outlook2010)
         return UInt32(dataStream.data.count)
     }
 

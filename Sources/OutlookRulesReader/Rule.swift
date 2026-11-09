@@ -26,8 +26,9 @@ public struct Rule: CustomDebugStringConvertible {
     /// Whether the rule has been saved to the Exchange server's rules table (spec §4.3.1).
     public var isServerRule: Bool = false
 
-    /// Rule flags (spec §4.3.1). Usually 0; 0x20 has only been seen on the built-in junk e-mail
-    /// "Exception List" rule. Added in version 970812 (Outlook 98), so not present in Outlook 97 or signature-0 files.
+    /// Rule flags (spec §4.3.1). Usually 0. 0x20 has only been seen on the built-in junk e-mail "Exception List"
+    /// rule; Outlook 98 clears the flags when the user edits a rule with bit 0x1 or 0x2 set. Added in version
+    /// 970812 (Outlook 98), so not present in Outlook 97 or signature-0 files.
     public var flags: UInt32 = 0
 
     /// All of the rule's elements, including the mandatory 0x0190 and 0x0064 elements.

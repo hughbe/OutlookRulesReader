@@ -18,7 +18,7 @@ public protocol RuleParameter {
 
 public extension RuleParameter {
     var dataSize: UInt32 {
-        dataSize(version: .outlook2019)
+        dataSize(version: .outlook2010)
     }
 
     /// The number of bytes the parameter occupies when written in the format of the given version.

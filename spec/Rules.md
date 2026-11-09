@@ -152,12 +152,14 @@ MFC can also emit `0x7FFF` (big object tag) and object back-references (`0x0001`
 
 The first four bytes of the stream identify one of four layouts:
 
-| Generation | First u32 | Written by | Strings |
-|---|---|---|---|
-| **G0** (Outlook 97) | anything not listed below | Outlook 97 Rules Wizard | ANSI |
-| **G0s** (signature 0) | `0x00000000` | unknown; see note | ANSI |
-| **G1** (ANSI) | `970812`, `980413` | Outlook 98, Outlook 2000; Outlook 2002+ exporting "for Outlook 98/2000" | ANSI |
-| **G2** (Unicode) | `1000000`, `1100000`, `1200000`, `0x00140000` | Outlook 2002 and later | UTF-16 |
+| Generation | First u32 | Written by | Strings | Library (`OutlookRulesVersion`) |
+|---|---|---|---|---|
+| **G0** (Outlook 97) | anything not listed below | Outlook 97's Export Rules | ANSI | `.outlook97` |
+| **G0s** (signature 0) | `0x00000000` | unknown; see note | ANSI | `.signatureZero` |
+| **G1** (ANSI) | `970102`, `970812`, `980413` | Outlook 97's profile copy; Outlook 98; Outlook 2000; Outlook 2002+ exporting "for Outlook 98/2000" | ANSI | `.outlook97Profile`, `.outlook98`, `.outlook2000` |
+| **G2** (Unicode) | `1000000`, `1100000`, `1200000`, `0x00140000` | Outlook 2002 and later | UTF-16 | `.outlook2002`, `.outlook2003`, `.outlook2007`, `.outlook2010` |
+
+Within G1, signature 970102 lacks two fields that 970812 has ([§4.1.1](#411-version-dependent-fields)).
 
 **G0** has no signature. Its first 2 bytes are the rule count, and its next byte is the first rule name's length. Every Outlook 97 sample starts `01 00` (one rule). **[O97]** G0 is Outlook 97's **Export Rules** format: the exporter writes the rule count with `CArchive::WriteCount` and then each rule, with no header or footer. The rules Outlook 97 keeps in the profile use the G1 layout with Signature 970102 ([§4.1](#41-version-stamps)).
 
@@ -167,17 +169,17 @@ A G0 stream can only begin with four zero bytes if it has no rules, and then it 
 
 Field presence by generation:
 
-| Structure / field | G0 | G0s | G1 | G2 |
-|---|---|---|---|---|
-| RulesHeader.Signature | – | ✓ (=0) | ✓ | ✓ |
-| RulesHeader.WriterVersion | – | – | – | ✓ |
-| RulesHeader.Unknown1–8 | – | ✓ | ✓ | ✓ |
-| RulesHeader.Unknown9 | – | – | – | ✓ |
-| RuleHeader.Signature | – | – | – | ✓ |
-| RuleHeader.Unknown3 | – | – | ✓ | ✓ |
-| RuleHeader.Unknown4, DataSize | – | – | – | ✓ |
-| Folder parameter's SecondaryStore | – | ✓ | ✓ | ✓ |
-| RulesFooter | – | ✓ | ✓ | ✓ |
+| Structure / field | G0 | G0s | G1 (970102) | G1 (970812+) | G2 |
+|---|---|---|---|---|---|
+| RulesHeader.Signature | – | ✓ (=0) | ✓ | ✓ | ✓ |
+| RulesHeader.WriterVersion | – | – | – | – | ✓ |
+| RulesHeader.Unknown1–8 | – | ✓ | ✓ | ✓ | ✓ |
+| RulesHeader.Unknown9 | – | – | – | – | ✓ |
+| RuleHeader.Signature | – | – | – | – | ✓ |
+| RuleHeader.Unknown3 (Flags) | – | – | – | ✓ | ✓ |
+| RuleHeader.Unknown4, DataSize | – | – | – | – | ✓ |
+| Folder parameter's SecondaryStore | – | ✓ | – | ✓ | ✓ |
+| RulesFooter | – | ✓ | ✓ | ✓ | ✓ |
 
 ---
 
@@ -198,9 +200,10 @@ Outlook identifies format versions with 24-bit "version stamps". Up to Outlook 2
 | — | 960706 | `0x0EA8C2` | The oldest version Outlook 97 accepts in its profile copy of the rules; anything older is rejected **[O97]**. |
 | — | 960723 | `0x0EA8D3` | Footer TemplateDirectory added **[O97]**. |
 | — | 960820 | `0x0EA934` | Footer Timestamp added **[O97]**. |
-| — | 960925 | `0x0EA99D` | Footer Unknown added **[O97]**. |
 | — | 960918 | `0x0EA996` | "Version 960918" appears in `RULESWIZ.DLL`'s About text. Never written to files. |
-| 0 | 970102 | `0x0ECD76` | **Outlook 97.** The stamp `RULESWIZ.DLL` writes to its profile copy of the rules (the G1 layout), and the newest version it accepts **[O97]**. DocumentProperty MatchIfMissing ([§6.9](#69-formparameter)) was added in this version. Its exports (G0) have no stamp. Never observed in a sample. |
+| — | 960925 | `0x0EA99D` | Footer Unknown added **[O97]**. |
+| 0 | 970102 | `0x0ECD76` | **Outlook 97.** The stamp `RULESWIZ.DLL` writes to its profile copy of the rules (the G1 layout), and the newest version it accepts **[O97]**. DocumentProperty MatchIfMissing ([§6.9](#69-formparameter)) was added in this version. Its exports (G0) have no stamp; Outlook 98 imports them as version 970102. Never observed in a sample. |
+| — | 970718 | `0x0ECFDE` | Folder parameter SecondaryStore added **[O98]**. |
 | 1 | 970812 | `0x0ED03C` | **Outlook 98.** Adds the rule Flags field ([§4.3.1](#431-ruleheader)) **[O98]**. Outlook 98 accepts 960706–970812 and doesn't know 980413. |
 | 2 | 980413 | `0x0EF5BD` | Outlook 2000 format. |
 | 3 | 1000000 | `0x0F4240` | Outlook 2002 (v10). |
@@ -211,7 +214,20 @@ Outlook identifies format versions with 24-bit "version stamps". Up to Outlook 2
 
 Indices 0–7 match the order of a table found in a disassembly of a modern 64-bit Outlook build (`docs/Internals/RWZ Decompilation Notes.docx`). The index is used by RulesHeader.WriterVersion ([§4.2](#42-rulesheader)).
 
-The library's `OutlookRulesVersion.outlook2019` case is really "v14 format, written by Outlook 2010 or later".
+#### 4.1.1 Version-dependent fields
+
+Outlook 97 and 98 read and write these fields only when the stream's version is at least the stamp shown **[O97]** **[O98]**. No other field depends on the version. The format generations of [§3](#3-format-generations) differ in more ways than this, because Outlook 2002 also changed the string encoding and the rule header.
+
+| Since | Field | Section |
+|---|---|---|
+| 960723 | Footer TemplateDirectory | [§4.4](#44-rulesfooter) |
+| 960820 | Footer Timestamp | [§4.4](#44-rulesfooter) |
+| 960925 | Footer Unknown | [§4.4](#44-rulesfooter) |
+| 970102 | DocumentProperty MatchIfMissing | [§6.9](#69-formparameter) |
+| 970718 | Folder parameter SecondaryStore | [§6.19](#619-folderparameter) |
+| 970812 | Rule Flags (RuleHeader Unknown3) | [§4.3.1](#431-ruleheader) |
+
+Unsigned (G0) streams count as version 970102.
 
 ### 4.2 RulesHeader
 
@@ -265,7 +281,7 @@ Rule := RuleHeader  Element[RuleHeader.NumberOfElements]
 | Enabled | 4 | all | `1` = enabled, `0` = disabled. Readers SHOULD treat any non-zero value as enabled. New rules default to enabled **[O97]**. |
 | Unknown1 | 4 | all | Always `0` observed. **[O97]** New rules get `0`; Outlook 97 copies and saves it but never reads it. |
 | ServerRule | 4 | all | **[O97]** Set to `1` once the rule has been saved to the Exchange server's rules table (Outlook 97 serializes the rule and writes `PR_RULE_PROVIDER_DATA`, `PR_RULE_STATE` and the other server-rule properties through MAPI). Cleared again if saving fails or the server rules are reset. Usually `0`; `1` in 3 rules written by Outlook 2010+. |
-| Unknown3 | 4 | G1, G2 | Rule flags. Added in version 970812: Outlook 98 reads and writes it only for streams of that version or later, which is why Outlook 97 exports don't have it **[O98]**. Outlook copies it to and from offset `0x18` of the rule's Exchange server rule (`PR_RULE_PROVIDER_DATA`) **[O98]**. **[Inferred]** `0x20` marks the built-in junk-mail "Exception List" rule (seen only on that rule), which the UI lets users delete but not edit. `0` otherwise. |
+| Unknown3 | 4 | G1, G2 | Rule flags. Added in version 970812: Outlook 98 reads and writes it only for streams of that version or later, which is why Outlook 97 exports don't have it **[O98]**. Outlook copies it to and from offset `0x18` of the rule's Exchange server rule (`PR_RULE_PROVIDER_DATA`) **[O98]**. Outlook 98 changes it in one place only: editing a rule that has bit `0x1` or `0x2` set clears it to `0`, so those bits **[Inferred]** mark errors that editing fixes. Nothing in Outlook 98 sets bit `0x20` **[O98]**, so it comes from a later version. **[Inferred]** `0x20` marks the built-in junk-mail "Exception List" rule (seen only on that rule), which the UI lets users delete but not edit. `0` otherwise. |
 | Unknown4 | 4 | G2 | **[Unknown]** `0`, `1` or `2`. Non-zero exactly when ServerRule is `1`, so probably more server-rule state. |
 | DataSize | 4 | G2 | Number of bytes from the end of this field to the end of the rule: NumberOfElements, every object tag, and every element. Matched exactly in all 116 G2 rules. |
 | NumberOfElements | 2 (or 6) | all | Number of elements in this rule. **[O97]** Written by `CObList::Serialize` with `CArchive::WriteCount`: a `u16`, or `0xFFFF` followed by a `u32` if the count is 65535 or more. |
@@ -487,6 +503,14 @@ Used by `0x0064` ("For each %s"). `ItemTypeParameter` in the library; `Rule.item
 
 An element has one WordParameter per word or phrase. The words are combined with OR. They are not delimited inside one string.
 
+Outlook 97 and 98 allow only **one phrase per condition** **[O97]** **[O98]**:
+
+* the prompt is "Specify a word or phrase to search for…", typed into a single text box (the "Parameter Text" dialog);
+* the element reads at most one parameter;
+* Outlook 97 matches the whole phrase as a substring of the subject or body, ignoring case.
+
+Several words per condition, stored as several parameters, came with a later version.
+
 ### 6.4 AddressParameter
 Used by `0x00CB`, `0x00CC`, `0x012E`, `0x013C`, `0x0144`, `0x0147`, `0x01F7` and `0x01F8`.
 
@@ -682,7 +706,7 @@ Used by `0x00F3`.
 | FolderEntryID | variable | Counted entry ID of the target folder. |
 | StoreEntryID | variable | Counted entry ID of the store that holds the folder. |
 | FolderName | variable | String. Display name. |
-| SecondaryStore | 4 | Not present in G0. **[Unknown]** Named "secondary user store" by the library. Always `1` observed. |
+| SecondaryStore | 4 | Added in version 970718 **[O98]**, so it is absent in Outlook 97's formats (G0 and signature 970102). **[Unknown]** Named "secondary user store" by the library. Always `1` observed. |
 
 ### 6.20 PathParameter / MessageParameter
 `CLaunchFileParameter`, `CMessageParameter` and `CTemplateParameter`. Used by `0x012F` (template path), `0x0130` (alert message text), `0x0136` (sound file) and `0x0149` (application path).
@@ -808,9 +832,8 @@ The smallest G2 stream: one enabled rule named `RULENAME`, applied "after the me
 4. Which product writes G0s (Signature 0) streams, and how `PidTagRwRulesStream` differs from an exported `.rwz`.
 5. DocumentProperty Unknown1: always `1` and never read by Outlook 97.
 6. Layouts of `0x014D`, `0x014E` and `0x0150`; the exact meaning of the Net Folders elements `0x00E7` and `0x0141`; and whether stamp 0x150000 changes the layout.
-7. What the rule Flags bits mean. Outlook 98 tests bits `0x1` and `0x3` and keeps the value in the server rule's provider data; `0x20` is only inferred from the samples.
-8. The definition flags at `+0x20` and `+0x24` (Appendices D and E).
-9. How Outlook 97/98 store several words in one word condition, given that both read a single string and at most one parameter.
+7. What the rule Flags bits mean. Outlook 98 only clears bits `0x1`/`0x2` (when the user edits the rule) and never sets `0x20`, so an Outlook 2000 binary is needed.
+8. The meaning of the definition flags at `+0x20` and `+0x24`. Outlook 97 sets them but never reads them, and no reader was found in Outlook 98 (Appendix D.1).
 
 ## Appendix C. Corrections to earlier notes
 
@@ -849,8 +872,10 @@ Outlook 97 builds one definition object per element. Its fields are:
 * `+0x0C`: the parameter kind.
 * `+0x18`: two packed 16-bit values ("Pair").
 * `+0x1C`: the client-only flag. It matches the client-only column of `docs/Rules Sever Side.xlsx` for every Outlook 97 element.
-* `+0x20`, `+0x24`: two more flags.
-* `+0x28`: the string ID of the UI text.
+* `+0x20`, `+0x24`: two more flags. Outlook 97 sets them in its constructors and copy constructor, but no code reads them: every read of those offsets in `RULESWIZ.DLL` belongs to another class **[O97]**. No reader was found in Outlook 98 either. They have no effect on the file format.
+* `+0x28`: the string ID of the UI text, for example "with %s in the subject". Two more strings come from it: text + `0x3E8` is the placeholder shown underlined until a value is chosen ("specific words"), and text + `0x7D0` is the prompt in the edit dialog ("Specify a word or phrase to search for in the subject:").
+
+The definition class is `CRuleComponent` (runtime class `0x10084F00`, size `0x30`). For `0x0064` the placeholder is "message" and the prompt is "Select a message type:".
 
 Pair is a pair of masks that decide where the wizard offers an element **[O97]**:
 
@@ -963,7 +988,7 @@ None of these IDs is in Outlook 97's definition table, so Outlook 97 can't load 
 * The element list (`0x6E454B20`) reads the count and, for each element, the object tag (`0xFFFF` plus class descriptor, or a class reference), then calls the element's serializer.
 * Each element (`0x6E454C69`) reads its ID, looks up the definition, reads the has-parameter flag, and creates and serializes at most one parameter.
 
-**Versions.** The current version is kept at app `+0x134`. Outside the loader only two fields depend on it: the rule Flags (≥ 970812) and DocumentProperty MatchIfMissing (≥ 970102). The loader (`0x6E4547C2`) accepts 960706–970812 and applies the same footer gates as Outlook 97 (960723, 960820, 960925). Importing an unsigned (G0) file treats it as version 970102 (`0x6E77767B`).
+**Versions.** The current version is kept at app `+0x134`. Outside the loader, three fields depend on it: the folder SecondaryStore (≥ 970718), the rule Flags (≥ 970812) and DocumentProperty MatchIfMissing (≥ 970102). The loader (`0x6E4547C2`) accepts 960706–970812 and applies the same footer gates as Outlook 97. Importing an unsigned (G0) file treats it as version 970102 (`0x6E77767B`). The full list is in [§4.1.1](#411-version-dependent-fields).
 
 **Header.** The header fields map to app fields U1 `+0x38`, U2 `+0x60`, U3 `+0x64`, U4 `+0x3C`, U5 `+0x18`, U6 `+0x1C`, U7 `+0x20` and U8 `+0x24`. A new profile starts with U1–U4 = 0.
 
@@ -988,6 +1013,22 @@ Compared with Outlook 97, Outlook 98 adds:
 Relevance (`0x00ED`, `0x0145`) isn't in Outlook 98, so it arrived with Outlook 2000.
 
 **Importing Exchange server rules** (`0x6E77751B`). `PR_RULE_STATE`'s `ST_ENABLED` (`0x1`) and `ST_EXIT_LEVEL` (`0x10`) become Enabled and a "stop processing more rules" action. The rule Flags are restored from offset `0x18` of the rule's provider data.
+
+**Saving rules to the Exchange server** (`0x6E776D15`, `0x6E77FB3A`). Each rule becomes a server rule with these properties:
+
+* `PR_RULE_SEQUENCE`, from a running counter;
+* `PR_RULE_STATE`, with `ST_EXIT_LEVEL` added when the rule stops processing;
+* `PR_RULE_CONDITION` and `PR_RULE_ACTIONS`;
+* `PR_RULE_PROVIDER`, `PR_RULE_LEVEL` and `PR_RULE_NAME`;
+* `PR_RULE_PROVIDER_DATA`, laid out as follows.
+
+| Offset | Size | Field |
+|---|---|---|
+| `0x00` | 4 | Version: `1`, or `970812` when a serialized rule follows. |
+| `0x04` | 4 | `0`. |
+| `0x08` | 8 | A timestamp (OLE date). |
+| `0x10` | variable | Version 970812 only: the whole rule serialized in this file format (a RuleHeader and its elements, [§4.3](#43-rule)). Outlook 98 embeds it when the rule has parts the server can't run. The property's size is `0x18` + the rule's length. |
+| `0x18` | 4 | Version 1 only, when the rule's Flags are non-zero: the Flags. The property is then `0x1C` bytes; otherwise `0x18`. |
 
 ## References
 

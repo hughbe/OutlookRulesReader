@@ -6,8 +6,9 @@
 //
 
 public enum OutlookRulesReadError: Error {
-    case invalidSignature(signature: UInt32, flags: UInt32)
+    /// The class descriptor before the first rule element names a class other than `CRuleElement` (spec §2.5).
     case unknownRuleClass(ruleClass: String)
-    case invalidSeparator(separator: UInt16)
+    /// A rule element is preceded by an object tag other than `0xFFFF` or `0x8001` (spec §2.5).
+    case invalidObjectTag(tag: UInt16)
     case corrupted
 }
