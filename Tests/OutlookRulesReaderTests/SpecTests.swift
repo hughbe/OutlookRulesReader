@@ -332,6 +332,45 @@ final class SpecTests: XCTestCase {
         XCTAssertEqual(data, file.getData())
     }
 
+    /// Outlook 2000 has the account and server-reply elements and writes their names in ANSI (spec §6.15, §6.25).
+    func testAnsiAccountAndTemplateNames() throws {
+        let folderFile = try OutlookRules(data: try getData(name: "Outlook2007_MoveToFolder_Default", fileExtension: "rwz"))
+        let folder = try XCTUnwrap(folderFile.rules[0].actions.first { $0.parameter is FolderParameter }?.parameter as? FolderParameter)
+        let rule = Rule(
+            eventFlags: .afterReceived,
+            name: "Rule",
+            conditions: [RuleElement(identifier: .throughSpecifiedAccountCondition, parameter: AccountParameter(accountName: "Work", accountStamp: "12345"))],
+            actions: [RuleElement(identifier: .automaticReply, parameter: TemplateParameter(messageEntryId: folder.folderEntryId, name: "Reply"))]
+        )
+        let file = OutlookRules(rules: [rule])
+
+        for version in [OutlookRulesVersion.outlook2000, .outlook2010] {
+            let data = file.getData(version: version)
+            let reread = try OutlookRules(data: data)
+            XCTAssertEqual("Work", (reread.rules[0].conditions.first?.parameter as? AccountParameter)?.accountName)
+            XCTAssertEqual("12345", (reread.rules[0].conditions.first?.parameter as? AccountParameter)?.accountStamp)
+            XCTAssertEqual("Reply", (reread.rules[0].actions.first?.parameter as? TemplateParameter)?.name)
+            XCTAssertEqual(data, reread.getData())
+        }
+
+        let ansi = file.getData(version: .outlook2000)
+        XCTAssertNotNil(ansi.range(of: Data([4]) + Data("Work".utf8)))
+        XCTAssertNotNil(ansi.range(of: Data([5]) + Data("Reply".utf8)))
+    }
+
+    /// Outlook 2000 reads element 0x00EA as the junk-mail condition 0x00EB (spec §5.2).
+    func testLegacyJunkCondition() throws {
+        var data = try getData(name: "Outlook98_Junk", fileExtension: "rwz")
+        let needle = Data([0x01, 0x80, 0xEB, 0x00, 0x00, 0x00])
+        let range = try XCTUnwrap(data.range(of: needle))
+        data.replaceSubrange(range, with: Data([0x01, 0x80, 0xEA, 0x00, 0x00, 0x00]))
+
+        let file = try OutlookRules(data: data)
+        let element = try XCTUnwrap(file.rules[0].elements.first { $0.identifier == .legacyJunkCondition })
+        XCTAssertEqual("Junk Senders", (element.parameter as? SendersListParameter)?.name)
+        XCTAssertEqual(data, file.getData())
+    }
+
     static var allTests = [
         ("testAllSamplesRoundTrip", testAllSamplesRoundTrip),
         ("testParameterDataSizeMatchesWrittenSize", testParameterDataSizeMatchesWrittenSize),
@@ -354,6 +393,8 @@ final class SpecTests: XCTestCase {
         ("testOutlook97Profile", testOutlook97Profile),
         ("testVersionStampRanges", testVersionStampRanges),
         ("testHeaderUnknownsAccepted", testHeaderUnknownsAccepted),
+        ("testAnsiAccountAndTemplateNames", testAnsiAccountAndTemplateNames),
+        ("testLegacyJunkCondition", testLegacyJunkCondition),
     ]
 }
 

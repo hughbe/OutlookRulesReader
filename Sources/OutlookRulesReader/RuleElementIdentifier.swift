@@ -106,6 +106,10 @@ public enum RuleElementIdentifier: UInt32 {
     /// Note: this has been removed in Outlook 2003
     case exceptionListCondition = 0x000000E9
     
+    /// An older identifier for `junkCondition`, probably from pre-release Outlook 98 builds. Outlook 2000 reads it as
+    /// `junkCondition` (0x00EB) (spec §5.2). Takes the same parameter.
+    case legacyJunkCondition = 0x000000EA
+
     /// "suspected to be junk-email or from <Junk Senders>"
     /// Note: this has been removed in Outlook 2003
     case junkCondition = 0x000000EB
