@@ -27,7 +27,7 @@ public struct Rule: CustomDebugStringConvertible {
     public var isServerRule: Bool = false
 
     /// Rule flags (spec §4.3.1). Usually 0; 0x20 has only been seen on the built-in junk e-mail
-    /// "Exception List" rule. Not present in Outlook 97 files.
+    /// "Exception List" rule. Added in version 970812 (Outlook 98), so not present in Outlook 97 or signature-0 files.
     public var flags: UInt32 = 0
 
     /// All of the rule's elements, including the mandatory 0x0190 and 0x0064 elements.
