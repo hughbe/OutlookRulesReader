@@ -165,6 +165,22 @@ Within G1, signature 970102 lacks two fields that 970812 has ([§4.1.1](#411-ver
 
 A G0 stream can only begin with four zero bytes if it has no rules, and then it is only 2 bytes long (`00 00`). Readers MUST therefore treat a stream shorter than 4 bytes as G0.
 
+Readers SHOULD identify the format by **range** rather than by exact stamp, as Outlook does (Outlook 98 accepts any stamp from 960706 to 970812 **[O98]**). Later builds of a version may then write slightly different stamps, and Outlook 2013 knows `0x150000`. A G0 stream's first four bytes are its rule count, then the first rule name's length and first character (or the Enabled field when the name is empty). They are therefore either below 960706 or at least `0x01000000`, never inside a stamp range:
+
+| First u32 | Format |
+|---|---|
+| `0` | G0s |
+| below 960706, or `0x01000000` and above | G0 |
+| 960706 – 970811 | G1, Outlook 97 profile layout (no rule Flags or folder SecondaryStore) |
+| 970812 – 980412 | G1, Outlook 98 |
+| 980413 – 999999 | G1, Outlook 2000 |
+| 1000000 – 1099999 | G2, Outlook 2002 |
+| 1100000 – 1199999 | G2, Outlook 2003 |
+| 1200000 – `0x13FFFF` | G2, Outlook 2007 |
+| `0x140000` – `0xFFFFFF` | G2, Outlook 2010 and later |
+
+Stamps 960706–970811 also cover pre-release builds whose footer or folder fields differ ([§4.1.1](#411-version-dependent-fields)). No such file has been seen.
+
 **G0s** has two samples (`Versions/Outlook2003/*`). The layout is G1 with Signature = 0 and without Rule Unknown3. The missing field follows from its signature: rule Flags (Unknown3) are only read and written when the version is 970812 or later, and 0 is below that **[O98]**. **[Unknown]** which product writes it. It may be the `PidTagRwRulesStream` form described in [§1.1](#11-storage).
 
 Field presence by generation:
@@ -233,11 +249,11 @@ Unsigned (G0) streams count as version 970102.
 
 | Field | Size | Generations | Description |
 |---|---|---|---|
-| Signature | 4 | G0s, G1, G2 | The target format's version stamp ([§4.1](#41-version-stamps)), or `0` in G0s. |
+| Signature | 4 | G0s, G1, G2 | The target format's version stamp ([§4.1](#41-version-stamps)), or `0` in G0s. Writers converting between formats SHOULD write the stamp of the target format; readers SHOULD preserve an unrecognised stamp within a known range ([§3](#3-format-generations)). |
 | WriterVersion | 4 | G2 | Bits 0–23: the version stamp of the Outlook that wrote the stream. Bits 24–31: an index into the table in [§4.1](#41-version-stamps). **[Unknown]** what the index means; it equals either the writer's index or the Signature's index. |
-| Unknown1 | 4 | not G0 | MUST be `0`. **[O97]** Outlook 97 loads and saves Unknown1–4 unchanged; nothing else reads or writes them, and new profiles start with 0. |
-| Unknown2 | 4 | not G0 | MUST be `0`. As Unknown1. |
-| Unknown3 | 4 | not G0 | MUST be `0`. As Unknown1. |
+| Unknown1 | 4 | not G0 | Writers SHOULD write `0`; readers MUST accept any value. Always `0` in the samples, but hughbe/OutlookRulesReader#2 reports fields like these being `1` in the copy of the rules stored in the mailbox. **[O97]** **[O98]** Outlook loads and saves Unknown1–4 unchanged; nothing else reads or writes them, and new profiles start with 0. |
+| Unknown2 | 4 | not G0 | As Unknown1. |
+| Unknown3 | 4 | not G0 | As Unknown1. |
 | Unknown4 | 4 | not G0 | **[Unknown]** `0` or `1`. Outlook 97 never changes it from 0; Outlook 2003/2007 write `1`. |
 | ServerRulesOutOfDate | 4 | not G0 | **[O97]** `1` when the copy of the rules on the Exchange server needs updating. It is set when the rules or options change, or when an upload fails for lack of server space, and cleared after a successful upload. When updates are automatic, Outlook uploads at startup if it's set. |
 | ServerUpdateMode | 4 | not G0 | **[O97]** The "Update server" option in the Rules Wizard's Options dialog: `1` = Manually (only when the user clicks "Update Now"), `2` = Automatically. `0` = not set, as written by Outlook 2010+. Switching from Manually to Automatically triggers an immediate upload. |

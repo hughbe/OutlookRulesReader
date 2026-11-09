@@ -10,7 +10,7 @@ import DataStream
 /// The header of an individual rule. See spec §4.3.1.
 internal struct RuleHeader {
     /// The version stamp of the stream (Outlook 2002 and later only).
-    public var signature: UInt32?
+    public var versionStamp: UInt32?
     public var name: String
     public var enabled: Bool
     /// Outlook 97 only ever sets this to 0 (spec §4.3.1).
@@ -33,10 +33,10 @@ internal struct RuleHeader {
 
     public init(dataStream: inout DataStream, version: OutlookRulesVersion) throws {
         if version >= .outlook2002 {
-            /// Signature (4 bytes)
-            self.signature = try dataStream.read(endianess: .littleEndian)
+            /// Version Stamp (4 bytes)
+            self.versionStamp = try dataStream.read(endianess: .littleEndian)
         } else {
-            self.signature = nil
+            self.versionStamp = nil
         }
 
         /// Name (variable)
@@ -79,8 +79,8 @@ internal struct RuleHeader {
 
     public func write(to dataStream: inout OutputDataStream, version: OutlookRulesVersion) {
         if version >= .outlook2002 {
-            /// Signature (4 bytes)
-            dataStream.write(RulesHeader.defaultSignature(for: version) ?? 0, endianess: .littleEndian)
+            /// Version Stamp (4 bytes): the same as the stream's (spec §4.3.1).
+            dataStream.write(versionStamp ?? RulesHeader.defaultVersionStamp(for: version) ?? 0, endianess: .littleEndian)
         }
 
         /// Name (variable)

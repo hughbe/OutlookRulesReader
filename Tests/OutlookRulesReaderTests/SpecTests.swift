@@ -77,7 +77,7 @@ final class SpecTests: XCTestCase {
         var dataStream = DataStream(try getData(name: "Outlook2003Multiple", fileExtension: "rwz"))
         let header = try RulesHeader(dataStream: &dataStream)
         XCTAssertEqual(.signatureZero, header.version)
-        XCTAssertEqual(0, header.signature)
+        XCTAssertEqual(0, header.versionStamp)
         XCTAssertEqual(1, header.unknown4)
         XCTAssertEqual(1, header.promptToConvertInboxAssistantRules)
         XCTAssertEqual(1, header.convertInboxAssistantRules)
@@ -90,7 +90,7 @@ final class SpecTests: XCTestCase {
         var dataStream = DataStream(try getData(name: "Outlook2007_Delete_2002", fileExtension: "rwz"))
         let header = try RulesHeader(dataStream: &dataStream)
         XCTAssertEqual(.outlook2002, header.version)
-        XCTAssertEqual(1000000, header.signature)
+        XCTAssertEqual(1000000, header.versionStamp)
         XCTAssertEqual(0x05124F80, header.writerVersion)
     }
 
@@ -297,6 +297,41 @@ final class SpecTests: XCTestCase {
         XCTAssertNil(folder.secondaryUserStore)
     }
 
+    /// Formats are identified by version-stamp range, and an unrecognised stamp is kept (spec §3).
+    func testVersionStampRanges() throws {
+        var data = try getData(name: "RedirectToPeopleOrPublicGroup", fileExtension: "rwz")
+        // The stream's stamp, repeated in the rule header straight after the 46-byte header.
+        XCTAssertEqual([0x00, 0x00, 0x14, 0x00], [UInt8](data[0..<4]))
+        XCTAssertEqual([0x00, 0x00, 0x14, 0x00], [UInt8](data[46..<50]))
+        data.replaceSubrange(0..<4, with: [0x00, 0x00, 0x15, 0x00])
+        data.replaceSubrange(46..<50, with: [0x00, 0x00, 0x15, 0x00])
+
+        let file = try OutlookRules(data: data)
+        XCTAssertEqual(1, file.rules.count)
+        XCTAssertEqual(data, file.getData())
+        // Converting to another format writes that format's default stamp, in the header and the rule header.
+        let outlook2007 = file.getData(version: .outlook2007)
+        XCTAssertEqual([0x80, 0x4F, 0x12, 0x00], [UInt8](outlook2007[0..<4]))
+        XCTAssertEqual([0x80, 0x4F, 0x12, 0x00], [UInt8](outlook2007[46..<50]))
+
+        XCTAssertEqual(.outlook97, RulesHeader.detectVersion(versionStamp: 1))
+        XCTAssertEqual(.outlook97, RulesHeader.detectVersion(versionStamp: 0x44150001))
+        XCTAssertEqual(.outlook97Profile, RulesHeader.detectVersion(versionStamp: 970102))
+        XCTAssertEqual(.outlook98, RulesHeader.detectVersion(versionStamp: 970900))
+        XCTAssertEqual(.outlook2007, RulesHeader.detectVersion(versionStamp: 1200001))
+        XCTAssertEqual(.outlook2010, RulesHeader.detectVersion(versionStamp: 0x150000))
+    }
+
+    /// Header Unknown1-3 are only preserved by Outlook, so readers accept any value (spec §4.2).
+    func testHeaderUnknownsAccepted() throws {
+        var data = try getData(name: "Outlook98_Delete", fileExtension: "rwz")
+        // Unknown1 follows the 4-byte signature.
+        XCTAssertEqual([0, 0, 0, 0], [UInt8](data[4..<8]))
+        data.replaceSubrange(4..<8, with: [1, 0, 0, 0])
+        let file = try OutlookRules(data: data)
+        XCTAssertEqual(data, file.getData())
+    }
+
     static var allTests = [
         ("testAllSamplesRoundTrip", testAllSamplesRoundTrip),
         ("testParameterDataSizeMatchesWrittenSize", testParameterDataSizeMatchesWrittenSize),
@@ -317,6 +352,8 @@ final class SpecTests: XCTestCase {
         ("testDocumentPropertyMatchIfMissing", testDocumentPropertyMatchIfMissing),
         ("testEvaluatorOnlyElements", testEvaluatorOnlyElements),
         ("testOutlook97Profile", testOutlook97Profile),
+        ("testVersionStampRanges", testVersionStampRanges),
+        ("testHeaderUnknownsAccepted", testHeaderUnknownsAccepted),
     ]
 }
 

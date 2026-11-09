@@ -139,10 +139,12 @@ public struct Rule: CustomDebugStringConvertible {
     public func write(to dataStream: inout OutputDataStream, index: Int, version: OutlookRulesVersion) {
         /// The class descriptor for `CRuleElement` precedes the first element of the stream.
         var classDeclared = index != 0
-        write(to: &dataStream, version: version, classDeclared: &classDeclared)
+        write(to: &dataStream, version: version, versionStamp: nil, classDeclared: &classDeclared)
     }
 
-    internal func write(to dataStream: inout OutputDataStream, version: OutlookRulesVersion, classDeclared: inout Bool) {
+    /// `versionStamp` is the stream's version stamp, which each rule header repeats in the Outlook 2002 and later
+    /// formats; nil uses the default stamp for `version`.
+    internal func write(to dataStream: inout OutputDataStream, version: OutlookRulesVersion, versionStamp: UInt32?, classDeclared: inout Bool) {
         var elements: [RuleElement] = [
             /// "Apply this rule <after the message arrives>"
             RuleElement(identifier: .eventFlags, parameter: EventParameter(flags: eventFlags)),
@@ -168,6 +170,7 @@ public struct Rule: CustomDebugStringConvertible {
         /// Data Size counts the Number of Elements field (2 bytes) and everything after it.
         let dataSize = UInt32(2 + elementsStream.data.count)
         var header = RuleHeader(name: storedName, enabled: enabled, numberOfElements: UInt16(elements.count), dataSize: dataSize)
+        header.versionStamp = versionStamp
         header.unknown1 = unknown1
         header.serverRule = isServerRule ? 1 : 0
         header.flags = flags

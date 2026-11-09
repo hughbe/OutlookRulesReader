@@ -1,5 +1,5 @@
 //
-//  PropertiesList.swift
+//  AdrEntry.swift
 //  
 //
 //  Created by Hugh Bellamy on 03/02/2021.
@@ -10,13 +10,13 @@ import Foundation
 import MAPI
 
 /// A serialized MAPI `ADRENTRY` whose `SPropValue` array has its pointers replaced by offsets (spec §6.4).
-internal struct PropertiesList {
+internal struct AdrEntry {
     /// A single property, retaining everything needed to write it back byte-for-byte.
-    public struct Entry {
+    public struct Property {
         public var type: PropertyType
         public var id: UInt16
-        public var data1: UInt32
-        public var data3: UInt32
+        public var alignPad: UInt32
+        public var valueHigh: UInt32
         public var value: Any
         
         /// Whether the value is of the Swift type that is used to represent the property type.
@@ -61,52 +61,52 @@ internal struct PropertiesList {
     
     /// `ADRENTRY.ulReserved1`. Often uninitialised memory; preserved when round-tripping.
     public var reserved1: UInt32 = 0
-    public var entries: [Entry]
+    public var propertyValues: [Property]
 
     /// The values of the properties, keyed by property ID.
     public var properties: [UInt16: Any] {
         var properties: [UInt16: Any] = [:]
-        properties.reserveCapacity(entries.count)
-        for entry in entries {
+        properties.reserveCapacity(propertyValues.count)
+        for entry in propertyValues {
             properties[entry.id] = entry.value
         }
         
         return properties
     }
     
-    public init(entries: [Entry], reserved1: UInt32 = 0) {
-        self.entries = entries
+    public init(propertyValues: [Property], reserved1: UInt32 = 0) {
+        self.propertyValues = propertyValues
         self.reserved1 = reserved1
     }
     
     /// Creates a list from property values, reusing the types, order and flags of the properties
     /// in a previous list, if there is one, so that unmodified properties are written back unchanged.
-    public init(properties: [UInt16: Any], reusing previous: PropertiesList? = nil) {
+    public init(properties: [UInt16: Any], reusing previous: AdrEntry? = nil) {
         var remaining = properties
-        var entries: [Entry] = []
-        entries.reserveCapacity(properties.count)
+        var propertyValues: [Property] = []
+        propertyValues.reserveCapacity(properties.count)
         if let previous = previous {
-            for var entry in previous.entries {
+            for var entry in previous.propertyValues {
                 guard let value = remaining[entry.id], entry.accepts(value) else {
                     continue
                 }
                 
                 entry.value = value
-                entries.append(entry)
+                propertyValues.append(entry)
                 remaining[entry.id] = nil
             }
         }
         
         for id in remaining.keys.sorted() {
             let value = remaining[id]!
-            guard let type = Entry.inferredType(for: value) else {
+            guard let type = Property.inferredType(for: value) else {
                 continue
             }
             
-            entries.append(Entry(type: type, id: id, data1: 0, data3: 0, value: value))
+            propertyValues.append(Property(type: type, id: id, alignPad: 0, valueHigh: 0, value: value))
         }
         
-        self.init(entries: entries, reserved1: previous?.reserved1 ?? 0)
+        self.init(propertyValues: propertyValues, reserved1: previous?.reserved1 ?? 0)
     }
     
     public init(dataStream: inout DataStream) throws {
@@ -116,29 +116,29 @@ internal struct PropertiesList {
         /// Number of Properties (4 bytes)
         let numberOfProperties: UInt32 = try dataStream.read(endianess: .littleEndian)
         
-        /// Property Block Data Size (4 bytes)
+        /// Block Size (4 bytes): the size of the SPropValue array and the data it points to, as produced by MAPI ScCopyProps (spec §6.4)
         let propertyBlockDataSize: UInt32 = try dataStream.read(endianess: .littleEndian)
 
         let startPosition = dataStream.position
         let endPosition = dataStream.position + Int(propertyBlockDataSize)
         
-        var entries: [Entry] = []
-        entries.reserveCapacity(Int(numberOfProperties))
+        var propertyValues: [Property] = []
+        propertyValues.reserveCapacity(Int(numberOfProperties))
         for _ in 0..<numberOfProperties {
-            let header = try PropertyValueHeader(dataStream: &dataStream)
+            let header = try SPropValue(dataStream: &dataStream)
             let position = dataStream.position
 
             var value: Any
             switch header.tag.type {
             case PropertyType.integer32:
-                value = UInt32(header.data2)
+                value = UInt32(header.valueLow)
                 break
             case PropertyType.errorCode:
-                value = UInt32(header.data2)
+                value = UInt32(header.valueLow)
                 break
             case PropertyType.string:
                 // Data stored in data block.
-                let offset = Int(header.data2)
+                let offset = Int(header.valueLow)
                 guard offset >= 0 && offset <= endPosition else {
                     throw OutlookRulesReadError.corrupted
                 }
@@ -155,7 +155,7 @@ internal struct PropertiesList {
                 break
             case PropertyType.string8:
                 // Data stored in data block.
-                let offset = Int(header.data2)
+                let offset = Int(header.valueLow)
                 guard offset >= 0 && offset <= endPosition else {
                     throw OutlookRulesReadError.corrupted
                 }
@@ -172,8 +172,8 @@ internal struct PropertiesList {
                 break
             case PropertyType.binary:
                 // Data stored in data block. Like an SBinary, the value is a length followed by the location of the data.
-                let length = Int(header.data2)
-                let offset = Int(header.data3)
+                let length = Int(header.valueLow)
+                let offset = Int(header.valueHigh)
                 guard offset >= 0 && offset <= endPosition - startPosition else {
                     throw OutlookRulesReadError.corrupted
                 }
@@ -189,71 +189,71 @@ internal struct PropertiesList {
                 dataStream.position = position
                 break
             case PropertyType.boolean:
-                value = UInt16(truncatingIfNeeded: header.data2) != 0
+                value = UInt16(truncatingIfNeeded: header.valueLow) != 0
             default:
                 // Property type not yet supported.
                 throw OutlookRulesReadError.corrupted
             }
             
-            entries.append(Entry(type: header.tag.type, id: header.tag.id, data1: header.data1, data3: header.data3, value: value))
+            propertyValues.append(Property(type: header.tag.type, id: header.tag.id, alignPad: header.alignPad, valueHigh: header.valueHigh, value: value))
         }
         
-        self.entries = entries
+        self.propertyValues = propertyValues
         dataStream.position = endPosition
     }
     
     public func write(to dataStream: inout OutputDataStream) {
         // Property headers are followed by a data block that holds strings and binary values.
         var dataBlock = OutputDataStream()
-        var headers: [(type: PropertyType, id: UInt16, data1: UInt32, data2: UInt32, data3: UInt32)] = []
-        headers.reserveCapacity(entries.count)
-        let dataBlockOffset = entries.count * Int(PropertyValueHeader.dataSize)
+        var headers: [(type: PropertyType, id: UInt16, alignPad: UInt32, valueLow: UInt32, valueHigh: UInt32)] = []
+        headers.reserveCapacity(propertyValues.count)
+        let dataBlockOffset = propertyValues.count * Int(SPropValue.dataSize)
         
-        for entry in entries {
-            var data2: UInt32 = 0
-            var data3 = entry.data3
+        for entry in propertyValues {
+            var valueLow: UInt32 = 0
+            var valueHigh = entry.valueHigh
             switch entry.type {
             case .integer32, .errorCode:
-                data2 = (entry.value as? UInt32) ?? 0
+                valueLow = (entry.value as? UInt32) ?? 0
             case .boolean:
-                data2 = ((entry.value as? Bool) ?? false) ? 1 : 0
+                valueLow = ((entry.value as? Bool) ?? false) ? 1 : 0
             case .string:
-                data2 = UInt32(dataBlockOffset + dataBlock.data.count)
+                valueLow = UInt32(dataBlockOffset + dataBlock.data.count)
                 dataBlock.write((entry.value as? String) ?? "", encoding: .utf16LittleEndian)
                 dataBlock.write(0 as UInt16, endianess: .littleEndian)
             case .string8:
-                data2 = UInt32(dataBlockOffset + dataBlock.data.count)
+                valueLow = UInt32(dataBlockOffset + dataBlock.data.count)
                 let bytes = ((entry.value as? String) ?? "").data(using: .isoLatin1, allowLossyConversion: true) ?? Data()
                 dataBlock.write(bytes)
                 dataBlock.write(0 as UInt8)
             case .binary:
                 let bytes = (entry.value as? [UInt8]) ?? []
-                data2 = UInt32(bytes.count)
-                data3 = UInt32(dataBlockOffset + dataBlock.data.count)
+                valueLow = UInt32(bytes.count)
+                valueHigh = UInt32(dataBlockOffset + dataBlock.data.count)
                 dataBlock.write(Data(bytes))
             default:
                 break
             }
             
-            headers.append((entry.type, entry.id, entry.data1, data2, data3))
+            headers.append((entry.type, entry.id, entry.alignPad, valueLow, valueHigh))
         }
         
         /// Reserved1 (4 bytes)
         dataStream.write(reserved1, endianess: .littleEndian)
         
         /// Number of Properties (4 bytes)
-        dataStream.write(UInt32(entries.count), endianess: .littleEndian)
+        dataStream.write(UInt32(propertyValues.count), endianess: .littleEndian)
         
-        /// Property Block Data Size (4 bytes)
+        /// Block Size (4 bytes): the size of the SPropValue array and the data it points to, as produced by MAPI ScCopyProps (spec §6.4)
         dataStream.write(UInt32(dataBlockOffset + dataBlock.data.count), endianess: .littleEndian)
         
         /// Property Headers (variable)
         for header in headers {
             dataStream.write(header.type.rawValue, endianess: .littleEndian)
             dataStream.write(header.id, endianess: .littleEndian)
-            dataStream.write(header.data1, endianess: .littleEndian)
-            dataStream.write(header.data2, endianess: .littleEndian)
-            dataStream.write(header.data3, endianess: .littleEndian)
+            dataStream.write(header.alignPad, endianess: .littleEndian)
+            dataStream.write(header.valueLow, endianess: .littleEndian)
+            dataStream.write(header.valueHigh, endianess: .littleEndian)
         }
         
         /// Data Block (variable)

@@ -10,7 +10,7 @@ import DataStream
 /// People or public groups, stored as a serialized MAPI `ADRLIST` (spec §6.4).
 public struct AddressParameter: RuleParameter {
     public var reserved: UInt32 = 0
-    internal var lists: [PropertiesList] = []
+    internal var lists: [AdrEntry] = []
     
     /// The properties of each address, keyed by property ID.
     public var values: [[UInt16 : Any]] {
@@ -21,7 +21,7 @@ public struct AddressParameter: RuleParameter {
             // Reuse the types and order of existing properties so that unmodified properties
             // are written back unchanged.
             lists = newValue.enumerated().map { index, properties in
-                PropertiesList(properties: properties, reusing: index < lists.count ? lists[index] : nil)
+                AdrEntry(properties: properties, reusing: index < lists.count ? lists[index] : nil)
             }
         }
     }
@@ -48,10 +48,10 @@ public struct AddressParameter: RuleParameter {
         let numberOfValues: UInt32 = try dataStream.read(endianess: .littleEndian)
         
         /// Values (variable)
-        var lists: [PropertiesList] = []
+        var lists: [AdrEntry] = []
         lists.reserveCapacity(Int(numberOfValues))
         for _ in 0..<numberOfValues {
-            lists.append(try PropertiesList(dataStream: &dataStream))
+            lists.append(try AdrEntry(dataStream: &dataStream))
         }
         
         self.lists = lists

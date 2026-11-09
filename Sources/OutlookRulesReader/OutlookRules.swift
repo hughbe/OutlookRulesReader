@@ -108,9 +108,11 @@ public struct OutlookRules: CustomDebugStringConvertible {
         header.numberOfRules = UInt16(rules.count)
         header.write(to: &dataStream, version: version)
         
+        /// Keep the stream's own version stamp when writing the same format, so files from later builds round-trip.
+        let versionStamp = version == self.header.version ? self.header.versionStamp : nil
         var classDeclared = false
         for rule in rules {
-            rule.write(to: &dataStream, version: version, classDeclared: &classDeclared)
+            rule.write(to: &dataStream, version: version, versionStamp: versionStamp, classDeclared: &classDeclared)
         }
         
         if version != .outlook97 {

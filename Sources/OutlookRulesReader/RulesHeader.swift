@@ -11,8 +11,9 @@ import DataStream
 internal struct RulesHeader {
     public let version: OutlookRulesVersion
 
-    /// The version stamp of the stream's format. Absent in Outlook 97 streams; 0 in signature-0 streams.
-    public var signature: UInt32?
+    /// The version stamp of the stream's format (spec §4.1), called the versionStamp in older notes.
+    /// Absent in Outlook 97 exports; 0 in versionStamp-0 streams.
+    public var versionStamp: UInt32?
 
     /// Present from Outlook 2002. Bits 0-23 are the version stamp of the writing application; bits 24-31 are an
     /// index into the table of version stamps (spec §4.1).
@@ -34,12 +35,12 @@ internal struct RulesHeader {
 
     public init(numberOfRules: UInt16, version: OutlookRulesVersion = .outlook2010) {
         self.version = version
-        self.signature = RulesHeader.defaultSignature(for: version)
+        self.versionStamp = RulesHeader.defaultVersionStamp(for: version)
         self.writerVersion = RulesHeader.defaultWriterVersion(for: version)
         self.numberOfRules = numberOfRules
     }
 
-    static func defaultSignature(for version: OutlookRulesVersion) -> UInt32? {
+    static func defaultVersionStamp(for version: OutlookRulesVersion) -> UInt32? {
         switch version {
         case .outlook2010: return 0x00140000
         case .outlook2007: return 1200000
@@ -63,36 +64,39 @@ internal struct RulesHeader {
     }
 
     /// Identifies the format of a stream from its first four bytes (spec §3).
-    static func detectVersion(signature: UInt32) -> OutlookRulesVersion {
-        switch signature {
-        case 0x00140000:
-            return .outlook2010
-        case 1200000:
-            return .outlook2007
-        case 1100000:
-            return .outlook2003
-        case 1000000:
-            return .outlook2002
-        case 980413:
-            return .outlook2000
-        case 970812:
-            return .outlook98
-        case 970102:
-            return .outlook97Profile
+    /// Version stamps are matched by range, as Outlook does, so later builds of a version are still recognised.
+    /// An Outlook 97 export starts with its rule count and first rule name, so its first four bytes are either
+    /// below 960706 or at least 0x01000000, never inside a stamp range.
+    static func detectVersion(versionStamp: UInt32) -> OutlookRulesVersion {
+        switch versionStamp {
         case 0:
             return .signatureZero
+        case 960706..<970812:
+            return .outlook97Profile
+        case 970812..<980413:
+            return .outlook98
+        case 980413..<1000000:
+            return .outlook2000
+        case 1000000..<1100000:
+            return .outlook2002
+        case 1100000..<1200000:
+            return .outlook2003
+        case 1200000..<0x00140000:
+            return .outlook2007
+        case 0x00140000..<0x01000000:
+            return .outlook2010
         default:
             return .outlook97
         }
     }
 
     public init(dataStream: inout DataStream, version: OutlookRulesVersion? = nil) throws {
-        let version = try version ?? RulesHeader.detectVersion(signature: dataStream.peek(endianess: .littleEndian))
+        let version = try version ?? RulesHeader.detectVersion(versionStamp: dataStream.peek(endianess: .littleEndian))
         self.version = version
 
         guard version != .outlook97 else {
             /// Outlook 97 streams have no header other than the number of rules.
-            self.signature = nil
+            self.versionStamp = nil
             self.writerVersion = nil
             self.unknown1 = nil
             self.unknown2 = nil
@@ -109,8 +113,8 @@ internal struct RulesHeader {
             return
         }
 
-        /// Signature (4 bytes)
-        self.signature = try dataStream.read(endianess: .littleEndian)
+        /// Version Stamp (4 bytes)
+        self.versionStamp = try dataStream.read(endianess: .littleEndian)
 
         /// Writer Version (4 bytes)
         if version >= .outlook2002 {
@@ -119,6 +123,7 @@ internal struct RulesHeader {
             self.writerVersion = nil
         }
 
+        /// Unknown1-3 are always 0 in samples, but Outlook only preserves them, so any value is accepted (spec §4.2).
         /// Unknown1 (4 bytes)
         self.unknown1 = try dataStream.read(endianess: .littleEndian)
 
@@ -127,9 +132,6 @@ internal struct RulesHeader {
 
         /// Unknown3 (4 bytes)
         self.unknown3 = try dataStream.read(endianess: .littleEndian)
-        guard self.unknown1 == 0 && self.unknown2 == 0 && self.unknown3 == 0 else {
-            throw OutlookRulesReadError.corrupted
-        }
 
         /// Unknown4 (4 bytes)
         self.unknown4 = try dataStream.read(endianess: .littleEndian)
@@ -171,8 +173,8 @@ internal struct RulesHeader {
         }
 
         if version != .outlook97 {
-            /// Signature (4 bytes)
-            dataStream.write(source.signature ?? RulesHeader.defaultSignature(for: version) ?? 0, endianess: .littleEndian)
+            /// Version Stamp (4 bytes)
+            dataStream.write(source.versionStamp ?? RulesHeader.defaultVersionStamp(for: version) ?? 0, endianess: .littleEndian)
 
             if version >= .outlook2002 {
                 /// Writer Version (4 bytes)
