@@ -35,6 +35,7 @@ public struct Rule: CustomDebugStringConvertible {
     public var elements: [RuleElement] = []
 
     /// Fields of the rule header with unknown meaning, preserved when round-tripping (spec §4.3.1).
+    /// Outlook 97 never reads Unknown1; it only copies and saves it.
     internal var unknown1: UInt32 = 0
     internal var unknown4: UInt32 = 0
 

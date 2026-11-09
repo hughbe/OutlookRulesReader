@@ -256,6 +256,30 @@ final class SpecTests: XCTestCase {
         XCTAssertTrue(try DocumentProperty(dataStream: &reader, version: .outlook2019).matchIfMissing)
     }
 
+    /// Element IDs that only Outlook 97's rule evaluator knows (spec Appendix D.4) can be read and written back.
+    func testEvaluatorOnlyElements() throws {
+        func patched(_ name: String, from old: UInt32, to new: UInt32) throws -> Data {
+            var data = try getData(name: name, fileExtension: "rwz")
+            var oldBytes = old.littleEndian, newBytes = new.littleEndian
+            let needle = Data(bytes: &oldBytes, count: 4)
+            let range = try XCTUnwrap(data.range(of: needle))
+            data.replaceSubrange(range, with: Data(bytes: &newBytes, count: 4))
+            return data
+        }
+
+        let cc = try patched("Outlook2007_SentTo_Default", from: 0xCC, to: 0xDA)
+        let ccFile = try OutlookRules(data: cc)
+        let ccElement = try XCTUnwrap(ccFile.rules[0].conditions.first)
+        XCTAssertEqual(.sentToAsCcCondition, ccElement.identifier)
+        XCTAssertTrue(ccElement.parameter is AddressParameter)
+        XCTAssertEqual(cc, ccFile.getData())
+
+        let meeting = try patched("Outlook2007_SentOnlyToMe_Default", from: 0xC9, to: 0xD4)
+        let meetingFile = try OutlookRules(data: meeting)
+        XCTAssertEqual(.nameInToBoxMeetingCondition, meetingFile.rules[0].conditions.first?.identifier)
+        XCTAssertEqual(meeting, meetingFile.getData())
+    }
+
     static var allTests = [
         ("testAllSamplesRoundTrip", testAllSamplesRoundTrip),
         ("testParameterDataSizeMatchesWrittenSize", testParameterDataSizeMatchesWrittenSize),
@@ -274,6 +298,7 @@ final class SpecTests: XCTestCase {
         ("testHeaderSettings", testHeaderSettings),
         ("testHeaderWithInboxAssistantAnswerNo", testHeaderWithInboxAssistantAnswerNo),
         ("testDocumentPropertyMatchIfMissing", testDocumentPropertyMatchIfMissing),
+        ("testEvaluatorOnlyElements", testEvaluatorOnlyElements),
     ]
 }
 

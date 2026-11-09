@@ -45,8 +45,22 @@ public enum RuleElementIdentifier: UInt32 {
     /// “marked as <sensitivity>”
     case sensitivityCondition = 0x000000D3
     
+    /// "where my name is in the To box and it is a meeting". Never created by the Rules Wizard, but Outlook 97's
+    /// rule evaluator supports it (spec Appendix D.4). Takes no parameters.
+    case nameInToBoxMeetingCondition = 0x000000D4
+
+    /// "where my name is not in the To box and it is a meeting". See `nameInToBoxMeetingCondition`.
+    case nameNotInToBoxMeetingCondition = 0x000000D5
+    
     /// “assigned to <category> category”
     case assignedToCategoryCondition = 0x000000D7
+    
+    /// "sent to <people or public group>" as Cc recipients. Never created by the Rules Wizard, but Outlook 97's
+    /// rule evaluator supports it (spec Appendix D.4).
+    case sentToAsCcCondition = 0x000000DA
+
+    /// "sent to <people or public group>": the same test as `sentToCondition`. Never created by the Rules Wizard.
+    case sentToAlternateCondition = 0x000000DB
     
     /// “which is an automatic reply”
     case automaticReplyCondition = 0x000000DC
@@ -279,8 +293,20 @@ public enum RuleElementIdentifier: UInt32 {
     /// “except if it is marked as <sensitivity>”
     case sensitivityConditionException = 0x000001FF
     
+    /// Exception form of `nameInToBoxMeetingCondition`.
+    case nameInToBoxMeetingException = 0x00000200
+
+    /// Exception form of `nameNotInToBoxMeetingCondition`.
+    case nameNotInToBoxMeetingException = 0x00000201
+    
     /// “except if it is assigned to <category> category”
     case assignedToCategoryException = 0x00000203
+    
+    /// Exception form of `sentToAsCcCondition`.
+    case sentToAsCcException = 0x00000206
+
+    /// Exception form of `sentToAlternateCondition`.
+    case sentToAlternateException = 0x00000207
     
     /// “except if it is an automatic reply”
     case automaticReplyException = 0x00000208

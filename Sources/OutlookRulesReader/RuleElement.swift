@@ -79,6 +79,14 @@ public struct RuleElement {
                     parameter = try ImportanceParameter(dataStream: &dataStream, version: version)
                 case .sensitivityCondition: // 0x00D3
                     parameter = try SensitivityParameter(dataStream: &dataStream, version: version)
+                case .nameInToBoxMeetingCondition: // 0x00D4
+                    throw OutlookRulesReadError.corrupted
+                case .nameNotInToBoxMeetingCondition: // 0x00D5
+                    throw OutlookRulesReadError.corrupted
+                case .sentToAsCcCondition: // 0x00DA
+                    parameter = try AddressParameter(dataStream: &dataStream, version: version)
+                case .sentToAlternateCondition: // 0x00DB
+                    parameter = try AddressParameter(dataStream: &dataStream, version: version)
                 case .assignedToCategoryCondition: // 0x00D7
                     parameter = try CategoryParameter(dataStream: &dataStream, version: version)
                 case .automaticReplyCondition: // 0x00DC
@@ -225,6 +233,14 @@ public struct RuleElement {
                     parameter = try ImportanceParameter(dataStream: &dataStream, version: version)
                 case .sensitivityConditionException: // 0x01FF
                     parameter = try SensitivityParameter(dataStream: &dataStream, version: version)
+                case .nameInToBoxMeetingException: // 0x0200
+                    throw OutlookRulesReadError.corrupted
+                case .nameNotInToBoxMeetingException: // 0x0201
+                    throw OutlookRulesReadError.corrupted
+                case .sentToAsCcException: // 0x0206
+                    parameter = try AddressParameter(dataStream: &dataStream, version: version)
+                case .sentToAlternateException: // 0x0207
+                    parameter = try AddressParameter(dataStream: &dataStream, version: version)
                 case .assignedToCategoryException: // 0x0203
                     parameter = try CategoryParameter(dataStream: &dataStream, version: version)
                 case .automaticReplyException: // 0x0208
