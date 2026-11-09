@@ -17,7 +17,7 @@ internal struct RuleHeader {
     public var unknown1: UInt32 = 0
     /// 1 once the rule has been saved to the Exchange server's rules table (spec §4.3.1).
     public var serverRule: UInt32 = 0
-    /// Rule flags (Outlook 98 and later). 0x20 has only been seen on the built-in junk e-mail "Exception List" rule.
+    /// Rule flags (Outlook 98 and later). See `RuleFlags` and spec §4.3.1.1.
     public var flags: UInt32? = 0
     public var unknown4: UInt32? = 0
     /// The number of bytes from the end of this field to the end of the rule (Outlook 2002 and later only).

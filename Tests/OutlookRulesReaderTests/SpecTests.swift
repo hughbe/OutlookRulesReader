@@ -47,7 +47,8 @@ final class SpecTests: XCTestCase {
     /// Rule header fields with unknown meaning survive a round trip (spec §4.3.1).
     func testRuleHeaderFieldsPreserved() throws {
         let exceptionList = try OutlookRules(data: try getData(name: "Outlook2000_ExceptionList_Default", fileExtension: "rwz"))
-        XCTAssertEqual(0x20, exceptionList.rules[0].flags)
+        XCTAssertEqual(.exceptionListRule, exceptionList.rules[0].flags)
+        XCTAssertEqual(0x20, exceptionList.rules[0].flags.rawValue)
 
         let data = try getData(name: "Outlook2002FromOutlook2019", fileExtension: "rwz")
         let file = try OutlookRules(data: data)
@@ -371,6 +372,26 @@ final class SpecTests: XCTestCase {
         XCTAssertEqual(data, file.getData())
     }
 
+    /// Outlook 2000 saves with stamp 970812 unless a rule needs 980413, and leaves out rules that use Outlook
+    /// 2000-only elements when saving for Outlook 98 (spec §4.1.2).
+    func testOutlook2000SaveVersion() throws {
+        func version(_ name: String) throws -> OutlookRulesVersion {
+            var dataStream = DataStream(try getData(name: name, fileExtension: "rwz"))
+            return try RulesHeader(dataStream: &dataStream).version
+        }
+
+        XCTAssertEqual(.outlook98, try version("Outlook2000_ExceptionList_Default"))
+        XCTAssertEqual(.outlook2000, try version("Outlook2000_Print_Default"))
+        XCTAssertEqual(.outlook98, try version("Outlook2000_Print_98"))
+
+        let print = try OutlookRules(data: try getData(name: "Outlook2000_Print_Default", fileExtension: "rwz"))
+        XCTAssertEqual(1, print.rules.count)
+        XCTAssertTrue(print.rules[0].actions.contains { $0.identifier == .printAction })
+
+        let print98 = try OutlookRules(data: try getData(name: "Outlook2000_Print_98", fileExtension: "rwz"))
+        XCTAssertEqual(0, print98.rules.count)
+    }
+
     static var allTests = [
         ("testAllSamplesRoundTrip", testAllSamplesRoundTrip),
         ("testParameterDataSizeMatchesWrittenSize", testParameterDataSizeMatchesWrittenSize),
@@ -395,6 +416,7 @@ final class SpecTests: XCTestCase {
         ("testHeaderUnknownsAccepted", testHeaderUnknownsAccepted),
         ("testAnsiAccountAndTemplateNames", testAnsiAccountAndTemplateNames),
         ("testLegacyJunkCondition", testLegacyJunkCondition),
+        ("testOutlook2000SaveVersion", testOutlook2000SaveVersion),
     ]
 }
 

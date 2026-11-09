@@ -26,10 +26,10 @@ public struct Rule: CustomDebugStringConvertible {
     /// Whether the rule has been saved to the Exchange server's rules table (spec §4.3.1).
     public var isServerRule: Bool = false
 
-    /// Rule flags (spec §4.3.1). Usually 0. 0x20 has only been seen on the built-in junk e-mail "Exception List"
-    /// rule; Outlook 98 clears the flags when the user edits a rule with bit 0x1 or 0x2 set. Added in version
-    /// 970812 (Outlook 98), so not present in Outlook 97 or signature-0 files.
-    public var flags: UInt32 = 0
+    /// Rule flags (spec §4.3.1.1). Empty for rules the user creates; Outlook 2000 uses them to mark the rules
+    /// its junk-mail feature creates. Added in version 970812 (Outlook 98), so not stored in Outlook 97 or
+    /// signature-0 files.
+    public var flags: RuleFlags = []
 
     /// All of the rule's elements, including the mandatory 0x0190 and 0x0064 elements.
     /// When the rule is written, those two are regenerated from `eventFlags` and `itemTypes`.
@@ -81,7 +81,7 @@ public struct Rule: CustomDebugStringConvertible {
         self.enabled = header.enabled
         self.unknown1 = header.unknown1
         self.isServerRule = header.serverRule != 0
-        self.flags = header.flags ?? 0
+        self.flags = RuleFlags(rawValue: header.flags ?? 0)
         self.unknown4 = header.unknown4 ?? 0
 
         /// Elements (variable)
@@ -173,7 +173,7 @@ public struct Rule: CustomDebugStringConvertible {
         header.versionStamp = versionStamp
         header.unknown1 = unknown1
         header.serverRule = isServerRule ? 1 : 0
-        header.flags = flags
+        header.flags = flags.rawValue
         header.unknown4 = unknown4
         header.write(to: &dataStream, version: version)
 
