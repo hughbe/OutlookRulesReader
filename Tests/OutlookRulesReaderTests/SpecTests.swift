@@ -51,7 +51,7 @@ final class SpecTests: XCTestCase {
 
         let data = try getData(name: "Outlook2002FromOutlook2019", fileExtension: "rwz")
         let file = try OutlookRules(data: data)
-        XCTAssertEqual(1, file.rules[0].unknown2)
+        XCTAssertTrue(file.rules[0].isServerRule)
         XCTAssertEqual(2, file.rules[0].unknown4)
         XCTAssertEqual(data, file.getData())
     }
@@ -61,7 +61,7 @@ final class SpecTests: XCTestCase {
         let file = try OutlookRules(data: try getData(name: "Outlook2000_NetFolders_Default", fileExtension: "rwz"))
         XCTAssertEqual(1, file.rules.count)
         XCTAssertEqual("#NET FOLDERS#", file.rules[0].name)
-        XCTAssertEqual([.eventFlags, .unknown0x64, .netFoldersCondition, .netFoldersAction], file.rules[0].elements.map { $0.identifier })
+        XCTAssertEqual([.eventFlags, .itemType, .netFoldersCondition, .netFoldersAction], file.rules[0].elements.map { $0.identifier })
         XCTAssertTrue(file.rules[0].elements[2...].allSatisfy { $0.parameters.isEmpty })
     }
 
@@ -119,6 +119,85 @@ final class SpecTests: XCTestCase {
         XCTAssertEqual(2, try OutlookRules(data: data).rules.count)
     }
 
+    /// Outlook 97 stores the wizard template name after the rule name, separated by a tab (spec §4.3.1).
+    func testTemplateName() throws {
+        let data = try getData(name: "Outlook97_FlagForAction", fileExtension: "rwz")
+        let file = try OutlookRules(data: data)
+        XCTAssertEqual("Forward within 20 days", file.rules[0].name)
+        XCTAssertEqual("Build as I go", file.rules[0].templateName)
+        XCTAssertEqual("Forward within 20 days\tBuild as I go", file.rules[0].storedName)
+        XCTAssertEqual(data, file.getData())
+
+        let plain = try OutlookRules(data: try getData(name: "Outlook2007_Delete_Default", fileExtension: "rwz"))
+        XCTAssertNil(plain.rules[0].templateName)
+
+        let created = OutlookRules(rules: [Rule(eventFlags: .afterReceived, name: "Name", templateName: "Template")])
+        let reread = try OutlookRules(data: created.getData())
+        XCTAssertEqual("Name", reread.rules[0].name)
+        XCTAssertEqual("Template", reread.rules[0].templateName)
+    }
+
+    /// Element 0x0064 is "For each <message>" (spec §6.2).
+    func testItemTypes() throws {
+        for url in sampleFiles() {
+            for rule in try OutlookRules(data: try Data(contentsOf: url)).rules {
+                XCTAssertEqual(.message, rule.itemTypes, url.lastPathComponent)
+            }
+        }
+
+        var rule = Rule(eventFlags: .afterReceived, name: "Rule")
+        rule.itemTypes = RuleItemTypes(rawValue: 0x3)
+        let reread = try OutlookRules(data: OutlookRules(rules: [rule]).getData())
+        XCTAssertEqual(RuleItemTypes(rawValue: 0x3), reread.rules[0].itemTypes)
+        XCTAssertEqual(RuleItemTypes(rawValue: 0x3), (reread.rules[0].elements.first { $0.identifier == .itemType }?.parameter as? ItemTypeParameter)?.itemTypes)
+    }
+
+    /// Address conditions match any of the addresses; address actions apply to all of them; Cc is marked (spec §6.4).
+    func testAddressParameterMatchAnyAndCc() throws {
+        func parameter(_ name: String) throws -> AddressParameter {
+            let file = try OutlookRules(data: try getData(name: name, fileExtension: "rwz"))
+            let element = file.rules[0].elements.first { $0.parameter is AddressParameter }
+            return try XCTUnwrap(element?.parameter as? AddressParameter)
+        }
+
+        let from = try parameter("Outlook2007_From_Default")
+        XCTAssertTrue(from.matchAny)
+        XCTAssertFalse(from.isCc)
+
+        let forward = try parameter("Outlook2007_Forward_Default")
+        XCTAssertFalse(forward.matchAny)
+        XCTAssertFalse(forward.isCc)
+
+        let cc = try parameter("Outlook97_Cc")
+        XCTAssertFalse(cc.matchAny)
+        XCTAssertTrue(cc.isCc)
+    }
+
+    /// The flag action and the "flagged for" condition share a layout, distinguished by isCondition (spec §6.5, §6.21).
+    func testFlagIsCondition() throws {
+        let flagged = try OutlookRules(data: try getData(name: "Outlook2007_Flagged_Default", fileExtension: "rwz"))
+        let condition = try XCTUnwrap(flagged.rules[0].conditions[0].parameter as? FlaggedForActionParameter)
+        XCTAssertEqual("Forward", condition.action)
+        XCTAssertEqual(0, condition.days)
+        XCTAssertTrue(condition.isCondition)
+
+        let flag = try OutlookRules(data: try getData(name: "Outlook97_FlagForAction", fileExtension: "rwz"))
+        let action = try XCTUnwrap(flag.rules[0].actions[0].parameter as? FlagParameter)
+        XCTAssertEqual(20, action.days)
+        XCTAssertFalse(action.isCondition)
+    }
+
+    /// The server-rule flag is exposed and preserved (spec §4.3.1).
+    func testServerRule() throws {
+        let file = try OutlookRules(data: try getData(name: "RedirectToPeopleOrPublicGroup", fileExtension: "rwz"))
+        XCTAssertTrue(file.rules[0].isServerRule)
+
+        var rule = Rule(eventFlags: .afterReceived, name: "Rule")
+        XCTAssertFalse(rule.isServerRule)
+        rule.isServerRule = true
+        XCTAssertTrue(try OutlookRules(data: OutlookRules(rules: [rule]).getData()).rules[0].isServerRule)
+    }
+
     static var allTests = [
         ("testAllSamplesRoundTrip", testAllSamplesRoundTrip),
         ("testParameterDataSizeMatchesWrittenSize", testParameterDataSizeMatchesWrittenSize),
@@ -129,6 +208,11 @@ final class SpecTests: XCTestCase {
         ("testWriterVersion", testWriterVersion),
         ("testLongStrings", testLongStrings),
         ("testClassDescriptorWrittenOnce", testClassDescriptorWrittenOnce),
+        ("testTemplateName", testTemplateName),
+        ("testItemTypes", testItemTypes),
+        ("testAddressParameterMatchAnyAndCc", testAddressParameterMatchAnyAndCc),
+        ("testFlagIsCondition", testFlagIsCondition),
+        ("testServerRule", testServerRule),
     ]
 }
 

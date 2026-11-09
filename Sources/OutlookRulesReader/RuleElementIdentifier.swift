@@ -9,8 +9,8 @@ public enum RuleElementIdentifier: UInt32 {
     /// "type of messages to which this rule applies"
     case eventFlags = 0x00000190
     
-    /// Unknown
-    case unknown0x64 = 0x00000064
+    /// "For each <message>": the kinds of item the rule applies to. Present in every rule.
+    case itemType = 0x00000064
     
     /// “where my name is in the To box”
     case nameInToBoxCondition = 0x0000000C8
@@ -191,6 +191,9 @@ public enum RuleElementIdentifier: UInt32 {
     /// Used by the hidden "#NET FOLDERS#" rule that Outlook 98/2000's Net Folders feature creates.
     /// The meaning is inferred from that rule; there is no UI text. Takes no parameters.
     case netFoldersAction = 0x00000141
+    
+    /// Defined by Outlook 97 with no UI text and no parameter: a hidden or retired action.
+    case unusedAction = 0x00000140
     
     /// “stop processing more rules”
     case stopProcessingMoreRulesAction = 0x00000142

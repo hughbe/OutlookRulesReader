@@ -234,7 +234,7 @@ final class ImportActionTests: XCTestCase {
             XCTAssertEqual(0, file.rules[0].exceptions.count)
 
             let action = file.rules[0].actions[0].parameter as! FlagParameter
-            XCTAssertEqual("Action", action.actionName)
+            XCTAssertEqual("Action", action.action)
             XCTAssertEqual(365, action.days)
         }
         do {
@@ -268,7 +268,7 @@ final class ImportActionTests: XCTestCase {
             XCTAssertEqual(0, file.rules[0].exceptions.count)
 
             let action = file.rules[0].actions[0].parameter as! FlagParameter
-            XCTAssertEqual("Action", action.actionName)
+            XCTAssertEqual("Action", action.action)
             XCTAssertEqual(0, action.days)
         }
     }
@@ -854,7 +854,7 @@ final class ImportActionTests: XCTestCase {
             XCTAssertEqual(0, file.rules[0].exceptions.count)
 
             let action = file.rules[0].actions[0].parameter as! FlagForFollowUpParameter
-            XCTAssertEqual("Follow up", action.actionName)
+            XCTAssertEqual("Follow up", action.action)
             XCTAssertEqual(.today, action.followUp)
         }
         do {
@@ -888,7 +888,7 @@ final class ImportActionTests: XCTestCase {
             XCTAssertEqual(0, file.rules[0].exceptions.count)
 
             let action = file.rules[0].actions[0].parameter as! FlagForFollowUpParameter
-            XCTAssertEqual("Follow up", action.actionName)
+            XCTAssertEqual("Follow up", action.action)
             XCTAssertEqual(.tomorrow, action.followUp)
         }
         do {
@@ -923,7 +923,7 @@ final class ImportActionTests: XCTestCase {
             XCTAssertEqual(0, file.rules[0].exceptions.count)
 
             let action = file.rules[0].actions[0].parameter as! FlagForFollowUpParameter
-            XCTAssertEqual("For Your Information", action.actionName)
+            XCTAssertEqual("For Your Information", action.action)
             XCTAssertEqual(.thisWeek, action.followUp)
         }
         do {
@@ -958,7 +958,7 @@ final class ImportActionTests: XCTestCase {
             XCTAssertEqual(0, file.rules[0].exceptions.count)
 
             let action = file.rules[0].actions[0].parameter as! FlagForFollowUpParameter
-            XCTAssertEqual("For Your Information", action.actionName)
+            XCTAssertEqual("For Your Information", action.action)
             XCTAssertEqual(.nextWeek, action.followUp)
         }
         do {
@@ -993,7 +993,7 @@ final class ImportActionTests: XCTestCase {
             XCTAssertEqual(0, file.rules[0].exceptions.count)
 
             let action = file.rules[0].actions[0].parameter as! FlagForFollowUpParameter
-            XCTAssertEqual("For Your Information", action.actionName)
+            XCTAssertEqual("For Your Information", action.action)
             XCTAssertEqual(.noDate, action.followUp)
         }
         do {
@@ -1028,7 +1028,7 @@ final class ImportActionTests: XCTestCase {
             XCTAssertEqual(0, file.rules[0].exceptions.count)
 
             let action = file.rules[0].actions[0].parameter as! FlagForFollowUpParameter
-            XCTAssertEqual("For Your Information", action.actionName)
+            XCTAssertEqual("For Your Information", action.action)
             XCTAssertEqual(.completed, action.followUp)
         }
     }

@@ -10,6 +10,7 @@ Every statement in this document has one of three confidence levels:
 |---|---|
 | *(none)* | **Verified.** Checked against every sample file in `Tests/OutlookRulesReaderTests/Resources` (330 files written by Outlook 97, 98, 2000, 2003, 2007 and 2019) by an independent parser. |
 | **[Inferred]** | Consistent with all samples, but the *meaning* comes from interpretation (for example, a match with an MFC or MAPI structure), not observation. |
+| **[O97]** | Read from the Outlook 97 Rules Wizard's code (`docs/Internals/RULESWIZ.DLL`, disassembled). This shows how Outlook 97 writes and uses the field. Later versions are assumed to keep the meaning wherever the samples agree. See [Appendix D](#appendix-d-findings-from-ruleswizdll). |
 | **[Unknown]** | The field's layout is known but its meaning is not. Observed values are listed. |
 
 Writers SHOULD reproduce observed values for fields marked [Unknown]. Readers SHOULD accept any value.
@@ -74,16 +75,18 @@ The server treats this format as client-specific and opaque<sup>[8]</sup>. `.rwz
 
 ## 2. Common data types
 
-### 2.1 The stream is an MFC `CArchive`  [Inferred]
+### 2.1 The stream is an MFC `CArchive`
 
-The format is the output of MFC's `CArchive` serialization. Most of the structure follows from this:
+The format is the output of MFC's `CArchive` serialization **[O97]**. Most of the structure follows from this:
 
-* Rule elements are `CObject`s of class `CRuleElement`, written with `CArchive::WriteObject`. Each element is preceded by an object tag ([§2.5](#25-object-tag)).
+* Rule elements are `CObject`s of class `CRuleElement` (runtime-class schema 0), written with `CArchive::WriteObject`. Each element is preceded by an object tag ([§2.5](#25-object-tag)).
+* A rule (`CRule`) writes its name, Enabled, Unknown1 and ServerRule, then its element list, a `CObList`. `CRule` is not written as an object, so it has no tag.
+* `CRuleElement::Serialize` writes the element ID, a has-parameter flag ([§4.3.2](#432-element)), and then calls the parameter object's own `Serialize`.
 * Length-prefixed strings use `CString`'s length encoding ([§2.2](#22-string)).
 * Dates are written with `operator<<(CArchive&, COleDateTime)` ([§2.4](#24-oledatetime)).
 * `RULESWIZ.DLL` (Outlook 97) statically links MFC. It contains the class names `CObject`, `CArchive`, `CRule`, `CRuleComponent` and `CRuleElement`.
 
-The class names of parameter objects come from Outlook's own binaries, for example `CWordParameter`, `CFolderParameter`, `CTimeParameter` and `CAccountParameter`. They are listed in `docs/Rules Sever Side.xlsx`. Parameters are not written as `CObject`s: they carry no class tag.
+Parameter objects all derive from one base class, whose `Serialize` writes the Reserved field ([§6](#6-parameters)). Each element's definition says which parameter class to create, so the class is never written: parameters carry no class tag. Most string parameters (words, categories, paths, messages) share a single "Reserved + CString" class **[O97]**. Class names such as `CWordParameter` and `CFolderParameter` come from Outlook's binaries (`docs/Rules Sever Side.xlsx`).
 
 ### 2.2 String
 
@@ -96,7 +99,7 @@ A length-prefixed string. The same prefix encodes two kinds of character data:
 |---|---|---|
 | Length | 1 | Number of characters if less than `0xFF`. |
 | Length16 | 2, optional | Present only if Length is `0xFF`. Number of characters if less than `0xFFFF`. |
-| Length32 | 4, optional | Present only if Length16 is `0xFFFF`. Number of characters. [Inferred from MFC. Never observed.] |
+| Length32 | 4, optional | Present only if Length16 is `0xFFFF`. Number of characters. **[Inferred]** from MFC; never observed. |
 | Value | variable | The characters. There is no NUL terminator. |
 
 Writers MUST use the shortest encoding: 1 byte for 0–254, 3 bytes for 255–65534.
@@ -253,16 +256,14 @@ Rule := RuleHeader  Element[RuleHeader.NumberOfElements]
 | Field | Size | Generations | Description |
 |---|---|---|---|
 | Signature | 4 | G2 | A version stamp. Always equal to RulesHeader.Signature. |
-| Name | variable | all | String (String8 in G0, G0s and G1; StringW in G2). Outlook limits rule names to 255 characters. |
-| Enabled | 4 | all | `1` = enabled, `0` = disabled. Readers SHOULD treat any non-zero value as enabled. |
-| Unknown1 | 4 | all | Always `0` observed. |
-| Unknown2 | 4 | all | **[Unknown]** Usually `0`. `1` in 3 rules written by Outlook 2010+. |
+| Name | variable | all | String (String8 in G0, G0s and G1; StringW in G2). Outlook limits rule names to 255 characters. **[O97]** Outlook 97 writes `<rule name>` TAB `<template name>`, where the template is the wizard template the rule was made from, for example `Forward within 20 days\tBuild as I go`. Every Outlook 97 sample has the tab; samples from later versions sometimes do. |
+| Enabled | 4 | all | `1` = enabled, `0` = disabled. Readers SHOULD treat any non-zero value as enabled. New rules default to enabled **[O97]**. |
+| Unknown1 | 4 | all | Always `0` observed. **[O97]** Outlook 97 only ever sets it to `0`. |
+| ServerRule | 4 | all | **[O97]** Set to `1` once the rule has been saved to the Exchange server's rules table (Outlook 97 serializes the rule and writes `PR_RULE_PROVIDER_DATA`, `PR_RULE_STATE` and the other server-rule properties through MAPI). Cleared again if saving fails or the server rules are reset. Usually `0`; `1` in 3 rules written by Outlook 2010+. |
 | Unknown3 | 4 | G1, G2 | Rule flags. **[Inferred]** `0x20` marks the built-in junk-mail "Exception List" rule (seen only on that rule), which the UI lets users delete but not edit. `0` otherwise. |
-| Unknown4 | 4 | G2 | **[Unknown]** `0`, `1` or `2`. Non-zero exactly when Unknown2 is `1`. |
+| Unknown4 | 4 | G2 | **[Unknown]** `0`, `1` or `2`. Non-zero exactly when ServerRule is `1`, so probably more server-rule state. |
 | DataSize | 4 | G2 | Number of bytes from the end of this field to the end of the rule: NumberOfElements, every object tag, and every element. Matched exactly in all 116 G2 rules. |
-| NumberOfElements | 2 | all | Number of elements in this rule (`CArchive::WriteCount`). |
-
-**[Inferred]** Unknown2 and Unknown4 may relate to client/server rule synchronisation. `RULESWIZ.DLL` contains messages comparing the modification times of client rules and Exchange Server rules, and the non-zero values appear only on rules that went through an Exchange-aware Outlook.
+| NumberOfElements | 2 (or 6) | all | Number of elements in this rule. **[O97]** Written by `CObList::Serialize` with `CArchive::WriteCount`: a `u16`, or `0xFFFF` followed by a `u32` if the count is 65535 or more. |
 
 #### 4.3.2 Element
 
@@ -270,7 +271,7 @@ Rule := RuleHeader  Element[RuleHeader.NumberOfElements]
 |---|---|---|
 | ObjectTag | 2 (+ class descriptor) | See [§2.5](#25-object-tag). |
 | Identifier | 4 | Element identifier ([§5](#5-element-identifiers)). |
-| NumberOfParameters | 4 | Number of parameter structures that follow. |
+| NumberOfParameters | 4 | Number of parameter structures that follow. **[O97]** Outlook 97 writes `1` if the element has a parameter object and `0` if not, and reads any non-zero value as "has a parameter". Later versions use the field as a count (see below). |
 | Parameters | variable | NumberOfParameters parameters. Their layout depends on Identifier ([§6](#6-parameters)). |
 
 Parameter counts:
@@ -285,7 +286,7 @@ Parameter counts:
 Every rule observed starts with:
 
 1. `0x0190` — the message-type element ([§6.1](#61-eventparameter)), and
-2. `0x0064` — a mandatory element of unknown meaning ([§6.2](#62-unknown0x64parameter)).
+2. `0x0064` — "for each *item type*" ([§6.2](#62-itemtypeparameter)).
 
 These are followed by conditions, then actions, then exceptions, in the order the user added them. Readers SHOULD NOT depend on this order. Writers MUST emit `0x0190` and `0x0064` first.
 
@@ -317,7 +318,7 @@ Identifiers are grouped by range:
 | `0x012C`–`0x018F` (300–399) | Actions |
 | `0x01F4`–`0x0257` (500–599) | Exceptions |
 
-For conditions `0x00C8`–`0x00E6`, the matching exception is the condition's identifier + 300 (`0x012C`). After that the exception numbers are assigned in sequence and the +300 relationship breaks: `0x00E8` → `0x0213`, `0x00EE` → `0x0214`, `0x00F0` → `0x0215`, and so on.
+Outlook 97 knew only `0x0064`, conditions `0x00C8`–`0x00E6`, actions `0x012C`–`0x0140`, `0x0190`, and exceptions `0x01F4`–`0x0212` **[O97]**. Its full element table is in [Appendix D](#appendix-d-findings-from-ruleswizdll). For conditions `0x00C8`–`0x00E6`, the matching exception is the condition's identifier + 300 (`0x012C`). After that the exception numbers are assigned in sequence and the +300 relationship breaks: `0x00E8` → `0x0213`, `0x00EE` → `0x0214`, `0x00F0` → `0x0215`, and so on.
 
 The "Param" column refers to [§6](#6-parameters). "—" means the element has no parameters. "Client" marks elements that make a rule client-only, according to `docs/Rules Sever Side.xlsx`.
 
@@ -325,14 +326,14 @@ The "Param" column refers to [§6](#6-parameters). "—" means the element has n
 
 | ID | Meaning | Param |
 |---|---|---|
-| `0x0064` | Unknown; always present. | §6.2 |
-| `0x0190` | "type of messages to which this rule applies" | §6.1 |
+| `0x0064` | "For each *message*": which kinds of item the rule applies to **[O97]**. | §6.2 |
+| `0x0190` | "Apply this rule *after the message arrives*": when the rule runs **[O97]**. | §6.1 |
 
 ### 5.2 Conditions
 
 | ID | UI text | Param | Client | Notes |
 |---|---|---|---|---|
-| `0x00C8` | where my name is in the To box | — | | |
+| `0x00C8` | where my name is in the To box ("sent directly to me" in Outlook 97) | — | | |
 | `0x00C9` | sent only to me | — | | |
 | `0x00CA` | where my name is not in the To box | — | | |
 | `0x00CB` | from *people or public group* | §6.4 | | |
@@ -391,7 +392,7 @@ The "Param" column refers to [§6](#6-parameters). "—" means the element has n
 | `0x013C` | Cc the message to *people or public group* | §6.4 | | Sent-mail rules. |
 | `0x013E` | defer delivery by *a number of* minutes | §6.22 | ✓ | Sent-mail rules. |
 | `0x013F` | perform *a custom action* | §6.23 | ✓ | Removed in Outlook 2010. |
-| `0x0140` | *unknown* | ? | | Seen only in Outlook binaries. |
+| `0x0140` | *none* | — | | **[O97]** Defined by Outlook 97 with no UI text, no parameter and every flag clear: a hidden or retired action. |
 | `0x0141` | *none* (Net Folders) | — | ✓ | Only seen in the hidden `#NET FOLDERS#` rule, with `0x00E7`. **[Inferred]** meaning. |
 | `0x0142` | stop processing more rules | — | | |
 | `0x0143` | do not search message for commercial or adult content | — | ✓ | Removed in 2003. |
@@ -446,25 +447,25 @@ As a result, parameters that only exist in G2 always use StringW, even where thi
 
 MFC class names in the headings below are matched to parameters by name only, from strings in Outlook's binaries **[Inferred]**.
 
-Every parameter starts with a 4-byte **Reserved** field. It MUST be `0` (all 791 parameters observed). **[Inferred]** It is serialized state of the `CRuleComponent` base class.
+Every parameter starts with a 4-byte **Reserved** field. It MUST be `0` (all 791 parameters observed). **[O97]** It is a field of the common parameter base class. The constructor sets it to `0`, the base `Serialize` writes it first, and the class has a virtual getter and setter for it. Its meaning was not found.
 
 The tables below list the fields after Reserved.
 
 ### 6.1 EventParameter
-Used by `0x0190`. MFC class unknown.
+Used by `0x0190`.
 
 | Field | Size | Description |
 |---|---|---|
-| Flags | 4 | When the rule runs: `0x01` = after the message arrives, `0x04` = after I send the message, `0x08` = after the server receives the message (defined by the library; not observed). |
+| Flags | 4 | When the rule runs. A bitmask; the UI joins set bits with " or ". `0x01` = after the message arrives, `0x04` = after I send the message, `0x08` = after the server receives the message **[O97]**. |
 
 Observed values: `0x01` (272 rules) and `0x04` (6 rules).
 
-### 6.2 Unknown0x64Parameter
-Used by `0x0064`.
+### 6.2 ItemTypeParameter
+Used by `0x0064` ("For each %s"). `ItemTypeParameter` in the library; `Rule.itemTypes` holds its value.
 
 | Field | Size | Description |
 |---|---|---|
-| Value | 4 | **[Unknown]** Always `1` (278 of 278). |
+| ItemTypes | 4 | **[O97]** A bitmask of the kinds of item the rule applies to, shown joined with " or ". Outlook 97 defines only `0x1` = "message", which is also the constructor's default. Always `1` (278 of 278). |
 
 ### 6.3 WordParameter
 `CWordParameter`. Used by `0x00CD`–`0x00CF`, `0x00E5`, `0x00E6`, `0x00E8`, `0x00F5` and their exceptions.
@@ -478,14 +479,14 @@ An element has one WordParameter per word or phrase. The words are combined with
 ### 6.4 AddressParameter
 Used by `0x00CB`, `0x00CC`, `0x012E`, `0x013C`, `0x0144`, `0x0147`, `0x01F7` and `0x01F8`.
 
-**[Inferred]** This is a serialized MAPI `ADRLIST`. Each entry is a serialized `ADRENTRY` whose `SPropValue` array has its pointers replaced by offsets.
+This is a serialized MAPI `ADRLIST` **[O97]**. For each `ADRENTRY`, Outlook 97 writes `ulReserved1` and `cValues`, copies the property array into one block (MAPI `ScCopyProps`), relocates its pointers to offsets from 0 (`ScRelocProps`), and writes the block's size and bytes. The uninitialised bytes inside `SPropValue`s are copied as they were in memory.
 
 | Field | Size | Description |
 |---|---|---|
 | NumberOfEntries | 4 | `ADRLIST.cEntries`. |
 | Entries | variable | NumberOfEntries × AdrEntry. |
-| Unknown1 | 4 | **[Unknown]** `0` or `1`. |
-| Unknown2 | 4 | **[Unknown]** Usually `0`. `1` in `Outlook97_Cc.rwz`. |
+| MatchAny | 4 | **[O97]** How the names are combined in the rule text: non-zero = " or ", `0` = " and ". Outlook 97 sets `1` for the conditions and exceptions (`0x00CB`, `0x00CC`, `0x01F7`, `0x01F8`) and `0` for the actions. All samples agree: 14 conditions with `1`, 11 actions with `0`. |
+| IsCc | 4 | **[O97]** Set to `1` only for the "Cc the message to" action (`0x013C`); `0` otherwise. **[Inferred]** It marks the recipients as Cc recipients. |
 
 **AdrEntry**
 
@@ -532,13 +533,13 @@ Observed property tags:
 Even G2 files may use `PT_STRING8` properties. The property types are independent of the format generation.
 
 ### 6.5 FlaggedForActionParameter
-Used by `0x00D0` and `0x01FC`.
+Used by `0x00D0` and `0x01FC`. **[O97]** This is the same class as FlagParameter ([§6.21](#621-flagparameter)), with IsCondition set.
 
 | Field | Size | Description |
 |---|---|---|
-| Unknown1 | 4 | **[Unknown]** Always `0`. |
-| Action | variable | String. Localised flag text, for example `Follow up`, `Forward`, `Do not Forward`, or `Any`. |
-| Unknown2 | 4 | **[Unknown]** Always `1`. |
+| Days | 4 | Unused by conditions. Always `0`. |
+| Action | variable | String. Localised flag text, for example `Follow up`, `Forward`, `Do not Forward`, or `Any`. "Any" is only offered when IsCondition is set **[O97]**. |
+| IsCondition | 4 | `1` **[O97]**: the factory sets it for these elements. It switches the text from "*action* within *n* days" to just "*action*". |
 
 ### 6.6 ImportanceParameter
 `CImportanceDialog`. Used by `0x00D2`, `0x0137` and `0x01FE`.
@@ -567,7 +568,7 @@ Used by `0x00D0` and `0x01FC`.
 | Field | Size | Description |
 |---|---|---|
 | Forms | variable | String. Form display names separated by `;`. |
-| NumberOfProperties | 2 | Number of DocumentProperty records that follow. This count is a `u16`. |
+| NumberOfProperties | 2 (or 6) | Number of DocumentProperty records that follow. **[O97]** Written by MFC `CArray::Serialize` with `CArchive::WriteCount` (`u16`, or `0xFFFF` + `u32`), which is why it is narrower than NumberOfClasses. |
 | Properties | variable | DocumentProperty records. |
 | NumberOfClasses | 4 | Number of message classes that follow. This count is a `u32`. |
 | Classes | variable | String8 (ANSI in every generation). Message classes, for example `IPM.Appointment`. |
@@ -684,9 +685,9 @@ Used by `0x0131`.
 
 | Field | Size | Description |
 |---|---|---|
-| Days | 4 | Due in this many days. |
+| Days | 4 | Due in this many days. Shown as "*action* within *days* days". |
 | Action | variable | String. Flag text. |
-| Unknown | 4 | **[Unknown]** Always `0`. |
+| IsCondition | 4 | `0` for this action **[O97]**. See [§6.5](#65-flaggedforactionparameter). |
 
 ### 6.22 DeferParameter
 `CDeferDialog`. Used by `0x013E`.
@@ -791,13 +792,15 @@ The smallest G2 stream: one enabled rule named `RULENAME`, applied "after the me
 ## Appendix B. Open questions
 
 1. RulesHeader Unknown4–6 and the high byte of WriterVersion. They depend on the writer; their meaning is unknown.
-2. RuleHeader Unknown2 and Unknown4. These may be client/server synchronisation state.
-3. Element `0x0064` and its Value of `1`.
+2. RuleHeader Unknown4 (G2 only, set only on server rules) and Unknown1 (always `0`).
+3. The Reserved field at the start of every parameter, and the meaning of AddressParameter IsCc beyond "set for Cc".
 4. Which product writes G0s (Signature 0) streams, and how `PidTagRwRulesStream` differs from an exported `.rwz`.
-5. AddressParameter Unknown1 and Unknown2. FlaggedForAction Unknown1 and Unknown2. DocumentProperty Unknown1 and Unknown2. Which of NumberValue1 and NumberValue2 applies to which property type.
-6. Layouts of `0x0140`, `0x014D`, `0x014E` and `0x0150`; the exact meaning of the Net Folders elements `0x00E7` and `0x0141`; and whether stamps 970102 and 0x150000 change the layout.
+5. DocumentProperty Unknown1 and Unknown2, and which of NumberValue1 and NumberValue2 applies to which property type. Outlook 97's document-property code was not traced.
+6. The two 16-bit values packed into each Outlook 97 element definition ([Appendix D](#appendix-d-findings-from-ruleswizdll)). Layouts of `0x014D`, `0x014E` and `0x0150`; the exact meaning of the Net Folders elements `0x00E7` and `0x0141`; and whether stamps 970102 and 0x150000 change the layout.
 
 ## Appendix C. Corrections to earlier notes
+
+* **0x0064 "unknown element".** It is "For each *message*" ([§6.2](#62-itemtypeparameter)).
 
 These items in `docs/RWZ Format.docx` contradict the sample corpus:
 
@@ -808,6 +811,95 @@ These items in `docs/RWZ Format.docx` contradict the sample corpus:
 * **Fixed property IDs `0x8222`–`0x823A` for document properties.** Observed IDs differ because they are named-property mappings ([§6.9](#69-formparameter)).
 * **PropertyValueArray "Unknown, always zero".** It is `ADRENTRY.ulReserved1`, and is usually non-zero garbage.
 * **Signature format "major × 100000 + minor/build".** Only true for stamps 1000000–1200000 ([§4.1](#41-version-stamps)).
+
+## Appendix D. Findings from RULESWIZ.DLL
+
+`docs/Internals/RULESWIZ.DLL` is the Outlook 97 Rules Wizard add-in: a 32-bit DLL that statically links MFC. It was disassembled with `objdump`, starting from the MFC runtime-class records for `CRule`, `CRuleElement` and `CRuleComponent` and following their vtables. Code addresses are given so the work can be checked.
+
+| Item | Address |
+|---|---|
+| `CRuleElement` runtime class (size `0x54`, schema 0) | `0x10084DF0` |
+| `CRuleElement::Serialize` | `0x1003B475` |
+| `CRule::Serialize` | `0x100334A9` |
+| Parameter base `Serialize` (writes Reserved) | `0x10032DC9` |
+| Parameter factory (definition kind → class) | `0x100492B6`, jump table `0x1006E2C0` |
+| Element definition table, built in code | `0x1000629A`–`0x10008437` |
+| Element ID → definition lookup | `0x1004A866` |
+| Upload of rules to the Exchange server (sets ServerRule) | `0x10043185`, `0x10035A8D` |
+
+### D.1 Element definitions
+
+Outlook 97 builds one definition object per element. Its fields are:
+
+* `+0x08`: a group letter: `C` for conditions, `A` actions, `X` exceptions, `E` for `0x0190`, `I` for `0x0064`.
+* `+0x0C`: the parameter kind.
+* `+0x18`: two packed 16-bit values ("Pair").
+* `+0x1C`: the client-only flag. It matches the client-only column of `docs/Rules Sever Side.xlsx` for every Outlook 97 element.
+* `+0x20`, `+0x24`: two more flags.
+* `+0x28`: the string ID of the UI text.
+
+**[Unknown]** Pair's second value looks like the events the element can be used with: `0x1` = message arrives and `0x4` = message sent, as in [§6.1](#61-eventparameter). For example, "notify me when it is read" and "Cc the message to" have `4`, and "with words in the sender's address" has `1`. This is not confirmed from the code.
+
+| ID | Group | Kind | Pair | Client-only | `+0x20`/`+0x24` | Outlook 97 text |
+|---|---|---|---|---|---|---|
+| `0x0064` | I | `0x0E` item type | 7, 7 | | 1/1 | For each %s |
+| `0x00C8` | C | — | 7, 3 | | 1/1 | sent directly to me |
+| `0x00C9` | C | — | 7, 3 | | 1/1 | sent only to me |
+| `0x00CA` | C | — | 7, 3 | | 1/1 | where my name is not in the To box |
+| `0x00CB` | C | `0x01` address (OR) | 7, 3 | | 1/1 | from %s |
+| `0x00CC` | C | `0x01` address (OR) | 7, 7 | | 1/1 | sent to %s |
+| `0x00CD` | C | `0x09` words | 7, 7 | | 1/1 | with %s in the subject |
+| `0x00CE` | C | `0x09` words | 5, 7 | | 1/1 | with %s in the body |
+| `0x00CF` | C | `0x09` words | 5, 7 | | 1/1 | with %s in the subject or body |
+| `0x00D0` | C | `0x11` flag (condition) | 1, 3 | | 1/1 | flagged for %s |
+| `0x00D2` | C | `0x06` importance | 7, 7 | | 1/1 | marked as %s |
+| `0x00D3` | C | `0x07` sensitivity | 7, 7 | | 1/1 | marked as %s |
+| `0x00D7` | C | `0x08` category | 7, 7 | ✓ | 1/1 | assigned to %s |
+| `0x00DC` | C | — | 7, 3 | | 1/1 | which is an Out of Office message |
+| `0x00DE` | C | — | 1, 7 | | 1/1 | which has an attachment |
+| `0x00DF` | C | `0x13` form properties | 1, 7 | ✓ | 1/1 | with %s of documents or forms |
+| `0x00E0` | C | `0x14` size | 1, 7 | | 1/1 | with a size %s |
+| `0x00E1` | C | `0x15` time | 1, 3 | | 1/1 | received %s |
+| `0x00E2` | C | — | 7, 3 | | 1/1 | where my name is in the Cc box |
+| `0x00E3` | C | — | 7, 3 | | 0/0 | where my name is in the To or Cc box |
+| `0x00E4` | C | `0x17` form type | 1, 7 | | 1/0 | uses the %s form |
+| `0x00E5` | C | `0x09` words | 1, 7 | ✓ | 1/0 | with %s in the recipient's address |
+| `0x00E6` | C | `0x09` words | 1, 1 | | 1/0 | with %s in the sender's address |
+| `0x012C` | A | `0x04` folder | 7, 3 | | 1/1 | move it to the %s folder |
+| `0x012D` | A | — | 7, 3 | | 1/1 | delete it |
+| `0x012E` | A | `0x02` address (AND) | 7, 3 | | 1/1 | forward it to %s |
+| `0x012F` | A | `0x05` path | 7, 3 | ✓ | 1/1 | reply using %s |
+| `0x0130` | A | `0x0A` message | 7, 3 | ✓ | 1/1 | notify me using %s |
+| `0x0131` | A | `0x0C` flag (action) | 7, 7 | ✓ | 1/1 | flag message for %s |
+| `0x0132` | A | — | 7, 3 | ✓ | 1/1 | clear the Message Flag |
+| `0x0133` | A | `0x08` category | 7, 7 | ✓ | 1/1 | assign it to the %s category |
+| `0x0136` | A | `0x0D` path | 7, 3 | ✓ | 1/1 | play %s |
+| `0x0137` | A | `0x06` importance | 7, 7 | ✓ | 1/1 | mark it as %s |
+| `0x0138` | A | `0x07` sensitivity | 7, 4 | ✓ | 1/1 | mark it as %s |
+| `0x0139` | A | `0x04` folder | 7, 7 | | 1/1 | move a copy to the %s folder |
+| `0x013A` | A | — | 7, 4 | ✓ | 1/1 | notify me when it is read |
+| `0x013B` | A | — | 7, 4 | ✓ | 1/1 | notify me when it is delivered |
+| `0x013C` | A | `0x10` address (AND, Cc) | 7, 4 | | 1/1 | Cc the message to %s |
+| `0x013E` | A | `0x12` defer | 7, 4 | ✓ | 1/0 | defer delivery by %s minutes |
+| `0x013F` | A | `0x16` custom action | 7, 7 | ✓ | 1/0 | perform %s |
+| `0x0140` | A | — | 0, 0 | | 0/0 | *(none)* |
+| `0x0190` | E | `0x0F` event | 7, 7 | | 1/1 | Apply this rule %s |
+
+Each exception `0x01F4`–`0x0212` has the same kind as its condition (+300). Its text is the "except …" form, for example "except if sent directly to me".
+
+### D.2 Parameter classes
+
+| Kind | Used by | Layout after Reserved |
+|---|---|---|
+| `0x01`, `0x02`, `0x10` | address elements | ADRLIST, MatchAny, IsCc ([§6.4](#64-addressparameter)) |
+| `0x04` | folders | [§6.19](#619-folderparameter) |
+| `0x05`, `0x08`, `0x09`, `0x0A`, `0x0D` | path, category, words, message, sound | one CString |
+| `0x06` / `0x07` | importance / sensitivity | `u32` |
+| `0x0C`, `0x11` | flag action / flagged-for condition | Days, Action, IsCondition ([§6.21](#621-flagparameter)) |
+| `0x0E` | `0x0064` | ItemTypes, default `1` |
+| `0x0F` | `0x0190` | event Flags |
+| `0x12`, `0x14`, `0x15`, `0x16`, `0x17` | defer, size, time, custom action, form type | [§6](#6-parameters) |
+| `0x13` | form properties | CString, `CArray` of 112-byte document-property objects, then the message-class list |
 
 ## References
 

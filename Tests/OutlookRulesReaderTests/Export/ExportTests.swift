@@ -162,7 +162,7 @@ final class ExportTests: XCTestCase {
         rule.elements.insert(RuleElement(identifier: .markAsReadAction), at: 0)
 
         let reread = try OutlookRules(data: OutlookRules(rules: [rule]).getData())
-        XCTAssertEqual([.markAsReadAction, .hasAttachmentCondition, .hasAttachmentException], reread.rules[0].elements.map { $0.identifier }.filter { $0 != .eventFlags && $0 != .unknown0x64 })
+        XCTAssertEqual([.markAsReadAction, .hasAttachmentCondition, .hasAttachmentException], reread.rules[0].elements.map { $0.identifier }.filter { $0 != .eventFlags && $0 != .itemType })
     }
 
     func testRoundTripResources() throws {

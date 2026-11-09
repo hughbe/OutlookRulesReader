@@ -26,10 +26,17 @@ public struct AddressParameter: RuleParameter {
         }
     }
     
-    public var unknown1: UInt32 = 1
-    public var unknown2: UInt32 = 0
+    /// How the addresses are combined (spec §6.4): true = "from A or B" (Outlook's choice for conditions and
+    /// exceptions), false = "forward to A and B" (its choice for actions).
+    public var matchAny: Bool
+    /// True only for the "Cc the message to" action (spec §6.4).
+    public var isCc: Bool
 
-    public init(values: [[UInt16: Any]]) {
+    /// Creates an address parameter. Outlook uses `matchAny: true` for conditions and exceptions,
+    /// `matchAny: false` for actions, and `isCc: true` only for the "Cc the message to" action.
+    public init(values: [[UInt16: Any]], matchAny: Bool = true, isCc: Bool = false) {
+        self.matchAny = matchAny
+        self.isCc = isCc
         self.values = values
     }
 
@@ -49,11 +56,11 @@ public struct AddressParameter: RuleParameter {
         
         self.lists = lists
         
-        /// Unknown1 (4 bytes)
-        self.unknown1 = try dataStream.read(endianess: .littleEndian)
+        /// Match Any (4 bytes)
+        self.matchAny = (try dataStream.read(endianess: .littleEndian) as UInt32) != 0
         
-        /// Unknown2 (4 bytes)
-        self.unknown2 = try dataStream.read(endianess: .littleEndian)
+        /// Is Cc (4 bytes)
+        self.isCc = (try dataStream.read(endianess: .littleEndian) as UInt32) != 0
     }
 
     public func write(to dataStream: inout OutputDataStream, version: OutlookRulesVersion) {
@@ -68,10 +75,10 @@ public struct AddressParameter: RuleParameter {
             list.write(to: &dataStream)
         }
         
-        /// Unknown1 (4 bytes)
-        dataStream.write(unknown1, endianess: .littleEndian)
+        /// Match Any (4 bytes)
+        dataStream.write((matchAny ? 1 : 0) as UInt32, endianess: .littleEndian)
         
-        /// Unknown2 (4 bytes)
-        dataStream.write(unknown2, endianess: .littleEndian)
+        /// Is Cc (4 bytes)
+        dataStream.write((isCc ? 1 : 0) as UInt32, endianess: .littleEndian)
     }
 }

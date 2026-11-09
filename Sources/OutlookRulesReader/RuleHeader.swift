@@ -13,10 +13,12 @@ internal struct RuleHeader {
     public var signature: UInt32?
     public var name: String
     public var enabled: Bool
+    /// Outlook 97 only ever sets this to 0 (spec §4.3.1).
     public var unknown1: UInt32 = 0
-    public var unknown2: UInt32 = 0
-    /// Rule flags (Outlook 98 and later). 0x20 marks the built-in junk e-mail "Exception List" rule.
-    public var unknown3: UInt32? = 0
+    /// 1 once the rule has been saved to the Exchange server's rules table (spec §4.3.1).
+    public var serverRule: UInt32 = 0
+    /// Rule flags (Outlook 98 and later). 0x20 has only been seen on the built-in junk e-mail "Exception List" rule.
+    public var flags: UInt32? = 0
     public var unknown4: UInt32? = 0
     /// The number of bytes from the end of this field to the end of the rule (Outlook 2002 and later only).
     public var dataSize: UInt32?
@@ -50,14 +52,14 @@ internal struct RuleHeader {
         /// Unknown1 (4 bytes)
         self.unknown1 = try dataStream.read(endianess: .littleEndian)
 
-        /// Unknown2 (4 bytes)
-        self.unknown2 = try dataStream.read(endianess: .littleEndian)
+        /// Server Rule (4 bytes)
+        self.serverRule = try dataStream.read(endianess: .littleEndian)
 
-        /// Unknown3 (4 bytes)
+        /// Flags (4 bytes)
         if version >= .outlook98 {
-            self.unknown3 = try dataStream.read(endianess: .littleEndian)
+            self.flags = try dataStream.read(endianess: .littleEndian)
         } else {
-            self.unknown3 = nil
+            self.flags = nil
         }
 
         if version >= .outlook2002 {
@@ -94,12 +96,12 @@ internal struct RuleHeader {
         /// Unknown1 (4 bytes)
         dataStream.write(unknown1, endianess: .littleEndian)
 
-        /// Unknown2 (4 bytes)
-        dataStream.write(unknown2, endianess: .littleEndian)
+        /// Server Rule (4 bytes)
+        dataStream.write(serverRule, endianess: .littleEndian)
 
         if version >= .outlook98 {
-            /// Unknown3 (4 bytes)
-            dataStream.write(unknown3 ?? 0, endianess: .littleEndian)
+            /// Flags (4 bytes)
+            dataStream.write(flags ?? 0, endianess: .littleEndian)
         }
 
         if version >= .outlook2002 {

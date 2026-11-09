@@ -53,8 +53,8 @@ public struct RuleElement {
                 /// Mandatory Elements
                 case .eventFlags: // 0x0190
                     parameter = try EventParameter(dataStream: &dataStream, version: version)
-                case .unknown0x64: // 0x0064
-                    parameter = try Unknown0x64Parameter(dataStream: &dataStream, version: version)
+                case .itemType: // 0x0064
+                    parameter = try ItemTypeParameter(dataStream: &dataStream, version: version)
                     
                 /// Conditions
                 case .nameInToBoxCondition: // 0x000C8
@@ -168,6 +168,8 @@ public struct RuleElement {
                 case .performCustomActionAction: // 0x013F
                     parameter = try CustomActionParameter(dataStream: &dataStream, version: version)
                 case .netFoldersAction: // 0x0141
+                    throw OutlookRulesReadError.corrupted
+                case .unusedAction: // 0x0140
                     throw OutlookRulesReadError.corrupted
                 case .stopProcessingMoreRulesAction: // 0x0142
                     throw OutlookRulesReadError.corrupted

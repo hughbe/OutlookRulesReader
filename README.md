@@ -94,7 +94,7 @@ Rule 2: RULE1 (enabled)
     automaticReplyCondition
 ```
 
-Each rule has a `name`, an `enabled` flag, and `conditions`, `actions` and `exceptions`. Each of those is a `RuleElement` with an `identifier` (what the element is) and `parameters` (its details). Cast `element.parameter` to the matching type, such as `StringParameter`, `FolderParameter` or `AddressParameter`, to read them. See the [tests](Tests/OutlookRulesReaderTests) for an example of every kind of condition, action and exception.
+Each rule has a `name`, an `enabled` flag, and `conditions`, `actions` and `exceptions`. Rules made with the Outlook 97 Rules Wizard also record the wizard template they came from in `templateName`. Each of those is a `RuleElement` with an `identifier` (what the element is) and `parameters` (its details). Cast `element.parameter` to the matching type, such as `StringParameter`, `FolderParameter` or `AddressParameter`, to read them. See the [tests](Tests/OutlookRulesReaderTests) for an example of every kind of condition, action and exception.
 
 Rules can also be written back to a file:
 
