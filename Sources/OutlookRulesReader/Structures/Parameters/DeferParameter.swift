@@ -8,8 +8,6 @@
 import DataStream
 
 public struct DeferParameter: RuleParameter {
-    public let dataSize: UInt32 = 8
-
     public var reserved: UInt32 = 0
     public var minutes: UInt32
     

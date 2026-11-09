@@ -1,230 +1,216 @@
 //
 //  RulesHeader.swift
-//  
+//
 //
 //  Created by Hugh Bellamy on 28/07/2020.
 //
 
 import DataStream
 
+/// The header at the start of a rules stream. See spec §4.2.
 internal struct RulesHeader {
     public let version: OutlookRulesVersion
-    public var signature: UInt32?
-    public var flags: UInt32?
+
+    /// The version stamp of the stream's format (spec §4.1), called the versionStamp in older notes.
+    /// Absent in Outlook 97 exports; 0 in versionStamp-0 streams.
+    public var versionStamp: UInt32?
+
+    /// Present from Outlook 2002. Bits 0-23 are the version stamp of the writing application; bits 24-31 are an
+    /// index into the table of version stamps (spec §4.1).
+    public var writerVersion: UInt32?
     public var unknown1: UInt32? = 0
     public var unknown2: UInt32? = 0
     public var unknown3: UInt32? = 0
     public var unknown4: UInt32? = 0
-    public var unknown5: UInt32? = 0
-    public var unknown6: UInt32? = 0
-    public var unknown7: UInt32? = 1
-    public var unknown8: UInt32? = 1
+    /// 1 when the copy of the rules on the Exchange server is out of date (spec §4.2).
+    public var serverRulesOutOfDate: UInt32? = 0
+    /// how the server copy is updated: 0 = not set, 1 = manually, 2 = automatically (spec §4.2).
+    public var serverUpdateMode: UInt32? = 0
+    /// 1 to prompt to convert Exchange Inbox Assistant rules (spec §4.2).
+    public var promptToConvertInboxAssistantRules: UInt32? = 1
+    /// the last answer to that prompt: 1 = convert (spec §4.2).
+    public var convertInboxAssistantRules: UInt32? = 1
     public var unknown9: UInt32? = 0
     public var numberOfRules: UInt16
-    
-    public init(numberOfRules: UInt16, version: OutlookRulesVersion = .outlook2019) {
+
+    public init(numberOfRules: UInt16, version: OutlookRulesVersion = .outlook2010) {
         self.version = version
-        self.signature = RulesHeader.defaultSignature(for: version)
-        self.flags = RulesHeader.defaultFlags(for: version)
+        self.versionStamp = RulesHeader.defaultVersionStamp(for: version)
+        self.writerVersion = RulesHeader.defaultWriterVersion(for: version)
         self.numberOfRules = numberOfRules
     }
-    
-    static func defaultSignature(for version: OutlookRulesVersion) -> UInt32? {
+
+    static func defaultVersionStamp(for version: OutlookRulesVersion) -> UInt32? {
         switch version {
-        case .outlook2019: return 1310720
+        case .outlook2010: return 0x00140000
         case .outlook2007: return 1200000
         case .outlook2003: return 1100000
         case .outlook2002: return 1000000
         case .outlook2000: return 980413
         case .outlook98: return 970812
-        case .noSignatureOutlook2003, .noSignature: return nil
+        case .outlook97Profile: return 970102
+        case .signatureZero: return 0
+        case .outlook97: return nil
         }
     }
-    
-    private static func defaultFlags(for version: OutlookRulesVersion) -> UInt32? {
+
+    private static func defaultWriterVersion(for version: OutlookRulesVersion) -> UInt32? {
         switch version {
-        case .outlook2019, .outlook2007: return 0x06140000
+        case .outlook2010, .outlook2007: return 0x06140000
         case .outlook2003: return 0x04140000
         case .outlook2002: return 0x03140000
-        case .outlook2000, .outlook98, .noSignatureOutlook2003, .noSignature: return nil
+        case .outlook2000, .outlook98, .outlook97Profile, .signatureZero, .outlook97: return nil
         }
     }
-    
-    public init(dataStream: inout DataStream) throws {
-        let peekedSignature: UInt32 = try dataStream.peek(endianess: .littleEndian)
-        let version: OutlookRulesVersion
-        switch peekedSignature {
-        case 1310720:
-            version = .outlook2019
-        case 1200000:
-            version = .outlook2007
-        case 1100000:
-            version = .outlook2003
-        case 1000000:
-            version = .outlook2002
-        case 980413:
-            version = .outlook2000
-        case 970812:
-            version = .outlook98
+
+    /// Identifies the format of a stream from its first four bytes (spec §3).
+    /// Version stamps are matched by range, as Outlook does, so later builds of a version are still recognised.
+    /// An Outlook 97 export starts with its rule count and first rule name, so its first four bytes are either
+    /// below 960706 or at least 0x01000000, never inside a stamp range.
+    static func detectVersion(versionStamp: UInt32) -> OutlookRulesVersion {
+        switch versionStamp {
         case 0:
-            version = .noSignatureOutlook2003
+            return .signatureZero
+        case 960706..<970812:
+            return .outlook97Profile
+        case 970812..<980413:
+            return .outlook98
+        case 980413..<1000000:
+            return .outlook2000
+        case 1000000..<1100000:
+            return .outlook2002
+        case 1100000..<1200000:
+            return .outlook2003
+        case 1200000..<0x00140000:
+            return .outlook2007
+        case 0x00140000..<0x01000000:
+            return .outlook2010
         default:
-            version = .noSignature
+            return .outlook97
         }
-        
+    }
+
+    public init(dataStream: inout DataStream, version: OutlookRulesVersion? = nil) throws {
+        let version = try version ?? RulesHeader.detectVersion(versionStamp: dataStream.peek(endianess: .littleEndian))
         self.version = version
-        
-        if version != .noSignatureOutlook2003 && version != .noSignature {
-            /// Signature (4 bytes)
-            let signature: UInt32 = try dataStream.read(endianess: .littleEndian)
-            self.signature = signature
-            
-            /// Flags (4 bytes)
-            if version >= .outlook2002 {
-                let flags: UInt32 = try dataStream.read(endianess: .littleEndian)
-                self.flags = flags
-            
-                guard (version == .outlook2019 && flags == 0x06140000) ||
-                        (version == .outlook2007 && flags == 0x06140000) ||
-                        (version == .outlook2007 && (flags == 0x06140000 || flags == 0x05124F80)) ||
-                        (version == .outlook2003 && flags == 0x04140000) ||
-                        (version == .outlook2002 && (flags == 0x03140000 || flags == 0x06140000 || flags == 0x03124F80 || flags == 0x05124F80)) else {
-                    throw OutlookRulesReadError.invalidSignature(signature: signature, flags: flags)
-                }
-            } else {
-                self.flags = nil
-            }
-        } else {
-            self.signature = nil
-            self.flags = nil
-        }
-        
-        /// Unknown1 (4 bytes)
-        if version != .noSignature {
-            self.unknown1 = try dataStream.read(endianess: .littleEndian)
-            guard self.unknown1 == 0x00000000 else {
-                throw OutlookRulesReadError.corrupted
-            }
-        } else {
+
+        guard version != .outlook97 else {
+            /// Outlook 97 streams have no header other than the number of rules.
+            self.versionStamp = nil
+            self.writerVersion = nil
             self.unknown1 = nil
+            self.unknown2 = nil
+            self.unknown3 = nil
+            self.unknown4 = nil
+            self.serverRulesOutOfDate = nil
+            self.serverUpdateMode = nil
+            self.promptToConvertInboxAssistantRules = nil
+            self.convertInboxAssistantRules = nil
+            self.unknown9 = nil
+
+            /// Number of Rules (2 bytes)
+            self.numberOfRules = try dataStream.read(endianess: .littleEndian)
+            return
         }
+
+        /// Version Stamp (4 bytes)
+        self.versionStamp = try dataStream.read(endianess: .littleEndian)
+
+        /// Writer Version (4 bytes)
+        if version >= .outlook2002 {
+            self.writerVersion = try dataStream.read(endianess: .littleEndian)
+        } else {
+            self.writerVersion = nil
+        }
+
+        /// Unknown1-3 are always 0 in samples, but Outlook only preserves them, so any value is accepted (spec §4.2).
+        /// Unknown1 (4 bytes)
+        self.unknown1 = try dataStream.read(endianess: .littleEndian)
 
         /// Unknown2 (4 bytes)
-        if version != .noSignature {
-            self.unknown2 = try dataStream.read(endianess: .littleEndian)
-            guard self.unknown2 == 0x00000000 else {
-                throw OutlookRulesReadError.corrupted
-            }
-        } else {
-            self.unknown2 = nil
-        }
-        
+        self.unknown2 = try dataStream.read(endianess: .littleEndian)
+
         /// Unknown3 (4 bytes)
-        if version != .noSignature {
-            self.unknown3 = try dataStream.read(endianess: .littleEndian)
-            guard self.unknown3 == 0x00000000 else {
-                throw OutlookRulesReadError.corrupted
-            }
-        } else {
-            self.unknown3 = nil
-        }
+        self.unknown3 = try dataStream.read(endianess: .littleEndian)
 
         /// Unknown4 (4 bytes)
-        if version != .noSignature {
-            self.unknown4 = try dataStream.read(endianess: .littleEndian)
-        } else {
-            self.unknown4 = nil
-        }
-        
-        /// Unknown5 (4 bytes)
-        if version != .noSignature {
-            self.unknown5 = try dataStream.read(endianess: .littleEndian)
-        } else {
-            self.unknown5 = nil
-        }
-        
-        /// Unknown6 (4 bytes)
-        if version != .noSignature {
-            self.unknown6 = try dataStream.read(endianess: .littleEndian)
-        } else {
-            self.unknown6 = nil
-        }
+        self.unknown4 = try dataStream.read(endianess: .littleEndian)
 
-        /// Unknown7 (4 bytes)
-        if version != .noSignature {
-            self.unknown7 = try dataStream.read(endianess: .littleEndian)
-        } else {
-            self.unknown7 = nil
-        }
-        
-        /// Unknown8 (4 bytes)
-        if version != .noSignature {
-            self.unknown8 = try dataStream.read(endianess: .littleEndian)
-            guard self.unknown8 == 0x00000001 else {
-                throw OutlookRulesReadError.corrupted
-            }
-        } else {
-            self.unknown8 = nil
-        }
-        
+        /// Server Rules Out Of Date (4 bytes)
+        self.serverRulesOutOfDate = try dataStream.read(endianess: .littleEndian)
+
+        /// Server Update Mode (4 bytes)
+        self.serverUpdateMode = try dataStream.read(endianess: .littleEndian)
+
+        /// Prompt To Convert Inbox Assistant Rules (4 bytes)
+        self.promptToConvertInboxAssistantRules = try dataStream.read(endianess: .littleEndian)
+
+        /// Convert Inbox Assistant Rules (4 bytes)
+        self.convertInboxAssistantRules = try dataStream.read(endianess: .littleEndian)
+
         /// Unknown9 (4 bytes)
-        if version >= .outlook2002 || version == .noSignatureOutlook2003 {
+        if version >= .outlook2002 {
             self.unknown9 = try dataStream.read(endianess: .littleEndian)
         } else {
             self.unknown9 = nil
         }
-        
+
         /// Number of Rules (2 bytes)
         self.numberOfRules = try dataStream.read(endianess: .littleEndian)
     }
-    
+
     /// Writes the header in the layout of the specified version.
     /// Fields that were read from a file of the same version are preserved; fields that are
     /// not present in this header (e.g. when converting between versions) use sensible defaults.
     public func write(to dataStream: inout OutputDataStream, version: OutlookRulesVersion) {
-        let source = version == self.version ? self : RulesHeader(numberOfRules: numberOfRules, version: version)
-
-        if version >= .outlook98 {
-            /// Signature (4 bytes)
-            dataStream.write(source.signature ?? RulesHeader.defaultSignature(for: version) ?? 0, endianess: .littleEndian)
+        var source = version == self.version ? self : RulesHeader(numberOfRules: numberOfRules, version: version)
+        if version != self.version {
+            /// These settings mean the same in every version that has a header, so keep them when converting.
+            source.serverRulesOutOfDate = serverRulesOutOfDate ?? source.serverRulesOutOfDate
+            source.serverUpdateMode = serverUpdateMode ?? source.serverUpdateMode
+            source.promptToConvertInboxAssistantRules = promptToConvertInboxAssistantRules ?? source.promptToConvertInboxAssistantRules
+            source.convertInboxAssistantRules = convertInboxAssistantRules ?? source.convertInboxAssistantRules
         }
 
-        if version >= .outlook2002 {
-            /// Flags (4 bytes)
-            dataStream.write(source.flags ?? RulesHeader.defaultFlags(for: version) ?? 0, endianess: .littleEndian)
-        }
-        
-        if version != .noSignature {
+        if version != .outlook97 {
+            /// Version Stamp (4 bytes)
+            dataStream.write(source.versionStamp ?? RulesHeader.defaultVersionStamp(for: version) ?? 0, endianess: .littleEndian)
+
+            if version >= .outlook2002 {
+                /// Writer Version (4 bytes)
+                dataStream.write(source.writerVersion ?? RulesHeader.defaultWriterVersion(for: version) ?? 0, endianess: .littleEndian)
+            }
+
             /// Unknown1 (4 bytes)
             dataStream.write(source.unknown1 ?? 0, endianess: .littleEndian)
-            
+
             /// Unknown2 (4 bytes)
             dataStream.write(source.unknown2 ?? 0, endianess: .littleEndian)
-            
+
             /// Unknown3 (4 bytes)
             dataStream.write(source.unknown3 ?? 0, endianess: .littleEndian)
-            
+
             /// Unknown4 (4 bytes)
             dataStream.write(source.unknown4 ?? 0, endianess: .littleEndian)
-            
-            /// Unknown5 (4 bytes)
-            dataStream.write(source.unknown5 ?? 0, endianess: .littleEndian)
-            
-            /// Unknown6 (4 bytes)
-            dataStream.write(source.unknown6 ?? 0, endianess: .littleEndian)
-            
-            /// Unknown7 (4 bytes)
-            dataStream.write(source.unknown7 ?? 1, endianess: .littleEndian)
-            
-            /// Unknown8 (4 bytes)
-            dataStream.write(source.unknown8 ?? 1, endianess: .littleEndian)
+
+            /// Server Rules Out Of Date (4 bytes)
+            dataStream.write(source.serverRulesOutOfDate ?? 0, endianess: .littleEndian)
+
+            /// Server Update Mode (4 bytes)
+            dataStream.write(source.serverUpdateMode ?? 0, endianess: .littleEndian)
+
+            /// Prompt To Convert Inbox Assistant Rules (4 bytes)
+            dataStream.write(source.promptToConvertInboxAssistantRules ?? 1, endianess: .littleEndian)
+
+            /// Convert Inbox Assistant Rules (4 bytes)
+            dataStream.write(source.convertInboxAssistantRules ?? 1, endianess: .littleEndian)
+
+            if version >= .outlook2002 {
+                /// Unknown9 (4 bytes)
+                dataStream.write(source.unknown9 ?? 0, endianess: .littleEndian)
+            }
         }
-        
-        if version >= .outlook2002 || version == .noSignatureOutlook2003 {
-            /// Unknown9 (4 bytes)
-            dataStream.write(source.unknown9 ?? 0, endianess: .littleEndian)
-        }
-        
+
         /// Number of Rules (2 bytes)
         dataStream.write(numberOfRules, endianess: .littleEndian)
     }

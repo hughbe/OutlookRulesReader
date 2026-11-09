@@ -7,10 +7,12 @@
 
 import DataStream
 
+/// A length-prefixed UTF-16 little-endian string (StringW in spec §2.2).
+/// The length is measured in UTF-16 code units.
 internal struct UTF16String {
     public var dataSize: UInt32 {
         let length = value.utf16.count
-        return (length >= 0xFF ? 3 : 1) + UInt32(length) * 2
+        return StringLength.size(of: length) + UInt32(length) * 2
     }
     
     public var value: String
@@ -20,16 +22,9 @@ internal struct UTF16String {
     }
     
     public init(dataStream: inout DataStream) throws {
-        /// Length (1 byte or 3 bytes if first byte is 0xFF)
-        var length: Int
-        let byteLength = try dataStream.read() as UInt8
-        if byteLength < 0xFF {
-            length = Int(byteLength)
-        } else {
-            length = Int(try dataStream.read(endianess: .littleEndian) as UInt16)
-        }
-
-        guard length <= Int.max / 2 && length <= dataStream.remainingCount else {
+        /// Length (1, 3 or 7 bytes)
+        let length = try StringLength.read(from: &dataStream)
+        guard length <= dataStream.remainingCount / 2 else {
             throw OutlookRulesReadError.corrupted
         }
         
@@ -44,15 +39,8 @@ internal struct UTF16String {
     public func write(to dataStream: inout OutputDataStream) {
         /// The length is measured in UTF-16 code units, not in Characters (e.g. "\r\n" is one Character
         /// but two code units).
-        let length = value.utf16.count
-        
-        /// Length (1 byte or 3 bytes if length >= 255)
-        if length < 0xFF {
-            dataStream.write(UInt8(length))
-        } else {
-            dataStream.write(0xFF as UInt8)
-            dataStream.write(UInt16(length), endianess: .littleEndian)
-        }
+        /// Length (1, 3 or 7 bytes)
+        StringLength.write(value.utf16.count, to: &dataStream)
         
         /// Value (variable)
         dataStream.write(value, encoding: .utf16LittleEndian)

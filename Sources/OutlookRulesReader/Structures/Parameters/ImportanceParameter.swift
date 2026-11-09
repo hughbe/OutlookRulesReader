@@ -9,8 +9,6 @@ import DataStream
 import MAPI
 
 public struct ImportanceParameter: RuleParameter {
-    public let dataSize: UInt32 = 12
-
     public var reserved: UInt32 = 0
     public var rawImportance: UInt32
     public var importance: MessageImportance {

@@ -9,14 +9,6 @@ import DataStream
 import MAPI
 
 public struct FolderParameter: RuleParameter {
-    public var dataSize: UInt32 {
-        var baseSize: UInt32 = 8
-        baseSize += UInt32(FlatEntry(entryID: folderEntryId).dataSize)
-        baseSize += UInt32(FlatEntry(entryID: storeEntryId).dataSize)
-        baseSize += UTF16String(value: folderName).dataSize
-        return baseSize
-    }
-
     public var reserved: UInt32 = 0
     public var folderEntryId: EntryID
     public var storeEntryId: EntryID
@@ -46,7 +38,7 @@ public struct FolderParameter: RuleParameter {
             self.folderName = try ASCIIString(dataStream: &dataStream).value
         }
         
-        if version != .noSignature {
+        if FolderParameter.hasSecondaryStore(version) {
             /// Secondary User Store (4 bytes)
             self.secondaryUserStore = (try dataStream.read(endianess: .littleEndian) as UInt32) != 0
         } else {
@@ -71,9 +63,15 @@ public struct FolderParameter: RuleParameter {
             ASCIIString(value: folderName).write(to: &dataStream)
         }
         
-        if version != .noSignature {
+        if FolderParameter.hasSecondaryStore(version) {
             /// Secondary User Store (4 bytes)
             dataStream.write(((secondaryUserStore ?? false) ? 1 : 0) as UInt32, endianess: .littleEndian)
         }
+    }
+
+    /// The secondary-store field was added in version 970718 (spec §6.19), so Outlook 97's formats don't have it.
+    /// Signature-0 streams are assumed to have it.
+    static func hasSecondaryStore(_ version: OutlookRulesVersion) -> Bool {
+        return version != .outlook97 && version != .outlook97Profile
     }
 }

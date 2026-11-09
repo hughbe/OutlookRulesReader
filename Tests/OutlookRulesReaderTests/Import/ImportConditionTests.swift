@@ -306,7 +306,7 @@ final class ImportConditionTests: XCTestCase {
 
             let condition = file.rules[0].conditions[0].parameter as! AccountParameter
             XCTAssertEqual("hughbellars@gmail.com", condition.accountName)
-            XCTAssertEqual("-190692068", condition.unknown)
+            XCTAssertEqual("-190692068", condition.accountStamp)
             XCTAssertTrue(file.rules[0].conditions[1].parameter is ProfileStampParameter)
         }
     }

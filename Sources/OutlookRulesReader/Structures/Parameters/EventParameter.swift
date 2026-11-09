@@ -24,8 +24,6 @@ public struct RuleEventFlags: OptionSet {
 }
 
 public struct EventParameter: RuleParameter {
-    public let dataSize: UInt32 = 8
-
     public var reserved: UInt32 = 0
     public let flags: RuleEventFlags
     

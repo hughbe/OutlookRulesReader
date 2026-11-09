@@ -236,7 +236,7 @@ final class ImportExceptionTests: XCTestCase {
 
             let exception = file.rules[0].exceptions[0].parameter as! AccountParameter
             XCTAssertEqual("hughbellars@gmail.com", exception.accountName)
-            XCTAssertEqual("-190692068", exception.unknown)
+            XCTAssertEqual("-190692068", exception.accountStamp)
         }
         do {
             let file = try OutlookRules(data: Data([
@@ -269,7 +269,7 @@ final class ImportExceptionTests: XCTestCase {
 
             let exception = file.rules[0].exceptions[0].parameter as! AccountParameter
             XCTAssertEqual("hughbellars@gmail.com", exception.accountName)
-            XCTAssertEqual("-190692068", exception.unknown)
+            XCTAssertEqual("-190692068", exception.accountStamp)
         }
     }
 

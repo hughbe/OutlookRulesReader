@@ -53,8 +53,8 @@ public struct RuleElement {
                 /// Mandatory Elements
                 case .eventFlags: // 0x0190
                     parameter = try EventParameter(dataStream: &dataStream, version: version)
-                case .unknown0x64: // 0x0064
-                    parameter = try Unknown0x64Parameter(dataStream: &dataStream, version: version)
+                case .itemType: // 0x0064
+                    parameter = try ItemTypeParameter(dataStream: &dataStream, version: version)
                     
                 /// Conditions
                 case .nameInToBoxCondition: // 0x000C8
@@ -79,6 +79,14 @@ public struct RuleElement {
                     parameter = try ImportanceParameter(dataStream: &dataStream, version: version)
                 case .sensitivityCondition: // 0x00D3
                     parameter = try SensitivityParameter(dataStream: &dataStream, version: version)
+                case .nameInToBoxMeetingCondition: // 0x00D4
+                    throw OutlookRulesReadError.corrupted
+                case .nameNotInToBoxMeetingCondition: // 0x00D5
+                    throw OutlookRulesReadError.corrupted
+                case .sentToAsCcCondition: // 0x00DA
+                    parameter = try AddressParameter(dataStream: &dataStream, version: version)
+                case .sentToAlternateCondition: // 0x00DB
+                    parameter = try AddressParameter(dataStream: &dataStream, version: version)
                 case .assignedToCategoryCondition: // 0x00D7
                     parameter = try CategoryParameter(dataStream: &dataStream, version: version)
                 case .automaticReplyCondition: // 0x00DC
@@ -101,6 +109,8 @@ public struct RuleElement {
                     parameter = try StringParameter(dataStream: &dataStream, version: version)
                 case .specificWordsInSendersAddressCondition: // 0x00E6
                     parameter = try StringParameter(dataStream: &dataStream, version: version)
+                case .netFoldersCondition: // 0x00E7
+                    throw OutlookRulesReadError.corrupted
                 case .specificWordsInMessageHeaderCondition: // 0x00E8
                     parameter = try StringParameter(dataStream: &dataStream, version: version)
                 case .exceptionListCondition: // 0x00E9
@@ -131,7 +141,7 @@ public struct RuleElement {
                     throw OutlookRulesReadError.corrupted
                     
                 /// Actions
-                case .forwardAction: // 0x012B
+                case .forwardAction: // 0x012E
                     parameter = try AddressParameter(dataStream: &dataStream, version: version)
                 case .moveToFolderAction: // 0x012C
                     parameter = try FolderParameter(dataStream: &dataStream, version: version)
@@ -163,8 +173,12 @@ public struct RuleElement {
                     parameter = try AddressParameter(dataStream: &dataStream, version: version)
                 case .deferDeliveryAction: // 0x013E
                     parameter = try DeferParameter(dataStream: &dataStream, version: version)
-                case .performCustomActionAction:
+                case .performCustomActionAction: // 0x013F
                     parameter = try CustomActionParameter(dataStream: &dataStream, version: version)
+                case .netFoldersAction: // 0x0141
+                    throw OutlookRulesReadError.corrupted
+                case .unusedAction: // 0x0140
+                    throw OutlookRulesReadError.corrupted
                 case .stopProcessingMoreRulesAction: // 0x0142
                     throw OutlookRulesReadError.corrupted
                 case .doNotSearchForCommercialOrAdultContentAction: // 0x0143
@@ -219,6 +233,14 @@ public struct RuleElement {
                     parameter = try ImportanceParameter(dataStream: &dataStream, version: version)
                 case .sensitivityConditionException: // 0x01FF
                     parameter = try SensitivityParameter(dataStream: &dataStream, version: version)
+                case .nameInToBoxMeetingException: // 0x0200
+                    throw OutlookRulesReadError.corrupted
+                case .nameNotInToBoxMeetingException: // 0x0201
+                    throw OutlookRulesReadError.corrupted
+                case .sentToAsCcException: // 0x0206
+                    parameter = try AddressParameter(dataStream: &dataStream, version: version)
+                case .sentToAlternateException: // 0x0207
+                    parameter = try AddressParameter(dataStream: &dataStream, version: version)
                 case .assignedToCategoryException: // 0x0203
                     parameter = try CategoryParameter(dataStream: &dataStream, version: version)
                 case .automaticReplyException: // 0x0208

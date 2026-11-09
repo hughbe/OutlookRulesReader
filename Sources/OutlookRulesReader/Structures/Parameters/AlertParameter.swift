@@ -8,10 +8,6 @@
 import DataStream
 
 public struct AlertParameter: RuleParameter {
-    public var dataSize: UInt32 {
-        4 +  UTF16String(value: name).dataSize
-    }
-
     public var reserved: UInt32 = 0
     public var name: String
     

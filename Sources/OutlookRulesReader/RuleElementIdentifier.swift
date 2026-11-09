@@ -9,8 +9,8 @@ public enum RuleElementIdentifier: UInt32 {
     /// "type of messages to which this rule applies"
     case eventFlags = 0x00000190
     
-    /// Unknown
-    case unknown0x64 = 0x00000064
+    /// "For each <message>": the kinds of item the rule applies to. Present in every rule.
+    case itemType = 0x00000064
     
     /// “where my name is in the To box”
     case nameInToBoxCondition = 0x0000000C8
@@ -45,8 +45,22 @@ public enum RuleElementIdentifier: UInt32 {
     /// “marked as <sensitivity>”
     case sensitivityCondition = 0x000000D3
     
+    /// "where my name is in the To box and it is a meeting". Never created by the Rules Wizard, but Outlook 97's
+    /// rule evaluator supports it (spec Appendix D.4). Takes no parameters.
+    case nameInToBoxMeetingCondition = 0x000000D4
+
+    /// "where my name is not in the To box and it is a meeting". See `nameInToBoxMeetingCondition`.
+    case nameNotInToBoxMeetingCondition = 0x000000D5
+    
     /// “assigned to <category> category”
     case assignedToCategoryCondition = 0x000000D7
+    
+    /// "sent to <people or public group>" as Cc recipients. Never created by the Rules Wizard, but Outlook 97's
+    /// rule evaluator supports it (spec Appendix D.4).
+    case sentToAsCcCondition = 0x000000DA
+
+    /// "sent to <people or public group>": the same test as `sentToCondition`. Never created by the Rules Wizard.
+    case sentToAlternateCondition = 0x000000DB
     
     /// “which is an automatic reply”
     case automaticReplyCondition = 0x000000DC
@@ -78,6 +92,10 @@ public enum RuleElementIdentifier: UInt32 {
     
     /// “with <specific words> in the sender’s address”
     case specificWordsInSendersAddressCondition = 0x000000E6
+    
+    /// Used by the hidden "#NET FOLDERS#" rule that Outlook 98/2000's Net Folders feature creates.
+    /// The meaning is inferred from that rule; there is no UI text. Takes no parameters.
+    case netFoldersCondition = 0x000000E7
     
     /// “with <specific words> in the message header”
     case specificWordsInMessageHeaderCondition = 0x000000E8
@@ -184,6 +202,13 @@ public enum RuleElementIdentifier: UInt32 {
     /// Removed in Outlook 2010
     case performCustomActionAction = 0x0000013F
     
+    /// Used by the hidden "#NET FOLDERS#" rule that Outlook 98/2000's Net Folders feature creates.
+    /// The meaning is inferred from that rule; there is no UI text. Takes no parameters.
+    case netFoldersAction = 0x00000141
+    
+    /// Defined by Outlook 97 with no UI text and no parameter: a hidden or retired action.
+    case unusedAction = 0x00000140
+    
     /// “stop processing more rules”
     case stopProcessingMoreRulesAction = 0x00000142
     
@@ -268,8 +293,20 @@ public enum RuleElementIdentifier: UInt32 {
     /// “except if it is marked as <sensitivity>”
     case sensitivityConditionException = 0x000001FF
     
+    /// Exception form of `nameInToBoxMeetingCondition`.
+    case nameInToBoxMeetingException = 0x00000200
+
+    /// Exception form of `nameNotInToBoxMeetingCondition`.
+    case nameNotInToBoxMeetingException = 0x00000201
+    
     /// “except if it is assigned to <category> category”
     case assignedToCategoryException = 0x00000203
+    
+    /// Exception form of `sentToAsCcCondition`.
+    case sentToAsCcException = 0x00000206
+
+    /// Exception form of `sentToAlternateCondition`.
+    case sentToAlternateException = 0x00000207
     
     /// “except if it is an automatic reply”
     case automaticReplyException = 0x00000208

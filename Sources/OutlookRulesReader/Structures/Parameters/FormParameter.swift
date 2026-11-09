@@ -10,23 +10,6 @@ import Foundation
 import MAPI
 
 public struct FormParameter: RuleParameter {
-    public var dataSize: UInt32 {
-        var baseSize: UInt32 = 4
-        for form in forms {
-            baseSize += UTF16String(value: form).dataSize
-        }
-        baseSize += 2
-        for documentProperty in documentProperties {
-            baseSize += documentProperty.dataSize
-        }
-        baseSize += 4
-        for `class` in classes {
-            baseSize += UTF16String(value: `class`).dataSize
-        }
-        
-        return baseSize
-    }
-    
     public var reserved: UInt32 = 0
     public var forms: [String]
     public var documentProperties: [DocumentProperty]

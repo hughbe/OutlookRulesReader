@@ -11,7 +11,8 @@ import WindowsDataTypes
 
 internal struct RulesFooter {
     public var templateDirectory: String = ""
-    public var creationDate: OleDateTime = OleDateTime()
+    /// Probably the time the rules were last saved (spec §4.4). Usually null.
+    public var timestamp: OleDateTime = OleDateTime()
     public var unknown: UInt32 = 0
     
     public init(templateDirectory: String = "") {
@@ -20,9 +21,10 @@ internal struct RulesFooter {
     
     public init(dataStream: inout DataStream, version: OutlookRulesVersion) throws {
         /// Template Directory Length (4 bytes)
-        let templateDirectoryLengthRaw: UInt32 = try dataStream.read(endianess: .littleEndian)
-        let templateDirectoryLength = min(templateDirectoryLengthRaw, 260)
-        guard templateDirectoryLength * (version >= .outlook2002 ? 2 : 1) <= dataStream.remainingCount else {
+        /// Outlook keeps this at most MAX_PATH (260), but read whatever length is declared so that the
+        /// fields that follow stay aligned.
+        let templateDirectoryLength: UInt32 = try dataStream.read(endianess: .littleEndian)
+        guard Int(templateDirectoryLength) <= dataStream.remainingCount / (version >= .outlook2002 ? 2 : 1) else {
             throw OutlookRulesReadError.corrupted
         }
         
@@ -41,8 +43,8 @@ internal struct RulesFooter {
             self.templateDirectory = templateDirectory
         }
         
-        /// Creation Date (12 bytes)
-        self.creationDate = try OleDateTime(dataStream: &dataStream)
+        /// Timestamp (12 bytes)
+        self.timestamp = try OleDateTime(dataStream: &dataStream)
         
         /// Unknown (4 bytes)
         self.unknown = try dataStream.read(endianess: .littleEndian)
@@ -68,8 +70,8 @@ internal struct RulesFooter {
         /// Template Directory (variable)
         dataStream.write(bytes)
 
-        /// Creation Date (12 bytes)
-        creationDate.write(to: &dataStream)
+        /// Timestamp (12 bytes)
+        timestamp.write(to: &dataStream)
 
         /// Unknown (4 bytes)
         dataStream.write(unknown, endianess: .littleEndian)

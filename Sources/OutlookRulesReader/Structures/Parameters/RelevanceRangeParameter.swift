@@ -8,8 +8,6 @@
 import DataStream
 
 public struct RelevanceRangeParameter: RuleParameter {
-    public let dataSize: UInt32 = 12
-
     public var reserved: UInt32 = 0
     public var minimumRelevance: UInt32
     public var maximumRelevance: UInt32

@@ -8,8 +8,6 @@
 import DataStream
 
 public struct SizeParameter: RuleParameter {
-    public let dataSize: UInt32 = 12
-
     public var reserved: UInt32 = 0
     public var minSizeInKilobytes: UInt32
     public var maxSizeInKilobytes: UInt32

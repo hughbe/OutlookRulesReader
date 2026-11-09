@@ -8,14 +8,6 @@
 import DataStream
 
 public struct CustomActionParameter: RuleParameter {
-    public var dataSize: UInt32 {
-        var baseSize: UInt32 = 4
-        baseSize += UTF16String(value: location).dataSize
-        baseSize += UTF16String(value: name).dataSize
-        baseSize += UTF16String(value: actionValue).dataSize
-        return baseSize
-    }
-
     public var reserved: UInt32 = 0
     public var location: String
     public var name: String

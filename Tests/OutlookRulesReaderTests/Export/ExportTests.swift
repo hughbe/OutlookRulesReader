@@ -82,7 +82,7 @@ final class ExportTests: XCTestCase {
         XCTAssertEqual(expected, [UInt8](file.getData() as NSData))
     }
 
-    private let writableVersions: [OutlookRulesVersion] = [.outlook2019, .outlook2007, .outlook2003, .outlook2002, .outlook2000, .outlook98]
+    private let writableVersions: [OutlookRulesVersion] = [.outlook2010, .outlook2007, .outlook2003, .outlook2002, .outlook2000, .outlook98]
 
     private func summary(of file: OutlookRules) -> [String] {
         return file.rules.map { rule in
@@ -93,7 +93,7 @@ final class ExportTests: XCTestCase {
 
     func testWriteVersionSignatures() throws {
         let signatures: [(OutlookRulesVersion, [UInt8])] = [
-            (.outlook2019, [0x00, 0x00, 0x14, 0x00]),
+            (.outlook2010, [0x00, 0x00, 0x14, 0x00]),
             (.outlook2007, [0x80, 0x4F, 0x12, 0x00]),
             (.outlook2003, [0xE0, 0xC8, 0x10, 0x00]),
             (.outlook2002, [0x40, 0x42, 0x0F, 0x00]),
@@ -129,7 +129,7 @@ final class ExportTests: XCTestCase {
                 RuleElement(identifier: .hasAttachmentCondition)
             ])
         ])
-        let reread = try OutlookRules(data: file.getData(version: .noSignature))
+        let reread = try OutlookRules(data: file.getData(version: .outlook97))
         XCTAssertEqual(1, reread.rules.count)
         XCTAssertEqual("RULENAME", reread.rules[0].name)
         XCTAssertEqual(.afterReceived, reread.rules[0].eventFlags)
@@ -162,7 +162,7 @@ final class ExportTests: XCTestCase {
         rule.elements.insert(RuleElement(identifier: .markAsReadAction), at: 0)
 
         let reread = try OutlookRules(data: OutlookRules(rules: [rule]).getData())
-        XCTAssertEqual([.markAsReadAction, .hasAttachmentCondition, .hasAttachmentException], reread.rules[0].elements.map { $0.identifier }.filter { $0 != .eventFlags && $0 != .unknown0x64 })
+        XCTAssertEqual([.markAsReadAction, .hasAttachmentCondition, .hasAttachmentException], reread.rules[0].elements.map { $0.identifier }.filter { $0 != .eventFlags && $0 != .itemType })
     }
 
     func testRoundTripResources() throws {
@@ -233,7 +233,7 @@ final class ExportTests: XCTestCase {
             // Writing without changes reproduces the file, and the computed size matches what is written.
             XCTAssertEqual(data, file.getData(), name)
             var stream = OutputDataStream()
-            parameter.write(to: &stream, version: .outlook2019)
+            parameter.write(to: &stream, version: .outlook2010)
             XCTAssertEqual(UInt32(stream.data.count), parameter.dataSize, name)
         }
     }

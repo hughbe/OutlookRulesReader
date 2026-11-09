@@ -18,10 +18,6 @@ public enum FollowUp: UInt32 {
 }
 
 public struct FlagForFollowUpParameter: RuleParameter {
-    public var dataSize: UInt32 {
-        4 + UTF16String(value: actionName).dataSize
-    }
-
     public var reserved: UInt32 = 0
     public var rawFollowUp: UInt32
     public var followUp: FollowUp {
@@ -31,10 +27,10 @@ public struct FlagForFollowUpParameter: RuleParameter {
             rawFollowUp = newValue.rawValue
         }
     }
-    public var actionName: String
+    public var action: String
     
     public init(action: String, followUp: FollowUp) {
-        self.actionName = action
+        self.action = action
         self.rawFollowUp = followUp.rawValue
     }
     
@@ -46,7 +42,7 @@ public struct FlagForFollowUpParameter: RuleParameter {
         self.rawFollowUp = try dataStream.read(endianess: .littleEndian)
 
         /// Action Name (variable)
-        self.actionName = try UTF16String(dataStream: &dataStream).value
+        self.action = try UTF16String(dataStream: &dataStream).value
     }
     
     public func write(to dataStream: inout OutputDataStream, version: OutlookRulesVersion) {
@@ -57,6 +53,6 @@ public struct FlagForFollowUpParameter: RuleParameter {
         dataStream.write(rawFollowUp, endianess: .littleEndian)
         
         /// Action Name (variable)
-        UTF16String(value: actionName).write(to: &dataStream)
+        UTF16String(value: action).write(to: &dataStream)
     }
 }
