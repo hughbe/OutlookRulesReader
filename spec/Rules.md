@@ -881,14 +881,15 @@ The smallest G2 stream: one enabled rule named `RULENAME`, applied "after the me
 
 ## Appendix B. Open questions
 
-1. RulesHeader Unknown1–4 and the footer's Unknown. Outlook 97, 98 and 2000 only preserve them; Outlook 2003/2007 set Unknown4 to `1`, so its meaning needs a later binary. Also the high byte of WriterVersion.
-2. RuleHeader Unknown4 (G2 only, set only on server rules). The parameter Reserved field is reserved in Outlook 97; any later meaning needs a later binary. (RuleHeader Unknown1 is solved: [§4.3.1](#431-ruleheader).)
-3. Whether versions after Outlook 2000 ever write a non-zero DocumentProperty MatchIfMissing. Outlook 97–2000 never create one.
-4. Which product writes G0s (Signature 0) streams, and how `PidTagRwRulesStream` differs from an exported `.rwz`.
-5. DocumentProperty Unknown1: always `1` and never read by Outlook 97, 98 or 2000.
-6. Layouts of `0x014D`, `0x014E` and `0x0150`, and whether stamp 0x150000 changes the layout. (The Net Folders elements `0x00E7` and `0x0141` are solved: [§5](#5-element-identifiers).)
-7. Rule Flags bits `0x1`/`0x2`. No code in Outlook 97, 98 or 2000 sets them; 98 and 2000 only clear them when the user edits the rule. The writer must be a later version or another client. The other bits are solved ([§4.3.1.1](#4311-rule-flags)).
-8. The meaning of the definition flags at `+0x20` and `+0x24`. Outlook 97 sets them but never reads them, and no reader was found in Outlook 98 or 2000 (Appendix D.1).
+1. RulesHeader Unknown1–4 and the footer's Unknown, which Outlook 97, 98 and 2000 only preserve. Outlook 2003/2007 set Unknown4 to `1`.
+2. The high byte of RulesHeader.WriterVersion.
+3. RuleHeader Unknown4 (G2 only, non-zero only on server rules).
+4. Whether versions after Outlook 2000 give the parameter Reserved field a meaning, or ever write a non-zero DocumentProperty MatchIfMissing.
+5. Which product writes G0s (Signature 0) streams, and how `PidTagRwRulesStream` differs from an exported `.rwz`.
+6. DocumentProperty Unknown1: always `1`, and never read by Outlook 97, 98 or 2000.
+7. Layouts of `0x014D`, `0x014E` and `0x0150`, and whether stamp 0x150000 changes the layout.
+8. Rule Flags bits `0x1`/`0x2`. Outlook 97, 98 and 2000 never set them.
+9. The meaning of the definition flags at `+0x20` and `+0x24`, which Outlook 97, 98 and 2000 never read (Appendix D.1).
 
 ## Appendix C. Corrections to earlier notes
 
