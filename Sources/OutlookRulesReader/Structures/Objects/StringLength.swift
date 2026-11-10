@@ -52,3 +52,22 @@ internal enum StringLength {
         }
     }
 }
+
+/// A string whose encoding depends on the format: UTF-16 from Outlook 2002 on, ANSI before (spec §2.2 "String").
+internal enum VersionedString {
+    static func read(from dataStream: inout DataStream, version: OutlookRulesVersion) throws -> String {
+        if version >= .outlook2002 {
+            return try UTF16String(dataStream: &dataStream).value
+        } else {
+            return try ASCIIString(dataStream: &dataStream).value
+        }
+    }
+
+    static func write(_ value: String, to dataStream: inout OutputDataStream, version: OutlookRulesVersion) {
+        if version >= .outlook2002 {
+            UTF16String(value: value).write(to: &dataStream)
+        } else {
+            ASCIIString(value: value).write(to: &dataStream)
+        }
+    }
+}

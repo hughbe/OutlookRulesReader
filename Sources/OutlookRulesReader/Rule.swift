@@ -26,18 +26,26 @@ public struct Rule: CustomDebugStringConvertible {
     /// Whether the rule has been saved to the Exchange server's rules table (spec §4.3.1).
     public var isServerRule: Bool = false
 
-    /// Rule flags (spec §4.3.1). Usually 0. 0x20 has only been seen on the built-in junk e-mail "Exception List"
-    /// rule; Outlook 98 clears the flags when the user edits a rule with bit 0x1 or 0x2 set. Added in version
-    /// 970812 (Outlook 98), so not present in Outlook 97 or signature-0 files.
-    public var flags: UInt32 = 0
+    /// Rule flags (spec §4.3.1.1). Empty for rules the user creates; Outlook 2000 uses them to mark the rules
+    /// its junk-mail feature creates. Added in version 970812 (Outlook 98), so not stored in Outlook 97 or
+    /// signature-0 files.
+    public var flags: RuleFlags = []
 
     /// All of the rule's elements, including the mandatory 0x0190 and 0x0064 elements.
     /// When the rule is written, those two are regenerated from `eventFlags` and `itemTypes`.
     public var elements: [RuleElement] = []
 
-    /// Fields of the rule header with unknown meaning, preserved when round-tripping (spec §4.3.1).
-    /// Outlook 97 never reads Unknown1; it only copies and saves it.
-    internal var unknown1: UInt32 = 0
+    /// Whether the rule failed while Outlook was running it on the client (RuleHeader Unknown1, spec §4.3.1).
+    /// Outlook 2000 sets this, and disables the rule, when one of the rule's actions fails.
+    public var hasRunError: Bool {
+        get { runError != 0 }
+        set { runError = newValue ? 1 : 0 }
+    }
+
+    /// The raw run-error field (RuleHeader Unknown1), preserved when round-tripping.
+    internal var runError: UInt32 = 0
+
+    /// RuleHeader Unknown4 (Outlook 2002 and later), preserved when round-tripping (spec §4.3.1).
     internal var unknown4: UInt32 = 0
 
     public var conditions: [RuleElement] {
@@ -79,9 +87,9 @@ public struct Rule: CustomDebugStringConvertible {
         let header = try RuleHeader(dataStream: &dataStream, version: version)
         (self.name, self.templateName) = Rule.splitName(header.name)
         self.enabled = header.enabled
-        self.unknown1 = header.unknown1
+        self.runError = header.runError
         self.isServerRule = header.serverRule != 0
-        self.flags = header.flags ?? 0
+        self.flags = RuleFlags(rawValue: header.flags ?? 0)
         self.unknown4 = header.unknown4 ?? 0
 
         /// Elements (variable)
@@ -171,9 +179,9 @@ public struct Rule: CustomDebugStringConvertible {
         let dataSize = UInt32(2 + elementsStream.data.count)
         var header = RuleHeader(name: storedName, enabled: enabled, numberOfElements: UInt16(elements.count), dataSize: dataSize)
         header.versionStamp = versionStamp
-        header.unknown1 = unknown1
+        header.runError = runError
         header.serverRule = isServerRule ? 1 : 0
-        header.flags = flags
+        header.flags = flags.rawValue
         header.unknown4 = unknown4
         header.write(to: &dataStream, version: version)
 

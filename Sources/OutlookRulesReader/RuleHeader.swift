@@ -13,11 +13,11 @@ internal struct RuleHeader {
     public var versionStamp: UInt32?
     public var name: String
     public var enabled: Bool
-    /// Outlook 97 only ever sets this to 0 (spec §4.3.1).
-    public var unknown1: UInt32 = 0
+    /// 1 after the rule failed while running on the client (Outlook 2000; spec §4.3.1).
+    public var runError: UInt32 = 0
     /// 1 once the rule has been saved to the Exchange server's rules table (spec §4.3.1).
     public var serverRule: UInt32 = 0
-    /// Rule flags (Outlook 98 and later). 0x20 has only been seen on the built-in junk e-mail "Exception List" rule.
+    /// Rule flags (Outlook 98 and later). See `RuleFlags` and spec §4.3.1.1.
     public var flags: UInt32? = 0
     public var unknown4: UInt32? = 0
     /// The number of bytes from the end of this field to the end of the rule (Outlook 2002 and later only).
@@ -49,8 +49,8 @@ internal struct RuleHeader {
         /// Enabled (4 bytes)
         self.enabled = try dataStream.read(endianess: .littleEndian) as UInt32 != 0x0000
 
-        /// Unknown1 (4 bytes)
-        self.unknown1 = try dataStream.read(endianess: .littleEndian)
+        /// Run Error (4 bytes)
+        self.runError = try dataStream.read(endianess: .littleEndian)
 
         /// Server Rule (4 bytes)
         self.serverRule = try dataStream.read(endianess: .littleEndian)
@@ -93,8 +93,8 @@ internal struct RuleHeader {
         /// Enabled (4 bytes)
         dataStream.write((enabled ? 1 : 0) as UInt32, endianess: .littleEndian)
 
-        /// Unknown1 (4 bytes)
-        dataStream.write(unknown1, endianess: .littleEndian)
+        /// Run Error (4 bytes)
+        dataStream.write(runError, endianess: .littleEndian)
 
         /// Server Rule (4 bytes)
         dataStream.write(serverRule, endianess: .littleEndian)
