@@ -6,7 +6,7 @@
 //
 
 /// The flags in a rule's header (spec §4.3.1.1). Rules the user creates have none. Outlook 2000 sets them on the
-/// rules its junk-mail feature creates, and finds those rules again by their flag rather than by name.
+/// rules it creates itself (junk mail, Download Options), and finds those rules again by their flag rather than by name.
 /// Present from version 970812 (Outlook 98); 0 in older formats.
 public struct RuleFlags: OptionSet, Hashable {
     public let rawValue: UInt32
@@ -32,6 +32,7 @@ public struct RuleFlags: OptionSet, Hashable {
     /// "do not search message for commercial or adult content" (0x0143).
     public static let exceptionListRule = RuleFlags(rawValue: 0x20)
 
-    /// Another rule Outlook 2000 builds from one of its own option dialogs. Its exact purpose is unknown.
-    public static let unknown40 = RuleFlags(rawValue: 0x40)
+    /// The large-message rule of Outlook 2000's "Download Options" dialog: don't download messages larger than
+    /// a size, except from chosen senders, with high importance or with a flag.
+    public static let downloadOptionsRule = RuleFlags(rawValue: 0x40)
 }

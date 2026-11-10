@@ -66,6 +66,23 @@ final class SpecTests: XCTestCase {
         XCTAssertTrue(file.rules[0].elements[2...].allSatisfy { $0.parameters.isEmpty })
     }
 
+    /// RuleHeader Unknown1 records that the rule failed while running on the client (spec §4.3.1).
+    func testRunError() throws {
+        let data = try getData(name: "Outlook2000_NetFolders_Default", fileExtension: "rwz")
+        var file = try OutlookRules(data: data)
+        XCTAssertFalse(file.rules[0].hasRunError)
+
+        var rules = file.rules
+        rules[0].hasRunError = true
+        var changed = OutputDataStream()
+        rules[0].write(to: &changed, index: 0, version: .outlook98)
+        var dataStream = DataStream(changed.data)
+        let rule = try Rule(dataStream: &dataStream, index: 0, version: .outlook98)
+        XCTAssertTrue(rule.hasRunError)
+        file = try OutlookRules(data: data)
+        XCTAssertEqual(data, file.getData())
+    }
+
     /// An Outlook 97 stream with no rules is only two bytes long (spec §3).
     func testEmptyOutlook97Stream() throws {
         let file = try OutlookRules(data: Data([0x00, 0x00]))
@@ -397,6 +414,7 @@ final class SpecTests: XCTestCase {
         ("testParameterDataSizeMatchesWrittenSize", testParameterDataSizeMatchesWrittenSize),
         ("testRuleHeaderFieldsPreserved", testRuleHeaderFieldsPreserved),
         ("testNetFolders", testNetFolders),
+        ("testRunError", testRunError),
         ("testEmptyOutlook97Stream", testEmptyOutlook97Stream),
         ("testSignatureZeroHeader", testSignatureZeroHeader),
         ("testWriterVersion", testWriterVersion),
