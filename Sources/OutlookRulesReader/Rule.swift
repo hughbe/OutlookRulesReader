@@ -45,8 +45,14 @@ public struct Rule: CustomDebugStringConvertible {
     /// The raw run-error field (RuleHeader Unknown1), preserved when round-tripping.
     internal var runError: UInt32 = 0
 
-    /// RuleHeader Unknown4 (Outlook 2002 and later), preserved when round-tripping (spec §4.3.1).
-    internal var unknown4: UInt32 = 0
+    /// The ID Outlook gave the rule's copy on the Exchange server (RuleHeader Unknown4, Outlook 2002 and later;
+    /// spec §4.3.1). 0 if the rule has never been saved to the server. Not stored in older formats.
+    public var serverRuleId: UInt32 = 0
+
+    /// The rule's own version stamp and the format it was read from, so that a rule whose stamp differs from the
+    /// stream's keeps it when written back in the same format (spec §4.3.1).
+    internal var versionStamp: UInt32?
+    internal var sourceVersion: OutlookRulesVersion?
 
     public var conditions: [RuleElement] {
         elements.filter { $0.identifier.rawValue >= 200 && $0.identifier.rawValue < 300 }
@@ -90,7 +96,10 @@ public struct Rule: CustomDebugStringConvertible {
         self.runError = header.runError
         self.isServerRule = header.serverRule != 0
         self.flags = RuleFlags(rawValue: header.flags ?? 0)
-        self.unknown4 = header.unknown4 ?? 0
+        self.serverRuleId = header.serverRuleId ?? 0
+        self.versionStamp = header.versionStamp
+        self.sourceVersion = version
+        let contentVersion = RuleHeader.contentVersion(streamVersion: version, versionStamp: header.versionStamp)
 
         /// Elements (variable)
         var elements: [RuleElement] = []
@@ -100,7 +109,7 @@ public struct Rule: CustomDebugStringConvertible {
             try ObjectTag.read(from: &dataStream, classDeclared: &classDeclared)
 
             /// Element (variable)
-            elements.append(try RuleElement(dataStream: &dataStream, version: version))
+            elements.append(try RuleElement(dataStream: &dataStream, version: contentVersion))
         }
 
         self.elements = elements
@@ -151,8 +160,11 @@ public struct Rule: CustomDebugStringConvertible {
     }
 
     /// `versionStamp` is the stream's version stamp, which each rule header repeats in the Outlook 2002 and later
-    /// formats; nil uses the default stamp for `version`.
+    /// formats unless the rule has its own; nil uses the default stamp for `version`.
     internal func write(to dataStream: inout OutputDataStream, version: OutlookRulesVersion, versionStamp: UInt32?, classDeclared: inout Bool) {
+        let ruleStamp = (sourceVersion == version ? self.versionStamp : nil) ?? versionStamp ?? RulesHeader.defaultVersionStamp(for: version)
+        let contentVersion = RuleHeader.contentVersion(streamVersion: version, versionStamp: ruleStamp)
+
         var elements: [RuleElement] = [
             /// "Apply this rule <after the message arrives>"
             RuleElement(identifier: .eventFlags, parameter: EventParameter(flags: eventFlags)),
@@ -172,17 +184,17 @@ public struct Rule: CustomDebugStringConvertible {
             ObjectTag.write(to: &elementsStream, classDeclared: &classDeclared)
 
             /// Element (variable)
-            element.write(to: &elementsStream, version: version)
+            element.write(to: &elementsStream, version: contentVersion)
         }
 
         /// Data Size counts the Number of Elements field (2 bytes) and everything after it.
         let dataSize = UInt32(2 + elementsStream.data.count)
         var header = RuleHeader(name: storedName, enabled: enabled, numberOfElements: UInt16(elements.count), dataSize: dataSize)
-        header.versionStamp = versionStamp
+        header.versionStamp = ruleStamp
         header.runError = runError
         header.serverRule = isServerRule ? 1 : 0
         header.flags = flags.rawValue
-        header.unknown4 = unknown4
+        header.serverRuleId = serverRuleId
         header.write(to: &dataStream, version: version)
 
         dataStream.write(elementsStream.data)

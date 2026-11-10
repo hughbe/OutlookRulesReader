@@ -9,7 +9,8 @@ import DataStream
 
 /// The header of an individual rule. See spec §4.3.1.
 internal struct RuleHeader {
-    /// The version stamp of the stream (Outlook 2002 and later only).
+    /// The rule's own version stamp (Outlook 2002 and later formats only). Normally the stream's stamp; a rule with
+    /// an older stamp keeps that older layout inside a newer stream (spec §4.3.1).
     public var versionStamp: UInt32?
     public var name: String
     public var enabled: Bool
@@ -19,7 +20,8 @@ internal struct RuleHeader {
     public var serverRule: UInt32 = 0
     /// Rule flags (Outlook 98 and later). See `RuleFlags` and spec §4.3.1.1.
     public var flags: UInt32? = 0
-    public var unknown4: UInt32? = 0
+    /// The ID of the rule's copy on the Exchange server (Outlook 2002 and later; spec §4.3.1).
+    public var serverRuleId: UInt32? = 0
     /// The number of bytes from the end of this field to the end of the rule (Outlook 2002 and later only).
     public var dataSize: UInt32?
     public var numberOfElements: UInt16
@@ -31,6 +33,16 @@ internal struct RuleHeader {
         self.numberOfElements = numberOfElements
     }
 
+    /// The format the rule's contents use: the stream's, or the rule's own stamp if that is older (spec §4.3.1).
+    static func contentVersion(streamVersion: OutlookRulesVersion, versionStamp: UInt32?) -> OutlookRulesVersion {
+        guard streamVersion >= .outlook2002, let stamp = versionStamp.map({ $0 & 0x00FFFFFF }), stamp >= 960706 else {
+            return streamVersion
+        }
+
+        return min(streamVersion, RulesHeader.detectVersion(versionStamp: stamp))
+    }
+
+    /// Reads a rule header. `version` is the stream's version; the rule's contents use `contentVersion`.
     public init(dataStream: inout DataStream, version: OutlookRulesVersion) throws {
         if version >= .outlook2002 {
             /// Version Stamp (4 bytes)
@@ -39,12 +51,10 @@ internal struct RuleHeader {
             self.versionStamp = nil
         }
 
+        let version = RuleHeader.contentVersion(streamVersion: version, versionStamp: versionStamp)
+
         /// Name (variable)
-        if version >= .outlook2002 {
-            self.name = try UTF16String(dataStream: &dataStream).value
-        } else {
-            self.name = try ASCIIString(dataStream: &dataStream).value
-        }
+        self.name = try VersionedString.read(from: &dataStream, version: version)
 
         /// Enabled (4 bytes)
         self.enabled = try dataStream.read(endianess: .littleEndian) as UInt32 != 0x0000
@@ -63,13 +73,13 @@ internal struct RuleHeader {
         }
 
         if version >= .outlook2002 {
-            /// Unknown4 (4 bytes)
-            self.unknown4 = try dataStream.read(endianess: .littleEndian)
+            /// Server Rule ID (4 bytes)
+            self.serverRuleId = try dataStream.read(endianess: .littleEndian)
 
             /// Data Size (4 bytes)
             self.dataSize = try dataStream.read(endianess: .littleEndian)
         } else {
-            self.unknown4 = nil
+            self.serverRuleId = nil
             self.dataSize = nil
         }
 
@@ -77,18 +87,18 @@ internal struct RuleHeader {
         self.numberOfElements = try dataStream.read(endianess: .littleEndian)
     }
 
-    public func write(to dataStream: inout OutputDataStream, version: OutlookRulesVersion) {
-        if version >= .outlook2002 {
-            /// Version Stamp (4 bytes): the same as the stream's (spec §4.3.1).
-            dataStream.write(versionStamp ?? RulesHeader.defaultVersionStamp(for: version) ?? 0, endianess: .littleEndian)
+    /// Writes the header. `version` is the stream's version; the rule's contents use `contentVersion`.
+    public func write(to dataStream: inout OutputDataStream, version streamVersion: OutlookRulesVersion) {
+        let stamp = versionStamp ?? RulesHeader.defaultVersionStamp(for: streamVersion) ?? 0
+        if streamVersion >= .outlook2002 {
+            /// Version Stamp (4 bytes)
+            dataStream.write(stamp, endianess: .littleEndian)
         }
 
+        let version = RuleHeader.contentVersion(streamVersion: streamVersion, versionStamp: stamp)
+
         /// Name (variable)
-        if version >= .outlook2002 {
-            UTF16String(value: name).write(to: &dataStream)
-        } else {
-            ASCIIString(value: name).write(to: &dataStream)
-        }
+        VersionedString.write(name, to: &dataStream, version: version)
 
         /// Enabled (4 bytes)
         dataStream.write((enabled ? 1 : 0) as UInt32, endianess: .littleEndian)
@@ -105,8 +115,8 @@ internal struct RuleHeader {
         }
 
         if version >= .outlook2002 {
-            /// Unknown4 (4 bytes)
-            dataStream.write(unknown4 ?? 0, endianess: .littleEndian)
+            /// Server Rule ID (4 bytes)
+            dataStream.write(serverRuleId ?? 0, endianess: .littleEndian)
 
             /// Data Size (4 bytes)
             dataStream.write(dataSize ?? 0, endianess: .littleEndian)

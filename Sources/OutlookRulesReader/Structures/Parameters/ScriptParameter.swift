@@ -22,10 +22,10 @@ public struct ScriptParameter: RuleParameter {
         self.reserved = try dataStream.read(endianess: .littleEndian)
         
         /// Name (variable)
-        self.name = try UTF16String(dataStream: &dataStream).value
+        self.name = try VersionedString.read(from: &dataStream, version: version)
         
         /// Function (variable)
-        self.function = try UTF16String(dataStream: &dataStream).value
+        self.function = try VersionedString.read(from: &dataStream, version: version)
     }
     
     public func write(to dataStream: inout OutputDataStream, version: OutlookRulesVersion) {        
@@ -33,9 +33,9 @@ public struct ScriptParameter: RuleParameter {
         dataStream.write(reserved, endianess: .littleEndian)
         
         /// Name (variable)
-        UTF16String(value: name).write(to: &dataStream)
+        VersionedString.write(name, to: &dataStream, version: version)
         
         /// Function (variable)
-        UTF16String(value: function).write(to: &dataStream)
+        VersionedString.write(function, to: &dataStream, version: version)
     }
 }

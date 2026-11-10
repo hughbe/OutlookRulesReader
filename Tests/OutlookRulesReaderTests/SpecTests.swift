@@ -53,7 +53,7 @@ final class SpecTests: XCTestCase {
         let data = try getData(name: "Outlook2002FromOutlook2019", fileExtension: "rwz")
         let file = try OutlookRules(data: data)
         XCTAssertTrue(file.rules[0].isServerRule)
-        XCTAssertEqual(2, file.rules[0].unknown4)
+        XCTAssertEqual(2, file.rules[0].serverRuleId)
         XCTAssertEqual(data, file.getData())
     }
 
@@ -99,7 +99,7 @@ final class SpecTests: XCTestCase {
         XCTAssertEqual(1, header.unknown4)
         XCTAssertEqual(1, header.promptToConvertInboxAssistantRules)
         XCTAssertEqual(1, header.convertInboxAssistantRules)
-        XCTAssertNil(header.unknown9)
+        XCTAssertNil(header.extraData)
         XCTAssertEqual(2, header.numberOfRules)
     }
 
@@ -409,12 +409,52 @@ final class SpecTests: XCTestCase {
         XCTAssertEqual(0, print98.rules.count)
     }
 
+    /// From Outlook 2002 the header ends with a byte count and that many bytes, which must be preserved (spec §4.2).
+    func testHeaderExtraData() throws {
+        let original = try getData(name: "Outlook2002FromOutlook2019", fileExtension: "rwz")
+        var dataStream = DataStream(original)
+        var header = try RulesHeader(dataStream: &dataStream)
+        XCTAssertEqual(Data(), header.extraData)
+
+        header.extraData = Data([0x01, 0x02, 0x03])
+        var output = OutputDataStream()
+        header.write(to: &output, version: header.version)
+        var data = output.data
+        data.append(original[46...])
+
+        let file = try OutlookRules(data: data)
+        XCTAssertEqual(data, file.getData())
+        var reread = DataStream(data)
+        XCTAssertEqual(Data([0x01, 0x02, 0x03]), try RulesHeader(dataStream: &reread).extraData)
+    }
+
+    /// A rule whose own stamp is older than the stream's keeps that older layout: ANSI name, no server rule ID or
+    /// data size, and ANSI parameters (spec §4.3.1).
+    func testRuleWithOlderVersionStamp() throws {
+        var rule = Rule(eventFlags: .afterReceived, name: "Older", conditions: [
+            RuleElement(identifier: .specificWordsInSubjectCondition, parameter: StringParameter(value: "hello"))
+        ])
+        rule.versionStamp = 980413
+        rule.sourceVersion = .outlook2002
+        let file = OutlookRules(rules: [rule])
+        let data = file.getData(version: .outlook2002)
+        XCTAssertNotNil(data.range(of: Data([0xBD, 0xF5, 0x0E, 0x00, 0x05]) + "Older".data(using: .ascii)!))
+        XCTAssertNotNil(data.range(of: Data([0x05]) + "hello".data(using: .ascii)!))
+
+        let reread = try OutlookRules(data: data)
+        XCTAssertEqual("Older", reread.rules[0].name)
+        XCTAssertEqual("hello", (reread.rules[0].conditions[0].parameter as? StringParameter)?.value)
+        XCTAssertEqual(data, reread.getData())
+    }
+
     static var allTests = [
         ("testAllSamplesRoundTrip", testAllSamplesRoundTrip),
         ("testParameterDataSizeMatchesWrittenSize", testParameterDataSizeMatchesWrittenSize),
         ("testRuleHeaderFieldsPreserved", testRuleHeaderFieldsPreserved),
         ("testNetFolders", testNetFolders),
         ("testRunError", testRunError),
+        ("testHeaderExtraData", testHeaderExtraData),
+        ("testRuleWithOlderVersionStamp", testRuleWithOlderVersionStamp),
         ("testEmptyOutlook97Stream", testEmptyOutlook97Stream),
         ("testSignatureZeroHeader", testSignatureZeroHeader),
         ("testWriterVersion", testWriterVersion),
