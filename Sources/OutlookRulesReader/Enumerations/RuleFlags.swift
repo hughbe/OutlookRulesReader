@@ -32,7 +32,7 @@ public struct RuleFlags: OptionSet, Hashable {
     /// "do not search message for commercial or adult content" (0x0143).
     public static let exceptionListRule = RuleFlags(rawValue: 0x20)
 
-    /// The large-message rule of Outlook 2000's "Download Options" dialog: don't download messages larger than
-    /// a size, except from chosen senders, with high importance or with a flag.
+    /// The "big item rule" of the "Download Options" dialog: don't download messages larger than a size,
+    /// except from chosen senders, with high importance or with a flag.
     public static let downloadOptionsRule = RuleFlags(rawValue: 0x40)
 }
