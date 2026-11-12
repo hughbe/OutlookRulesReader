@@ -1127,7 +1127,7 @@ final class ImportActionTests: XCTestCase {
             XCTAssertEqual(0, file.rules[0].exceptions.count)
             
             let action = file.rules[0].actions[0].parameter as! RetentionPolicyParameter
-            XCTAssertEqual(GUID(0x56453412, 0x7867, 0x9089, 0x0112, 0x233445566778), action.guid)
+            XCTAssertEqual(GUID(0x56453412, 0x7867, 0x9089, 0x0112, 0x233445566778), action.policyId)
             XCTAssertEqual("Never Delete", action.name)
         }
     }
@@ -2021,7 +2021,7 @@ final class ImportActionTests: XCTestCase {
             XCTAssertEqual("4.0;C:\\Program Files (x86)\\TechHit.com\\AutoRead\\autoread.dll;1", action.location)
             XCTAssertEqual("AutoRead", action.name)
             XCTAssertEqual("", action.options)
-            XCTAssertEqual("", action.actionValue)
+            XCTAssertEqual("", action.value)
         }
         do {
             let file = try OutlookRules(data: Data([
@@ -2061,7 +2061,7 @@ final class ImportActionTests: XCTestCase {
             XCTAssertEqual("4.0;C:\\Program Files (x86)\\TechHit.com\\AutoRead\\autoread.dll", action.location)
             XCTAssertEqual("AutoRead", action.name)
             XCTAssertEqual("v: 1|c: autoread|b: 2|", action.options)
-            XCTAssertEqual("AutoRead", action.actionValue)
+            XCTAssertEqual("AutoRead", action.value)
         }
         do {
             let file = try OutlookRules(data: Data([
@@ -2101,7 +2101,7 @@ final class ImportActionTests: XCTestCase {
             XCTAssertEqual("4.0;C:\\Program Files (x86)\\TechHit.com\\AutoRead\\autoread.dll", action.location)
             XCTAssertEqual("AutoRead", action.name)
             XCTAssertEqual("v: 1|c: autoread|b: 4|", action.options)
-            XCTAssertEqual("AutoRead", action.actionValue)
+            XCTAssertEqual("AutoRead", action.value)
         }
     }
 

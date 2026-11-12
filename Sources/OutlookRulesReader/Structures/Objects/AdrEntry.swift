@@ -129,7 +129,7 @@ internal struct AdrEntry {
             let position = dataStream.position
 
             var value: Any
-            switch header.tag.type {
+            switch header.propTag.type {
             case PropertyType.integer32:
                 value = UInt32(header.valueLow)
                 break
@@ -195,7 +195,7 @@ internal struct AdrEntry {
                 throw OutlookRulesReadError.corrupted
             }
             
-            propertyValues.append(Property(type: header.tag.type, id: header.tag.id, alignPad: header.alignPad, valueHigh: header.valueHigh, value: value))
+            propertyValues.append(Property(type: header.propTag.type, id: header.propTag.id, alignPad: header.alignPad, valueHigh: header.valueHigh, value: value))
         }
         
         self.propertyValues = propertyValues

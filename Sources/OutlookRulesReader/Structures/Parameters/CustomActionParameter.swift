@@ -12,13 +12,13 @@ public struct CustomActionParameter: RuleParameter {
     public var location: String
     public var name: String
     public var options: String
-    public var actionValue: String
+    public var value: String
     
-    public init(location: String, name: String, options: String = "", actionValue: String = "") {
+    public init(location: String, name: String, options: String = "", value: String = "") {
         self.location = location
         self.name = name
         self.options = options
-        self.actionValue = actionValue
+        self.value = value
     }
     
     public init(dataStream: inout DataStream, version: OutlookRulesVersion) throws {
@@ -48,9 +48,9 @@ public struct CustomActionParameter: RuleParameter {
         
         /// Action Value (variable)
         if version >= .outlook2002 {
-            self.actionValue = try UTF16String(dataStream: &dataStream).value
+            self.value = try UTF16String(dataStream: &dataStream).value
         } else {
-            self.actionValue = try ASCIIString(dataStream: &dataStream).value
+            self.value = try ASCIIString(dataStream: &dataStream).value
         }
     }
     
@@ -81,9 +81,9 @@ public struct CustomActionParameter: RuleParameter {
         
         /// Action Value (variable)
         if version >= .outlook2002 {
-            UTF16String(value: actionValue).write(to: &dataStream)
+            UTF16String(value: value).write(to: &dataStream)
         } else {
-            ASCIIString(value: actionValue).write(to: &dataStream)
+            ASCIIString(value: value).write(to: &dataStream)
         }
     }
 }

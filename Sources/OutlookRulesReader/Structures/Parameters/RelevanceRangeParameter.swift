@@ -9,12 +9,12 @@ import DataStream
 
 public struct RelevanceRangeParameter: RuleParameter {
     public var reserved: UInt32 = 0
-    public var minimumRelevance: UInt32
-    public var maximumRelevance: UInt32
+    public var minimum: UInt32
+    public var maximum: UInt32
 
-    public init(minimumRelevance: UInt32 = 0, maximumRelevance: UInt32) {
-        self.minimumRelevance = minimumRelevance
-        self.maximumRelevance = maximumRelevance
+    public init(minimum: UInt32 = 0, maximum: UInt32) {
+        self.minimum = minimum
+        self.maximum = maximum
     }
     
     public init(dataStream: inout DataStream, version: OutlookRulesVersion) throws {
@@ -22,10 +22,10 @@ public struct RelevanceRangeParameter: RuleParameter {
         self.reserved = try dataStream.read(endianess: .littleEndian)
         
         /// Minimum Relevance (4 bytes)
-        self.minimumRelevance = try dataStream.read(endianess: .littleEndian)
+        self.minimum = try dataStream.read(endianess: .littleEndian)
         
         /// Maximum Relevance (4 bytes)
-        self.maximumRelevance = try dataStream.read(endianess: .littleEndian)
+        self.maximum = try dataStream.read(endianess: .littleEndian)
     }
     
     public func write(to dataStream: inout OutputDataStream, version: OutlookRulesVersion) {
@@ -33,9 +33,9 @@ public struct RelevanceRangeParameter: RuleParameter {
         dataStream.write(reserved, endianess: .littleEndian)
 
         /// Minimum Relevace (4 bytes)
-        dataStream.write(minimumRelevance, endianess: .littleEndian)
+        dataStream.write(minimum, endianess: .littleEndian)
 
         /// Maximum Relevance (4 bytes)
-        dataStream.write(maximumRelevance, endianess: .littleEndian)
+        dataStream.write(maximum, endianess: .littleEndian)
     }
 }

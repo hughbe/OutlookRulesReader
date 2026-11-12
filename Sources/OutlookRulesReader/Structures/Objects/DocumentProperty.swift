@@ -18,7 +18,7 @@ public struct DocumentProperty {
     }
 
     public var field: String
-    public var tag: PropertyTag
+    public var propTag: PropertyTag
     public var rawStringMatchType: UInt32
     public var stringMatchType: DocumentPropertyStringMatchType {
         return DocumentPropertyStringMatchType(rawValue: rawStringMatchType)!
@@ -49,9 +49,9 @@ public struct DocumentProperty {
     /// Whether a message that does not have the property counts as a match (spec §6.9).
     public var matchIfMissing: Bool = false
 
-    public init(field: String, tag: PropertyTag, matchType: DocumentPropertyStringMatchType, stringValue: String) {
+    public init(field: String, propTag: PropertyTag, matchType: DocumentPropertyStringMatchType, stringValue: String) {
         self.field = field
-        self.tag = tag
+        self.propTag = propTag
         self.rawStringMatchType = matchType.rawValue
         self.stringValue = stringValue
         
@@ -63,9 +63,9 @@ public struct DocumentProperty {
         self.dateValue = OleDateTime()
     }
 
-    public init(field: String, tag: PropertyTag, matchType: DocumentPropertyNumberMatchType, numberValue: Int32) {
+    public init(field: String, propTag: PropertyTag, matchType: DocumentPropertyNumberMatchType, numberValue: Int32) {
         self.field = field
-        self.tag = tag
+        self.propTag = propTag
         self.rawNumberMatchType = matchType.rawValue
         self.numberValue2 = numberValue
         
@@ -77,9 +77,9 @@ public struct DocumentProperty {
         self.dateValue = OleDateTime()
     }
 
-    public init(field: String, tag: PropertyTag, matchType: DocumentPropertyNumberMatchType, boolValue: Bool) {
+    public init(field: String, propTag: PropertyTag, matchType: DocumentPropertyNumberMatchType, boolValue: Bool) {
         self.field = field
-        self.tag = tag
+        self.propTag = propTag
         self.rawBoolMatchType = boolValue ? 0 : 1 // Inverted
         
         self.rawStringMatchType = 0
@@ -100,7 +100,7 @@ public struct DocumentProperty {
         }
 
         /// Tag (4 bytes)
-        self.tag = try PropertyTag(dataStream: &dataStream)
+        self.propTag = try PropertyTag(dataStream: &dataStream)
 
         /// String Match Type (4 bytes)
         self.rawStringMatchType = try dataStream.read(endianess: .littleEndian)
@@ -146,7 +146,7 @@ public struct DocumentProperty {
         }
 
         /// Tag (4 bytes)
-        tag.write(to: &dataStream)
+        propTag.write(to: &dataStream)
 
         /// String Match Type (4 bytes)
         dataStream.write(rawStringMatchType, endianess: .littleEndian)

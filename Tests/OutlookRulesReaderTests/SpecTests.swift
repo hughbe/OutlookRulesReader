@@ -312,7 +312,7 @@ final class SpecTests: XCTestCase {
         let reread = try OutlookRules(data: profile)
         XCTAssertEqual(profile, reread.getData())
         let folder = try XCTUnwrap(reread.rules[0].actions.first { $0.parameter is FolderParameter }?.parameter as? FolderParameter)
-        XCTAssertNil(folder.secondaryUserStore)
+        XCTAssertNil(folder.secondaryStore)
     }
 
     /// Formats are identified by version-stamp range, and an unrecognised stamp is kept (spec §3).

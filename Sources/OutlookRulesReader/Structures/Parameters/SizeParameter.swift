@@ -9,12 +9,12 @@ import DataStream
 
 public struct SizeParameter: RuleParameter {
     public var reserved: UInt32 = 0
-    public var minSizeInKilobytes: UInt32
-    public var maxSizeInKilobytes: UInt32
+    public var minimum: UInt32
+    public var maximum: UInt32
 
-    public init(minSizeInKilobytes: UInt32 = 0, maxSizeInKilobytes: UInt32) {
-        self.minSizeInKilobytes = minSizeInKilobytes
-        self.maxSizeInKilobytes = maxSizeInKilobytes
+    public init(minimum: UInt32 = 0, maximum: UInt32) {
+        self.minimum = minimum
+        self.maximum = maximum
     }
     
     public init(dataStream: inout DataStream, version: OutlookRulesVersion) throws {
@@ -22,10 +22,10 @@ public struct SizeParameter: RuleParameter {
         self.reserved = try dataStream.read(endianess: .littleEndian)
         
         /// MinSizeInKilobytes (4 bytes)
-        self.minSizeInKilobytes = try dataStream.read(endianess: .littleEndian)
+        self.minimum = try dataStream.read(endianess: .littleEndian)
         
         /// MaxSizeInKilobytes (4 bytes)
-        self.maxSizeInKilobytes = try dataStream.read(endianess: .littleEndian)
+        self.maximum = try dataStream.read(endianess: .littleEndian)
     }
     
     public func write(to dataStream: inout OutputDataStream, version: OutlookRulesVersion) {
@@ -33,9 +33,9 @@ public struct SizeParameter: RuleParameter {
         dataStream.write(reserved, endianess: .littleEndian)
 
         /// MinSizeInKilobytes (4 bytes)
-        dataStream.write(minSizeInKilobytes, endianess: .littleEndian)
+        dataStream.write(minimum, endianess: .littleEndian)
 
         /// MaxSizeInKilobytes (4 bytes)
-        dataStream.write(maxSizeInKilobytes, endianess: .littleEndian)
+        dataStream.write(maximum, endianess: .littleEndian)
     }
 }
