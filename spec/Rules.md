@@ -13,7 +13,7 @@ Every statement in this document has one of three confidence levels:
 | **[O97]** | Read from the Outlook 97 Rules Wizard's code (`docs/Internals/RULESWIZ.DLL`, disassembled). This shows how Outlook 97 writes and uses the field. Later versions are assumed to keep the meaning wherever the samples agree. See [Appendix D](#appendix-d-findings-from-ruleswizdll). |
 | **[O98]** | Read from Outlook 98's code (`OUTLLIB.DLL` from the Outlook 98 CD, disassembled). See [Appendix E](#appendix-e-findings-from-outlook-98). |
 | **[O2000]** | Read from Outlook 2000's code (`OUTLLIB.DLL` and its Turkish resource DLL `1055/OUTLLIBR.DLL` from an Outlook 2000 CD, disassembled). See [Appendix F](#appendix-f-findings-from-outlook-2000). |
-| **[O2002]** | Read from Outlook 2002's code (`OUTLLIB.DLL` from an English Outlook 2002 CD, disassembled). See [Appendix G](#appendix-g-findings-from-outlook-2002). |
+| **[O2002]** | Read from Outlook 2002's code (`OUTLLIB.DLL` and `IMPMAIL.DLL` from an English Outlook 2002 CD, disassembled). See [Appendix G](#appendix-g-findings-from-outlook-2002) and [Appendix H](#appendix-h-outlook-express-rule-import-outlook-2002). |
 | **[Unknown]** | The field's layout is known but its meaning is not. Observed values are listed. |
 
 Writers SHOULD reproduce observed values for fields marked [Unknown]. Readers SHOULD accept any value.
@@ -746,7 +746,7 @@ Used by `0x00EF`.
 
 | Field | Size | Description |
 |---|---|---|
-| Stamp | 16 | GUID. **[Inferred]** Identifies the profile or machine that "this computer" refers to. Files exported from the same machine carry the same GUID. |
+| Stamp | 16 | GUID identifying the machine that "this machine" refers to. Files exported from the same machine carry the same GUID. **[O2002]** When Outlook 2002 uploads such a rule to Exchange, it appends this GUID to the rule's `PR_RULE_PROVIDER` as 32 uppercase hex digits. A deferred action from that rule is then handled only on the machine whose ID matches (see [Appendix G](#appendix-g-findings-from-outlook-2002)). |
 
 ### 6.17 AddressBookParameter
 `CABContListDialog`. Used by `0x00F0` and `0x0215`.
@@ -1123,7 +1123,20 @@ The CD image (`OFFICE10.mdf`, an English Outlook 2002 from April 2001) stores ra
 * **Parameter factory** (jump table `0x34ACC6C8`, kinds 1–`0x23`). New kinds: `0x21` "on this computer only" (Reserved, GUID), `0x22` address book (Reserved, entry ID, String) and `0x23` script (Reserved, String, String). Every other kind keeps its layout.
 * **Server rules** (upload `0x34AC6B1C`, provider data built at `0x34ABAFD0`, server rules read at `0x34ABAF64`). The provider data's layout is unchanged, but offset 0 now holds the embedded rule's own version stamp and offset 4 the rule's ServerRuleId ([Appendix E](#appendix-e-findings-from-outlook-98)). `PR_RULE_ID` is sent when known. While reading the server's rules, Outlook sets its ServerRuleId counter to the highest ID it finds.
 * **Footer Timestamp** (date helper `0x34ACD3D2`, check `0x3464018C`, server rules read at `0x346402E9`). See [§4.4](#44-rulesfooter). The conflict dialog is resource `0xEA` ("Rules Wizard", buttons Client / Server).
-* **Exchange server rules** (built at `0x34AC6B1C`). Each condition becomes a MAPI restriction and each server action a MAPI action. Exceptions use the same restriction as their condition (the condition's identifier + 300, or the pairs in [§5.4](#54-exceptions)); **[Inferred]** they are negated. Elements with no server form are left out, and the rule then gets a client part ([Appendix E](#appendix-e-findings-from-outlook-98)).
+* **Exchange server rules** (built at `0x34AC6B1C`). Each condition becomes a MAPI restriction and each server action a MAPI action.
+  * **Restriction.** Exceptions use the restriction of their matching condition (the condition's identifier + 300, or the pairs in [§5.4](#54-exceptions)), wrapped in `RES_NOT`. The rule's restriction is `RES_AND` of every condition and negated exception; a rule with just one becomes that restriction alone.
+  * **Client part.** An element whose definition is client-only is left out of the server rule. The rule then starts with an `OP_DEFER_ACTION` action whose data is the one byte `"1"`, and the whole rule is embedded in its provider data ([Appendix E](#appendix-e-findings-from-outlook-98)). When the rule fires, Exchange delivers a deferred action message (class `IPC.Microsoft Exchange 4.0.Deferred Action`). Outlook matches it to the rule by `PR_RULE_PROVIDER` and runs the client-only parts from the embedded copy. Failures arrive as `IPC.Microsoft Exchange 4.0.Deferred Error` messages and are listed in "Rules in Error".
+  * **Provider name.** `PR_RULE_PROVIDER` is `RuleOrganizer`, followed by `2` when the rule's version is 1000000 or later. For "on this machine only" (`0x00EF`), the machine's GUID follows as 32 uppercase hex digits. When reading the server's rules, Outlook treats any provider that starts with `RuleOrganizer` as its own and compares the machine ID. The Inbox Assistant's rules use the provider `MSFT:TDX Rules`.
+  * **Timestamp.** Each upload sets the provider-data timestamp to the current local time and then stores that same value as the footer Timestamp ([§4.4](#44-rulesfooter)).
+  * **Reading server rules back** (`0x34AC7EBF`). A rule created by Outlook comes back from the copy embedded in its provider data. Any other server rule, such as an Inbox Assistant rule, is rebuilt from its restriction and actions (`0x34AAFAF1`, `0x34AAFEC9`):
+    * `OP_MOVE` and `OP_COPY` become move or copy to folder, or "delete it" when the target is Deleted Items;
+    * `OP_REPLY` becomes "have server reply using";
+    * `OP_FORWARD` becomes forward, redirect or forward as attachment, depending on its flags;
+    * `OP_TAG` on `PR_IMPORTANCE` or `PR_SENSITIVITY` becomes "mark it as"; a flag tag becomes "flag message";
+    * `OP_DELETE` becomes "delete it";
+    * the Inbox Assistant's `OP_DEFER_ACTION`, whose data starts with `n`, becomes an alert or sound action;
+    * `ST_ENABLED` becomes Enabled, and `ST_EXIT_LEVEL` adds "stop processing more rules";
+    * `OP_OOF_REPLY`, `OP_BOUNCE` and `OP_DELEGATE` have no element.
 
   | Element | Server form |
   |---|---|
@@ -1156,6 +1169,8 @@ The CD image (`OFFICE10.mdf`, an English Outlook 2002 from April 2001) stores ra
   | `0x0147` forward as attachment | `OP_FORWARD` with flag `4` (as attachment) |
 
   These have no server form: conditions `0x00D1`, `0x00D7` (category), `0x00DA`, `0x00DB`, `0x00DD`, `0x00DF` (document properties), `0x00E5` (words in recipient's address) and everything from `0x00E9` on, and every other action.
+* **Client rules.** Before running client rules on a message, Outlook 2002 fetches the message body only if a rule needs it: word conditions on the body (`0x00CE`, `0x00CF` and their exceptions) or the junk-mail conditions (`0x00E9`–`0x00EC`). The matching code itself was not traced.
+* **Remote mail.** The "Filter Messages" dialog (1910), "Download only header for items larger than…", doesn't create a Rules Wizard rule; only "Download Options" (1129) does, with Flags `0x40`.
 * **Rules Wizard UI** (resources in `OUTLLIBR.DLL`).
   * Main dialog 2300: "Apply changes to this folder", the ordered rule list with Move Up / Move Down, the rule description with underlined values to edit, and New, Copy, Modify, Rename, Delete, Run Now and Options. Copy (dialog 2999, "Copy rule to...") copies a rule to another folder's rules.
   * Wizard pages 2301 (template or blank rule), 2303 (conditions), 2304 (actions), 2305 (exceptions) and 2306 (name, "Run this rule on messages already in the current folder", "Turn on this rule", "Create this rule on all accounts").
@@ -1166,6 +1181,59 @@ The CD image (`OFFICE10.mdf`, an English Outlook 2002 from April 2001) stores ra
   * Each element's text comes from its definition record: text, placeholder (text + `0x3E8`) and prompt (text + `0x7D0`), as in Outlook 97. Outlook 2002's English wording matches [§5](#5-element-identifiers), with "people or distribution list" for *people or public group*.
   * The resources still contain Outlook 97's "Rules Wizard rule set (\*.rst)" file type and its "Your client rules have been modified more recently than your Exchange Server rules" message, but no code that loads them was found.
 * **Built-in rules** (junk-mail table entries at `0x346F005C` and `0x346F0088`). Unchanged from Outlook 2000: Flags `0x08` (Junk Senders, `0x00EB`), `0x10` (Adult Content Senders, `0x00EC`), `0x20` (Exception List, `0x00E9` and `0x0143`) and `0x40` (Download Options). No code sets Flags bits `0x1` or `0x2`.
+
+## Appendix H. Outlook Express rule import (Outlook 2002)
+
+Outlook 2002's Import and Export Wizard can import mail rules from Outlook Express 4 and 5 ("Outlook Import Tool" → "Import Rules"). The work is split between two DLLs **[O2002]**:
+
+* `IMPMAIL.DLL` (`ImportRules` export) reads the Outlook Express rules.
+* `OUTLLIB.DLL`'s `HrImportRules` export loads `IMPMAIL.DLL` and calls `ImportRules` with a table of callbacks (built at `0x34AA2E96`). IMPMAIL creates a rule, its elements and their values through those callbacks, so it never writes this file format itself.
+
+Each imported rule is created **turned off**. When the import finishes, Outlook says "Rules and Filters were successfully imported. To enable and edit these rules please launch the Rules Wizard." A rule containing any criterion or action without an Outlook equivalent is left out completely, never partly imported.
+
+**Element codes.** IMPMAIL asks for elements by code; `OUTLLIB.DLL` maps the codes to identifiers:
+
+| Condition code | Element | | Action code | Element |
+|---|---|---|---|---|
+| 0, 1 | `0x00CC` sent to | | 1 | `0x012C` move to folder |
+| 2 | `0x00CB` from | | 2 | `0x0139` copy to folder |
+| 3 | `0x00CD` words in subject | | 3 | `0x012F` reply using template |
+| 4 | `0x00E0` size | | 7 | `0x012E` forward |
+| 5 | `0x00E5` words in recipient's address | | 9 | `0x0131` flag message |
+| 6 | `0x00E6` words in sender's address | | 10 | `0x012D` delete it |
+| 7 | `0x00CE` words in body | | 100 | `0x0142` stop processing more rules |
+| 8 | `0x00DE` has an attachment | | | |
+| 9 | `0x00D2` importance | | | |
+
+**Outlook Express 4.** Rules are registry keys under `HKCU\Software\Microsoft\Outlook Express\Mail\Inbox Rules`, one subkey per rule. Each is named "Outlook Express rule #*n*", because Outlook Express 4 rules have no names.
+
+| Value | Becomes |
+|---|---|
+| `All Messages` | No conditions. |
+| `To`, `CC` | Addresses added to one "sent to" (`0x00CC`) condition. |
+| `From` | "from" (`0x00CB`). |
+| `Subject` | "with words in the subject" (`0x00CD`). |
+| `Size` | "with a size in a specific range" (`0x00E0`), from *Size* + 1 KB to 999999 KB. |
+| `Account` | Ignored. |
+| `Actions` | A bitmask: `0x01` move to the folder in `Move To Handle`, `0x02` copy to the folder in `Copy To Handle`, `0x04` forward to the addresses in `Forward To`, `0x08` reply using the file in `Reply With File`, `0x20` delete. A rule with `0x10` is not imported. |
+
+**Outlook Express 5.** Rules come from Outlook Express's own rules manager, a COM object. IMPMAIL reads each rule's name (property 0), criteria (property 2: an array of 32-byte items, each with a type and a `PROPVARIANT` value) and actions (property 3: 24-byte items).
+
+| Criterion type | Becomes | | Action type | Becomes |
+|---|---|---|---|---|
+| 5, 6, 21 | "sent to" (`0x00CC`) | | 1 | copy (`0x0139`) |
+| 7 | "from" (`0x00CB`) | | 2 | forward (`0x012E`) |
+| 8 | words in subject (`0x00CD`) | | 5 | reply using template (`0x012F`) |
+| 9 | words in body (`0x00CE`) | | 6 | move (`0x012C`) |
+| 10, 11, 22 | words in recipient's address (`0x00E5`) | | 7 | delete (`0x012D`) |
+| 12 | words in sender's address (`0x00E6`) | | 11 | flag (`0x0131`) |
+| 13 | importance (`0x00D2`) | | 12 | stop processing more rules (`0x0142`) |
+| 14 | has an attachment (`0x00DE`) | | 0, 3, 4, 8–10, 13 | not imported |
+| 15 | size (`0x00E0`) | | | |
+| 20 | no conditions (all messages) | | | |
+| 0–4, 16–19 | not imported | | | |
+
+A criterion whose value is a list (`VT_BLOB` of strings) becomes one word parameter per string ([§6.3](#63-wordparameter)).
 
 ## References
 
