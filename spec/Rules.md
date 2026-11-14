@@ -4,7 +4,7 @@ This document specifies the binary format used by Microsoft Outlook to store cli
 
 ## Status of this document
 
-Every statement in this document has one of three confidence levels:
+Each statement is marked with how it was established:
 
 | Marker | Meaning |
 |---|---|
@@ -140,7 +140,7 @@ Every rule element is preceded by an MFC object tag (`u16`):
 
 The class descriptor is written once per stream, before the first element of the first rule. Every later element in the stream, including the first element of rules 2…N, uses `0x8001`. A rule with zero elements writes no tag.
 
-The earlier notes described these tags as a "separator" in the rule header. They are part of each element's encoding.
+`docs/RWZ Format.docx` described these tags as a "separator" in the rule header. They are part of each element's encoding.
 
 MFC can also emit `0x7FFF` (big object tag) and object back-references (`0x0001`–`0x7FFE`). Neither has been observed. Readers MAY treat them as corruption.
 
@@ -852,24 +852,26 @@ Used by `0x0153`.
 To produce a stream that Outlook accepts:
 
 1. Choose a generation and VersionStamp. Unless backward compatibility is needed, write G2 with VersionStamp `0x00140000` and WriterVersion `0x06140000`.
-2. Header Unknown1–4 = `0`, ServerRulesOutOfDate = `0`, ServerUpdateMode = `0`, PromptToConvertInboxAssistantRules = `1`, ConvertInboxAssistantRules = `1`, Unknown9 = `0`.
+2. Header Unknown1–4 = `0`, ServerRulesOutOfDate = `0`, ServerUpdateMode = `0`, PromptToConvertInboxAssistantRules = `1`, ConvertInboxAssistantRules = `1`, ExtraDataSize = `0` with no ExtraData.
 3. For each rule, write RuleHeader.VersionStamp = the stream's VersionStamp, and compute DataSize as defined in [§4.3.1](#431-ruleheader).
 4. Write `CRuleElement`'s class descriptor before the stream's first element, and `0x8001` before every other element.
 5. Every rule MUST begin with elements `0x0190` and `0x0064`.
 6. Write all Reserved fields as `0`. Write SPropValue.AlignPad and AdrEntry.Reserved1 as `0`, or preserve the original values.
 7. Write the footer with Status = null (`2`) and Date = `0.0` unless a real timestamp is known.
+8. When writing an older format, follow [§4.1.2](#412-how-outlook-2000-chooses-the-stamp) and [§5.5](#55-downgrading): leave out rules that use elements the format doesn't have, and write at most one parameter per element for Outlook 97 and 98.
 
 ## Appendix A. Worked example
 
 The smallest G2 stream: one enabled rule named `RULENAME`, applied "after the message arrives", written by this library (`ExportTests.testEmptyRule`):
 
 ```
-00 00 14 00                         VersionStamp           0x00140000 (v14)
+00 00 14 00                         VersionStamp        0x00140000 (v14)
 00 00 14 06                         WriterVersion       index 6, stamp 0x140000
 00 00 00 00 ×3                      Unknown1-3
-00 00 00 00  00 00 00 00  00 00 00 00   Unknown4-6
-01 00 00 00                         Unknown7
-01 00 00 00                         Unknown8
+00 00 00 00                         Unknown4
+00 00 00 00  00 00 00 00             ServerRulesOutOfDate, ServerUpdateMode
+01 00 00 00                         PromptToConvertInboxAssistantRules
+01 00 00 00                         ConvertInboxAssistantRules
 00 00 00 00                         ExtraDataSize = 0
 01 00                               NumberOfRules = 1
   00 00 14 00                       Rule.VersionStamp
@@ -908,11 +910,11 @@ These items in `docs/RWZ Format.docx` contradict the sample corpus:
 
 * **"Extended" field.** This is NumberOfParameters ([§4.3.2](#432-element)). It can be 2 or more for word lists.
 * **"Separator" / "Padding" / "Class Name" in the rule header.** These are the MFC object tag and the class schema of the next element ([§2.5](#25-object-tag)).
-* **"Unknown3 MUST NOT be present in Outlook 2000 and earlier."** It is present in G1 (Outlook 98/2000).
+* **"Unknown3 MUST NOT be present in Outlook 2000 and earlier."** That field is the rule's Flags, which G1 (Outlook 98/2000) has.
 * **"Unknown8 always one … Unknown4–6 unknown."** Unknown7 is also always `1`. Unknown4–6 follow the writer ([§4.2](#42-rulesheader)).
 * **Fixed property IDs `0x8222`–`0x823A` for document properties.** Observed IDs differ because they are named-property mappings ([§6.9](#69-formparameter)).
 * **PropertyValueArray "Unknown, always zero".** It is `ADRENTRY.ulReserved1`, and is usually non-zero garbage.
-* **Signature format "major × 100000 + minor/build".** Only true for stamps 1000000–1200000 ([§4.1](#41-version-stamps)).
+* **Signature (VersionStamp) format "major × 100000 + minor/build".** Only true for stamps 1000000–1200000 ([§4.1](#41-version-stamps)).
 
 ## Appendix D. Findings from RULESWIZ.DLL
 
