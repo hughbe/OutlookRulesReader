@@ -10,11 +10,11 @@ import DataStream
 public struct FormTypeParameter: RuleParameter {
     public var reserved: UInt32 = 0
     public var name: String
-    public var className: String
+    public var messageClass: String
     
-    public init(name: String, className: String) {
+    public init(name: String, messageClass: String) {
         self.name = name
-        self.className = className
+        self.messageClass = messageClass
     }
     
     public init(dataStream: inout DataStream, version: OutlookRulesVersion) throws {
@@ -29,7 +29,7 @@ public struct FormTypeParameter: RuleParameter {
         }
 
         /// Class Name (variable)
-        self.className = try ASCIIString(dataStream: &dataStream).value
+        self.messageClass = try ASCIIString(dataStream: &dataStream).value
     }
     
     public func write(to dataStream: inout OutputDataStream, version: OutlookRulesVersion) {
@@ -44,6 +44,6 @@ public struct FormTypeParameter: RuleParameter {
         }
 
         /// Class Name (variable)
-        ASCIIString(value: className).write(to: &dataStream)
+        ASCIIString(value: messageClass).write(to: &dataStream)
     }
 }

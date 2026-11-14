@@ -6,6 +6,7 @@
 //
 
 import DataStream
+import Foundation
 
 /// The header at the start of a rules stream. See spec §4.2.
 internal struct RulesHeader {
@@ -30,7 +31,9 @@ internal struct RulesHeader {
     public var promptToConvertInboxAssistantRules: UInt32? = 1
     /// the last answer to that prompt: 1 = convert (spec §4.2).
     public var convertInboxAssistantRules: UInt32? = 1
-    public var unknown9: UInt32? = 0
+    /// Outlook 2002 and later: a byte count (the field once called Unknown9) followed by that many bytes, which
+    /// Outlook 2002 only loads and saves (spec §4.2). Always empty in the samples. nil before Outlook 2002.
+    public var extraData: Data? = Data()
     public var numberOfRules: UInt16
 
     public init(numberOfRules: UInt16, version: OutlookRulesVersion = .outlook2010) {
@@ -106,7 +109,7 @@ internal struct RulesHeader {
             self.serverUpdateMode = nil
             self.promptToConvertInboxAssistantRules = nil
             self.convertInboxAssistantRules = nil
-            self.unknown9 = nil
+            self.extraData = nil
 
             /// Number of Rules (2 bytes)
             self.numberOfRules = try dataStream.read(endianess: .littleEndian)
@@ -148,11 +151,17 @@ internal struct RulesHeader {
         /// Convert Inbox Assistant Rules (4 bytes)
         self.convertInboxAssistantRules = try dataStream.read(endianess: .littleEndian)
 
-        /// Unknown9 (4 bytes)
         if version >= .outlook2002 {
-            self.unknown9 = try dataStream.read(endianess: .littleEndian)
+            /// Extra Data Size (4 bytes)
+            let extraDataSize: UInt32 = try dataStream.read(endianess: .littleEndian)
+            guard extraDataSize <= dataStream.remainingCount else {
+                throw OutlookRulesReadError.corrupted
+            }
+
+            /// Extra Data (variable)
+            self.extraData = Data(try dataStream.readBytes(count: Int(extraDataSize)))
         } else {
-            self.unknown9 = nil
+            self.extraData = nil
         }
 
         /// Number of Rules (2 bytes)
@@ -206,8 +215,13 @@ internal struct RulesHeader {
             dataStream.write(source.convertInboxAssistantRules ?? 1, endianess: .littleEndian)
 
             if version >= .outlook2002 {
-                /// Unknown9 (4 bytes)
-                dataStream.write(source.unknown9 ?? 0, endianess: .littleEndian)
+                let extraData = source.extraData ?? Data()
+
+                /// Extra Data Size (4 bytes)
+                dataStream.write(UInt32(extraData.count), endianess: .littleEndian)
+
+                /// Extra Data (variable)
+                dataStream.write(extraData)
             }
         }
 

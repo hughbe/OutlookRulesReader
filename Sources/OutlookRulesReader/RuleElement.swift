@@ -115,6 +115,8 @@ public struct RuleElement {
                     parameter = try StringParameter(dataStream: &dataStream, version: version)
                 case .exceptionListCondition: // 0x00E9
                     parameter = try SendersListParameter(dataStream: &dataStream, version: version)
+                case .legacyJunkCondition: // 0x00EA
+                    parameter = try SendersListParameter(dataStream: &dataStream, version: version)
                 case .junkCondition: // 0x00EB
                     parameter = try SendersListParameter(dataStream: &dataStream, version: version)
                 case .adultCondition: // 0x00EC

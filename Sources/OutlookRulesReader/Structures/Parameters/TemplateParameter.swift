@@ -26,7 +26,7 @@ public struct TemplateParameter: RuleParameter {
         self.messageEntryId = try FlatEntry(dataStream: &dataStream).entryID
         
         /// Name (variable)
-        self.name = try UTF16String(dataStream: &dataStream).value
+        self.name = try VersionedString.read(from: &dataStream, version: version)
     }
     
     public func write(to dataStream: inout OutputDataStream, version: OutlookRulesVersion) {
@@ -37,6 +37,6 @@ public struct TemplateParameter: RuleParameter {
         FlatEntry(entryID: messageEntryId).write(to: &dataStream)
         
         /// Name (variable)
-        UTF16String(value: name).write(to: &dataStream)
+        VersionedString.write(name, to: &dataStream, version: version)
     }
 }

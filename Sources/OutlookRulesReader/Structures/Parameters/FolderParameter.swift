@@ -13,7 +13,7 @@ public struct FolderParameter: RuleParameter {
     public var folderEntryId: EntryID
     public var storeEntryId: EntryID
     public var folderName: String
-    public var secondaryUserStore: Bool? = false
+    public var secondaryStore: Bool? = false
     
     public init(folderEntryId: FolderEntryID, storeEntryId: StoreEntryID, folderName: String) {
         self.folderEntryId = folderEntryId
@@ -40,9 +40,9 @@ public struct FolderParameter: RuleParameter {
         
         if FolderParameter.hasSecondaryStore(version) {
             /// Secondary User Store (4 bytes)
-            self.secondaryUserStore = (try dataStream.read(endianess: .littleEndian) as UInt32) != 0
+            self.secondaryStore = (try dataStream.read(endianess: .littleEndian) as UInt32) != 0
         } else {
-            self.secondaryUserStore = nil
+            self.secondaryStore = nil
         }
     }
     
@@ -65,7 +65,7 @@ public struct FolderParameter: RuleParameter {
         
         if FolderParameter.hasSecondaryStore(version) {
             /// Secondary User Store (4 bytes)
-            dataStream.write(((secondaryUserStore ?? false) ? 1 : 0) as UInt32, endianess: .littleEndian)
+            dataStream.write(((secondaryStore ?? false) ? 1 : 0) as UInt32, endianess: .littleEndian)
         }
     }
 

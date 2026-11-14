@@ -10,10 +10,10 @@ import WindowsDataTypes
 
 public struct ProfileStampParameter: RuleParameter {
     public var reserved: UInt32 = 0
-    public var uuid: GUID
+    public var stamp: GUID
     
-    public init(uuid: GUID) {
-        self.uuid = uuid
+    public init(stamp: GUID) {
+        self.stamp = stamp
     }
     
     public init(dataStream: inout DataStream, version: OutlookRulesVersion) throws {
@@ -21,7 +21,7 @@ public struct ProfileStampParameter: RuleParameter {
         self.reserved = try dataStream.read(endianess: .littleEndian)
 
         /// UUID (16 bytes)
-        self.uuid = try GUID(dataStream: &dataStream)
+        self.stamp = try GUID(dataStream: &dataStream)
     }
     
     public func write(to dataStream: inout OutputDataStream, version: OutlookRulesVersion) {
@@ -29,6 +29,6 @@ public struct ProfileStampParameter: RuleParameter {
         dataStream.write(reserved, endianess: .littleEndian)
 
         /// UUID (16 bytes)
-        uuid.write(to: &dataStream)
+        stamp.write(to: &dataStream)
     }
 }

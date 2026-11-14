@@ -23,7 +23,7 @@ public struct AccountParameter: RuleParameter {
         self.reserved = try dataStream.read(endianess: .littleEndian)
 
         /// Account Name (variable)
-        self.accountName = try UTF16String(dataStream: &dataStream).value
+        self.accountName = try VersionedString.read(from: &dataStream, version: version)
         
         /// Account Stamp (variable)
         self.accountStamp = try ASCIIString(dataStream: &dataStream).value
@@ -34,7 +34,7 @@ public struct AccountParameter: RuleParameter {
         dataStream.write(reserved, endianess: .littleEndian)
         
         /// Account Name (variable)
-        UTF16String(value: accountName).write(to: &dataStream)
+        VersionedString.write(accountName, to: &dataStream, version: version)
 
         /// Account Stamp (variable)
         ASCIIString(value: accountStamp).write(to: &dataStream)

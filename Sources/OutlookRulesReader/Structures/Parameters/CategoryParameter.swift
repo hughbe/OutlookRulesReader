@@ -8,7 +8,6 @@
 import DataStream
 
 public struct CategoryParameter: RuleParameter {
-    public var extended: UInt32 = 1
     public var reserved: UInt32 = 0
     public var rawCategories: String
     public var categories: [String] {

@@ -47,12 +47,13 @@ final class SpecTests: XCTestCase {
     /// Rule header fields with unknown meaning survive a round trip (spec §4.3.1).
     func testRuleHeaderFieldsPreserved() throws {
         let exceptionList = try OutlookRules(data: try getData(name: "Outlook2000_ExceptionList_Default", fileExtension: "rwz"))
-        XCTAssertEqual(0x20, exceptionList.rules[0].flags)
+        XCTAssertEqual(.exceptionListRule, exceptionList.rules[0].flags)
+        XCTAssertEqual(0x20, exceptionList.rules[0].flags.rawValue)
 
         let data = try getData(name: "Outlook2002FromOutlook2019", fileExtension: "rwz")
         let file = try OutlookRules(data: data)
         XCTAssertTrue(file.rules[0].isServerRule)
-        XCTAssertEqual(2, file.rules[0].unknown4)
+        XCTAssertEqual(2, file.rules[0].serverRuleId)
         XCTAssertEqual(data, file.getData())
     }
 
@@ -63,6 +64,23 @@ final class SpecTests: XCTestCase {
         XCTAssertEqual("#NET FOLDERS#", file.rules[0].name)
         XCTAssertEqual([.eventFlags, .itemType, .netFoldersCondition, .netFoldersAction], file.rules[0].elements.map { $0.identifier })
         XCTAssertTrue(file.rules[0].elements[2...].allSatisfy { $0.parameters.isEmpty })
+    }
+
+    /// RuleHeader Unknown1 records that the rule failed while running on the client (spec §4.3.1).
+    func testRunError() throws {
+        let data = try getData(name: "Outlook2000_NetFolders_Default", fileExtension: "rwz")
+        var file = try OutlookRules(data: data)
+        XCTAssertFalse(file.rules[0].hasRunError)
+
+        var rules = file.rules
+        rules[0].hasRunError = true
+        var changed = OutputDataStream()
+        rules[0].write(to: &changed, index: 0, version: .outlook98)
+        var dataStream = DataStream(changed.data)
+        let rule = try Rule(dataStream: &dataStream, index: 0, version: .outlook98)
+        XCTAssertTrue(rule.hasRunError)
+        file = try OutlookRules(data: data)
+        XCTAssertEqual(data, file.getData())
     }
 
     /// An Outlook 97 stream with no rules is only two bytes long (spec §3).
@@ -81,7 +99,7 @@ final class SpecTests: XCTestCase {
         XCTAssertEqual(1, header.unknown4)
         XCTAssertEqual(1, header.promptToConvertInboxAssistantRules)
         XCTAssertEqual(1, header.convertInboxAssistantRules)
-        XCTAssertNil(header.unknown9)
+        XCTAssertNil(header.extraData)
         XCTAssertEqual(2, header.numberOfRules)
     }
 
@@ -294,7 +312,7 @@ final class SpecTests: XCTestCase {
         let reread = try OutlookRules(data: profile)
         XCTAssertEqual(profile, reread.getData())
         let folder = try XCTUnwrap(reread.rules[0].actions.first { $0.parameter is FolderParameter }?.parameter as? FolderParameter)
-        XCTAssertNil(folder.secondaryUserStore)
+        XCTAssertNil(folder.secondaryStore)
     }
 
     /// Formats are identified by version-stamp range, and an unrecognised stamp is kept (spec §3).
@@ -332,11 +350,111 @@ final class SpecTests: XCTestCase {
         XCTAssertEqual(data, file.getData())
     }
 
+    /// Outlook 2000 has the account and server-reply elements and writes their names in ANSI (spec §6.15, §6.25).
+    func testAnsiAccountAndTemplateNames() throws {
+        let folderFile = try OutlookRules(data: try getData(name: "Outlook2007_MoveToFolder_Default", fileExtension: "rwz"))
+        let folder = try XCTUnwrap(folderFile.rules[0].actions.first { $0.parameter is FolderParameter }?.parameter as? FolderParameter)
+        let rule = Rule(
+            eventFlags: .afterReceived,
+            name: "Rule",
+            conditions: [RuleElement(identifier: .throughSpecifiedAccountCondition, parameter: AccountParameter(accountName: "Work", accountStamp: "12345"))],
+            actions: [RuleElement(identifier: .automaticReply, parameter: TemplateParameter(messageEntryId: folder.folderEntryId, name: "Reply"))]
+        )
+        let file = OutlookRules(rules: [rule])
+
+        for version in [OutlookRulesVersion.outlook2000, .outlook2010] {
+            let data = file.getData(version: version)
+            let reread = try OutlookRules(data: data)
+            XCTAssertEqual("Work", (reread.rules[0].conditions.first?.parameter as? AccountParameter)?.accountName)
+            XCTAssertEqual("12345", (reread.rules[0].conditions.first?.parameter as? AccountParameter)?.accountStamp)
+            XCTAssertEqual("Reply", (reread.rules[0].actions.first?.parameter as? TemplateParameter)?.name)
+            XCTAssertEqual(data, reread.getData())
+        }
+
+        let ansi = file.getData(version: .outlook2000)
+        XCTAssertNotNil(ansi.range(of: Data([4]) + Data("Work".utf8)))
+        XCTAssertNotNil(ansi.range(of: Data([5]) + Data("Reply".utf8)))
+    }
+
+    /// Outlook 2000 reads element 0x00EA as the junk-mail condition 0x00EB (spec §5.2).
+    func testLegacyJunkCondition() throws {
+        var data = try getData(name: "Outlook98_Junk", fileExtension: "rwz")
+        let needle = Data([0x01, 0x80, 0xEB, 0x00, 0x00, 0x00])
+        let range = try XCTUnwrap(data.range(of: needle))
+        data.replaceSubrange(range, with: Data([0x01, 0x80, 0xEA, 0x00, 0x00, 0x00]))
+
+        let file = try OutlookRules(data: data)
+        let element = try XCTUnwrap(file.rules[0].elements.first { $0.identifier == .legacyJunkCondition })
+        XCTAssertEqual("Junk Senders", (element.parameter as? SendersListParameter)?.name)
+        XCTAssertEqual(data, file.getData())
+    }
+
+    /// Outlook 2000 saves with stamp 970812 unless a rule needs 980413, and leaves out rules that use Outlook
+    /// 2000-only elements when saving for Outlook 98 (spec §4.1.2).
+    func testOutlook2000SaveVersion() throws {
+        func version(_ name: String) throws -> OutlookRulesVersion {
+            var dataStream = DataStream(try getData(name: name, fileExtension: "rwz"))
+            return try RulesHeader(dataStream: &dataStream).version
+        }
+
+        XCTAssertEqual(.outlook98, try version("Outlook2000_ExceptionList_Default"))
+        XCTAssertEqual(.outlook2000, try version("Outlook2000_Print_Default"))
+        XCTAssertEqual(.outlook98, try version("Outlook2000_Print_98"))
+
+        let print = try OutlookRules(data: try getData(name: "Outlook2000_Print_Default", fileExtension: "rwz"))
+        XCTAssertEqual(1, print.rules.count)
+        XCTAssertTrue(print.rules[0].actions.contains { $0.identifier == .printAction })
+
+        let print98 = try OutlookRules(data: try getData(name: "Outlook2000_Print_98", fileExtension: "rwz"))
+        XCTAssertEqual(0, print98.rules.count)
+    }
+
+    /// From Outlook 2002 the header ends with a byte count and that many bytes, which must be preserved (spec §4.2).
+    func testHeaderExtraData() throws {
+        let original = try getData(name: "Outlook2002FromOutlook2019", fileExtension: "rwz")
+        var dataStream = DataStream(original)
+        var header = try RulesHeader(dataStream: &dataStream)
+        XCTAssertEqual(Data(), header.extraData)
+
+        header.extraData = Data([0x01, 0x02, 0x03])
+        var output = OutputDataStream()
+        header.write(to: &output, version: header.version)
+        var data = output.data
+        data.append(original[46...])
+
+        let file = try OutlookRules(data: data)
+        XCTAssertEqual(data, file.getData())
+        var reread = DataStream(data)
+        XCTAssertEqual(Data([0x01, 0x02, 0x03]), try RulesHeader(dataStream: &reread).extraData)
+    }
+
+    /// A rule whose own stamp is older than the stream's keeps that older layout: ANSI name, no server rule ID or
+    /// data size, and ANSI parameters (spec §4.3.1).
+    func testRuleWithOlderVersionStamp() throws {
+        var rule = Rule(eventFlags: .afterReceived, name: "Older", conditions: [
+            RuleElement(identifier: .specificWordsInSubjectCondition, parameter: StringParameter(value: "hello"))
+        ])
+        rule.versionStamp = 980413
+        rule.sourceVersion = .outlook2002
+        let file = OutlookRules(rules: [rule])
+        let data = file.getData(version: .outlook2002)
+        XCTAssertNotNil(data.range(of: Data([0xBD, 0xF5, 0x0E, 0x00, 0x05]) + "Older".data(using: .ascii)!))
+        XCTAssertNotNil(data.range(of: Data([0x05]) + "hello".data(using: .ascii)!))
+
+        let reread = try OutlookRules(data: data)
+        XCTAssertEqual("Older", reread.rules[0].name)
+        XCTAssertEqual("hello", (reread.rules[0].conditions[0].parameter as? StringParameter)?.value)
+        XCTAssertEqual(data, reread.getData())
+    }
+
     static var allTests = [
         ("testAllSamplesRoundTrip", testAllSamplesRoundTrip),
         ("testParameterDataSizeMatchesWrittenSize", testParameterDataSizeMatchesWrittenSize),
         ("testRuleHeaderFieldsPreserved", testRuleHeaderFieldsPreserved),
         ("testNetFolders", testNetFolders),
+        ("testRunError", testRunError),
+        ("testHeaderExtraData", testHeaderExtraData),
+        ("testRuleWithOlderVersionStamp", testRuleWithOlderVersionStamp),
         ("testEmptyOutlook97Stream", testEmptyOutlook97Stream),
         ("testSignatureZeroHeader", testSignatureZeroHeader),
         ("testWriterVersion", testWriterVersion),
@@ -354,6 +472,9 @@ final class SpecTests: XCTestCase {
         ("testOutlook97Profile", testOutlook97Profile),
         ("testVersionStampRanges", testVersionStampRanges),
         ("testHeaderUnknownsAccepted", testHeaderUnknownsAccepted),
+        ("testAnsiAccountAndTemplateNames", testAnsiAccountAndTemplateNames),
+        ("testLegacyJunkCondition", testLegacyJunkCondition),
+        ("testOutlook2000SaveVersion", testOutlook2000SaveVersion),
     ]
 }
 

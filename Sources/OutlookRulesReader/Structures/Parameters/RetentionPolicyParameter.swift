@@ -10,11 +10,11 @@ import WindowsDataTypes
 
 public struct RetentionPolicyParameter: RuleParameter {
     public var reserved: UInt32 = 0
-    public var guid: GUID
+    public var policyId: GUID
     public var name: String
 
-    public init(guid: GUID, name: String) {
-        self.guid = guid
+    public init(policyId: GUID, name: String) {
+        self.policyId = policyId
         self.name = name
     }
     
@@ -23,7 +23,7 @@ public struct RetentionPolicyParameter: RuleParameter {
         self.reserved = try dataStream.read(endianess: .littleEndian)
         
         /// Guid (16 bytes)
-        self.guid = try GUID(dataStream: &dataStream)
+        self.policyId = try GUID(dataStream: &dataStream)
         
         /// Name (variable)
         self.name = try UTF16String(dataStream: &dataStream).value
@@ -34,7 +34,7 @@ public struct RetentionPolicyParameter: RuleParameter {
         dataStream.write(reserved, endianess: .littleEndian)
         
         /// Guid (16 bytes)
-        guid.write(to: &dataStream)
+        policyId.write(to: &dataStream)
         
         /// Name (variable)
         UTF16String(value: name).write(to: &dataStream)

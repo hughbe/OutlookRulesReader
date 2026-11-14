@@ -93,8 +93,8 @@ public enum RuleElementIdentifier: UInt32 {
     /// “with <specific words> in the sender’s address”
     case specificWordsInSendersAddressCondition = 0x000000E6
     
-    /// Used by the hidden "#NET FOLDERS#" rule that Outlook 98/2000's Net Folders feature creates.
-    /// The meaning is inferred from that rule; there is no UI text. Takes no parameters.
+    /// "the subject begins with #NET FOLDERS#". Used by the hidden "#NET FOLDERS#" rule that Outlook 98/2000's
+    /// Net Folders feature creates to catch its own messages. There is no UI text. Takes no parameters.
     case netFoldersCondition = 0x000000E7
     
     /// “with <specific words> in the message header”
@@ -106,6 +106,10 @@ public enum RuleElementIdentifier: UInt32 {
     /// Note: this has been removed in Outlook 2003
     case exceptionListCondition = 0x000000E9
     
+    /// An older identifier for `junkCondition`, probably from pre-release Outlook 98 builds. Outlook 2000 reads it as
+    /// `junkCondition` (0x00EB) (spec §5.2). Takes the same parameter.
+    case legacyJunkCondition = 0x000000EA
+
     /// "suspected to be junk-email or from <Junk Senders>"
     /// Note: this has been removed in Outlook 2003
     case junkCondition = 0x000000EB
@@ -202,8 +206,8 @@ public enum RuleElementIdentifier: UInt32 {
     /// Removed in Outlook 2010
     case performCustomActionAction = 0x0000013F
     
-    /// Used by the hidden "#NET FOLDERS#" rule that Outlook 98/2000's Net Folders feature creates.
-    /// The meaning is inferred from that rule; there is no UI text. Takes no parameters.
+    /// Hands the message to Net Folders: moves it to Net Folders' own folder for processing and stops processing
+    /// more rules. Used by the hidden "#NET FOLDERS#" rule. Client-only; there is no UI text. Takes no parameters.
     case netFoldersAction = 0x00000141
     
     /// Defined by Outlook 97 with no UI text and no parameter: a hidden or retired action.

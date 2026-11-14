@@ -1271,8 +1271,8 @@ final class ImportConditionTests: XCTestCase {
             XCTAssertEqual(0, file.rules[0].exceptions.count)
 
             let condition = file.rules[0].conditions[0].parameter as! SizeParameter
-            XCTAssertEqual(0, condition.minSizeInKilobytes)
-            XCTAssertEqual(0, condition.maxSizeInKilobytes)
+            XCTAssertEqual(0, condition.minimum)
+            XCTAssertEqual(0, condition.maximum)
         }
         do {
             let file = try OutlookRules(data: Data([
@@ -1297,8 +1297,8 @@ final class ImportConditionTests: XCTestCase {
             XCTAssertEqual(0, file.rules[0].exceptions.count)
 
             let condition = file.rules[0].conditions[0].parameter as! SizeParameter
-            XCTAssertEqual(1, condition.minSizeInKilobytes)
-            XCTAssertEqual(0, condition.maxSizeInKilobytes)
+            XCTAssertEqual(1, condition.minimum)
+            XCTAssertEqual(0, condition.maximum)
         }
         do {
             let file = try OutlookRules(data: Data([
@@ -1323,8 +1323,8 @@ final class ImportConditionTests: XCTestCase {
             XCTAssertEqual(0, file.rules[0].exceptions.count)
 
             let condition = file.rules[0].conditions[0].parameter as! SizeParameter
-            XCTAssertEqual(0, condition.minSizeInKilobytes)
-            XCTAssertEqual(1, condition.maxSizeInKilobytes)
+            XCTAssertEqual(0, condition.minimum)
+            XCTAssertEqual(1, condition.maximum)
         }
         do {
             let file = try OutlookRules(data: Data([
@@ -1349,8 +1349,8 @@ final class ImportConditionTests: XCTestCase {
             XCTAssertEqual(0, file.rules[0].exceptions.count)
 
             let condition = file.rules[0].conditions[0].parameter as! SizeParameter
-            XCTAssertEqual(1, condition.minSizeInKilobytes)
-            XCTAssertEqual(1, condition.maxSizeInKilobytes)
+            XCTAssertEqual(1, condition.minimum)
+            XCTAssertEqual(1, condition.maximum)
         }
         do {
             let file = try OutlookRules(data: Data([
@@ -1375,8 +1375,8 @@ final class ImportConditionTests: XCTestCase {
             XCTAssertEqual(0, file.rules[0].exceptions.count)
 
             let condition = file.rules[0].conditions[0].parameter as! SizeParameter
-            XCTAssertEqual(1, condition.minSizeInKilobytes)
-            XCTAssertEqual(999999, condition.maxSizeInKilobytes)
+            XCTAssertEqual(1, condition.minimum)
+            XCTAssertEqual(999999, condition.maximum)
         }
     }
 
@@ -1409,10 +1409,10 @@ final class ImportConditionTests: XCTestCase {
             XCTAssertEqual(0, file.rules[0].exceptions.count)
 
             let condition = file.rules[0].conditions[0].parameter as! TimeParameter
-            XCTAssertTrue(condition.includeAfterDate)
-            XCTAssertEqual(calendar.date(from: DateComponents(timeZone: timeZone, year: 2020, month: 08, day: 08, hour: 23, minute: 59, second: 0)), condition.afterDate.date)
-            XCTAssertFalse(condition.includeBeforeDate)
-            XCTAssertEqual(calendar.date(from: DateComponents(timeZone: timeZone, year: 2020, month: 08, day: 09)), condition.beforeDate.date)
+            XCTAssertTrue(condition.hasAfter)
+            XCTAssertEqual(calendar.date(from: DateComponents(timeZone: timeZone, year: 2020, month: 08, day: 08, hour: 23, minute: 59, second: 0)), condition.after.date)
+            XCTAssertFalse(condition.hasBefore)
+            XCTAssertEqual(calendar.date(from: DateComponents(timeZone: timeZone, year: 2020, month: 08, day: 09)), condition.before.date)
         }
         do {
             let file = try OutlookRules(data: Data([
@@ -1439,10 +1439,10 @@ final class ImportConditionTests: XCTestCase {
             XCTAssertEqual(0, file.rules[0].exceptions.count)
 
             let condition = file.rules[0].conditions[0].parameter as! TimeParameter
-            XCTAssertFalse(condition.includeAfterDate)
-            XCTAssertEqual(calendar.date(from: DateComponents(timeZone: timeZone, year: 2020, month: 08, day: 09, hour: 23, minute: 59, second: 0)), condition.afterDate.date)
-            XCTAssertTrue(condition.includeBeforeDate)
-            XCTAssertEqual(calendar.date(from: DateComponents(timeZone: timeZone, year: 2020, month: 08, day: 02)), condition.beforeDate.date)
+            XCTAssertFalse(condition.hasAfter)
+            XCTAssertEqual(calendar.date(from: DateComponents(timeZone: timeZone, year: 2020, month: 08, day: 09, hour: 23, minute: 59, second: 0)), condition.after.date)
+            XCTAssertTrue(condition.hasBefore)
+            XCTAssertEqual(calendar.date(from: DateComponents(timeZone: timeZone, year: 2020, month: 08, day: 02)), condition.before.date)
         }
         do {
             let file = try OutlookRules(data: Data([
@@ -1470,10 +1470,10 @@ final class ImportConditionTests: XCTestCase {
 
             let calendar = Calendar(identifier: .gregorian)
             let condition = file.rules[0].conditions[0].parameter as! TimeParameter
-            XCTAssertTrue(condition.includeAfterDate)
-            XCTAssertEqual(calendar.date(from: DateComponents(timeZone: timeZone, year: 2020, month: 08, day: 02, hour: 23, minute: 59, second: 0)), condition.afterDate.date)
-            XCTAssertTrue(condition.includeBeforeDate)
-            XCTAssertEqual(calendar.date(from: DateComponents(timeZone: timeZone, year: 2020, month: 08, day: 05)), condition.beforeDate.date)
+            XCTAssertTrue(condition.hasAfter)
+            XCTAssertEqual(calendar.date(from: DateComponents(timeZone: timeZone, year: 2020, month: 08, day: 02, hour: 23, minute: 59, second: 0)), condition.after.date)
+            XCTAssertTrue(condition.hasBefore)
+            XCTAssertEqual(calendar.date(from: DateComponents(timeZone: timeZone, year: 2020, month: 08, day: 05)), condition.before.date)
         }
     }
 
@@ -1507,7 +1507,7 @@ final class ImportConditionTests: XCTestCase {
 
             let condition = file.rules[0].conditions[0].parameter as! FormTypeParameter
             XCTAssertEqual("Accept Meeting Response", condition.name)
-            XCTAssertEqual("IPM.Schedule.Meeting.Resp.Pos", condition.className)
+            XCTAssertEqual("IPM.Schedule.Meeting.Resp.Pos", condition.messageClass)
         }
         do {
             let file = try OutlookRules(data: Data([
@@ -1543,10 +1543,10 @@ final class ImportConditionTests: XCTestCase {
 
             let condition1 = file.rules[0].conditions[0].parameters[0] as! FormTypeParameter
             XCTAssertEqual("Accept Meeting Response", condition1.name)
-            XCTAssertEqual("IPM.Schedule.Meeting.Resp.Pos", condition1.className)
+            XCTAssertEqual("IPM.Schedule.Meeting.Resp.Pos", condition1.messageClass)
             let condition2 = file.rules[0].conditions[0].parameters[1] as! FormTypeParameter
             XCTAssertEqual("Text Message", condition2.name)
-            XCTAssertEqual("IPM.Note.Mobile.SMS", condition2.className)
+            XCTAssertEqual("IPM.Note.Mobile.SMS", condition2.messageClass)
         }
     }
 
@@ -1585,8 +1585,8 @@ final class ImportConditionTests: XCTestCase {
             XCTAssertEqual(["Accept Meeting Response"], condition.forms)
             XCTAssertEqual(1, condition.documentProperties.count)
             XCTAssertEqual("Author", condition.documentProperties[0].field)
-            XCTAssertEqual(0x8222, condition.documentProperties[0].tag.id)
-            XCTAssertEqual(PropertyType.string, condition.documentProperties[0].tag.type)
+            XCTAssertEqual(0x8222, condition.documentProperties[0].propTag.id)
+            XCTAssertEqual(PropertyType.string, condition.documentProperties[0].propTag.type)
             XCTAssertEqual(.contains, condition.documentProperties[0].stringMatchType)
             XCTAssertEqual("value", condition.documentProperties[0].stringValue)
             XCTAssertEqual(.equals, condition.documentProperties[0].numberMatchType)
@@ -1627,8 +1627,8 @@ final class ImportConditionTests: XCTestCase {
             XCTAssertEqual([], condition.forms)
             XCTAssertEqual(1, condition.documentProperties.count)
             XCTAssertEqual("Author", condition.documentProperties[0].field)
-            XCTAssertEqual(0x8222, condition.documentProperties[0].tag.id)
-            XCTAssertEqual(PropertyType.string, condition.documentProperties[0].tag.type)
+            XCTAssertEqual(0x8222, condition.documentProperties[0].propTag.id)
+            XCTAssertEqual(PropertyType.string, condition.documentProperties[0].propTag.type)
             XCTAssertEqual(.isExactly, condition.documentProperties[0].stringMatchType)
             XCTAssertEqual("value", condition.documentProperties[0].stringValue)
             XCTAssertEqual(.equals, condition.documentProperties[0].numberMatchType)
@@ -1669,8 +1669,8 @@ final class ImportConditionTests: XCTestCase {
             XCTAssertEqual([], condition.forms)
             XCTAssertEqual(1, condition.documentProperties.count)
             XCTAssertEqual("Author", condition.documentProperties[0].field)
-            XCTAssertEqual(0x8222, condition.documentProperties[0].tag.id)
-            XCTAssertEqual(PropertyType.string, condition.documentProperties[0].tag.type)
+            XCTAssertEqual(0x8222, condition.documentProperties[0].propTag.id)
+            XCTAssertEqual(PropertyType.string, condition.documentProperties[0].propTag.type)
             XCTAssertEqual(.doesNotContain, condition.documentProperties[0].stringMatchType)
             XCTAssertEqual("value", condition.documentProperties[0].stringValue)
             XCTAssertEqual(.equals, condition.documentProperties[0].numberMatchType)
@@ -1710,8 +1710,8 @@ final class ImportConditionTests: XCTestCase {
             XCTAssertEqual([], condition.forms)
             XCTAssertEqual(1, condition.documentProperties.count)
             XCTAssertEqual("Bytes", condition.documentProperties[0].field)
-            XCTAssertEqual(0x8223, condition.documentProperties[0].tag.id)
-            XCTAssertEqual(PropertyType.integer32, condition.documentProperties[0].tag.type)
+            XCTAssertEqual(0x8223, condition.documentProperties[0].propTag.id)
+            XCTAssertEqual(PropertyType.integer32, condition.documentProperties[0].propTag.type)
             XCTAssertEqual(.contains, condition.documentProperties[0].stringMatchType)
             XCTAssertEqual("", condition.documentProperties[0].stringValue)
             XCTAssertEqual(.equals, condition.documentProperties[0].numberMatchType)
@@ -1751,8 +1751,8 @@ final class ImportConditionTests: XCTestCase {
             XCTAssertEqual([], condition.forms)
             XCTAssertEqual(1, condition.documentProperties.count)
             XCTAssertEqual("Bytes", condition.documentProperties[0].field)
-            XCTAssertEqual(0x8223, condition.documentProperties[0].tag.id)
-            XCTAssertEqual(PropertyType.integer32, condition.documentProperties[0].tag.type)
+            XCTAssertEqual(0x8223, condition.documentProperties[0].propTag.id)
+            XCTAssertEqual(PropertyType.integer32, condition.documentProperties[0].propTag.type)
             XCTAssertEqual(.contains, condition.documentProperties[0].stringMatchType)
             XCTAssertEqual("", condition.documentProperties[0].stringValue)
             XCTAssertEqual(.equals, condition.documentProperties[0].numberMatchType)
@@ -1792,8 +1792,8 @@ final class ImportConditionTests: XCTestCase {
             XCTAssertEqual([], condition.forms)
             XCTAssertEqual(1, condition.documentProperties.count)
             XCTAssertEqual("Bytes", condition.documentProperties[0].field)
-            XCTAssertEqual(0x8223, condition.documentProperties[0].tag.id)
-            XCTAssertEqual(PropertyType.integer32, condition.documentProperties[0].tag.type)
+            XCTAssertEqual(0x8223, condition.documentProperties[0].propTag.id)
+            XCTAssertEqual(PropertyType.integer32, condition.documentProperties[0].propTag.type)
             XCTAssertEqual(.contains, condition.documentProperties[0].stringMatchType)
             XCTAssertEqual("", condition.documentProperties[0].stringValue)
             XCTAssertEqual(.notEqualTo, condition.documentProperties[0].numberMatchType)
@@ -1833,8 +1833,8 @@ final class ImportConditionTests: XCTestCase {
             XCTAssertEqual([], condition.forms)
             XCTAssertEqual(1, condition.documentProperties.count)
             XCTAssertEqual("Bytes", condition.documentProperties[0].field)
-            XCTAssertEqual(0x8223, condition.documentProperties[0].tag.id)
-            XCTAssertEqual(PropertyType.integer32, condition.documentProperties[0].tag.type)
+            XCTAssertEqual(0x8223, condition.documentProperties[0].propTag.id)
+            XCTAssertEqual(PropertyType.integer32, condition.documentProperties[0].propTag.type)
             XCTAssertEqual(.contains, condition.documentProperties[0].stringMatchType)
             XCTAssertEqual("", condition.documentProperties[0].stringValue)
             XCTAssertEqual(.isAtMost, condition.documentProperties[0].numberMatchType)
@@ -1874,8 +1874,8 @@ final class ImportConditionTests: XCTestCase {
             XCTAssertEqual([], condition.forms)
             XCTAssertEqual(1, condition.documentProperties.count)
             XCTAssertEqual("Bytes", condition.documentProperties[0].field)
-            XCTAssertEqual(0x8223, condition.documentProperties[0].tag.id)
-            XCTAssertEqual(PropertyType.integer32, condition.documentProperties[0].tag.type)
+            XCTAssertEqual(0x8223, condition.documentProperties[0].propTag.id)
+            XCTAssertEqual(PropertyType.integer32, condition.documentProperties[0].propTag.type)
             XCTAssertEqual(.contains, condition.documentProperties[0].stringMatchType)
             XCTAssertEqual("", condition.documentProperties[0].stringValue)
             XCTAssertEqual(.isAtLeast, condition.documentProperties[0].numberMatchType)
@@ -1915,8 +1915,8 @@ final class ImportConditionTests: XCTestCase {
             XCTAssertEqual([], condition.forms)
             XCTAssertEqual(1, condition.documentProperties.count)
             XCTAssertEqual("Bytes", condition.documentProperties[0].field)
-            XCTAssertEqual(0x8223, condition.documentProperties[0].tag.id)
-            XCTAssertEqual(PropertyType.integer32, condition.documentProperties[0].tag.type)
+            XCTAssertEqual(0x8223, condition.documentProperties[0].propTag.id)
+            XCTAssertEqual(PropertyType.integer32, condition.documentProperties[0].propTag.type)
             XCTAssertEqual(.contains, condition.documentProperties[0].stringMatchType)
             XCTAssertEqual("", condition.documentProperties[0].stringValue)
             XCTAssertEqual(.isMoreThan, condition.documentProperties[0].numberMatchType)
@@ -1956,8 +1956,8 @@ final class ImportConditionTests: XCTestCase {
             XCTAssertEqual([], condition.forms)
             XCTAssertEqual(1, condition.documentProperties.count)
             XCTAssertEqual("Bytes", condition.documentProperties[0].field)
-            XCTAssertEqual(0x8223, condition.documentProperties[0].tag.id)
-            XCTAssertEqual(PropertyType.integer32, condition.documentProperties[0].tag.type)
+            XCTAssertEqual(0x8223, condition.documentProperties[0].propTag.id)
+            XCTAssertEqual(PropertyType.integer32, condition.documentProperties[0].propTag.type)
             XCTAssertEqual(.contains, condition.documentProperties[0].stringMatchType)
             XCTAssertEqual("", condition.documentProperties[0].stringValue)
             XCTAssertEqual(.isLessThan, condition.documentProperties[0].numberMatchType)
@@ -2001,8 +2001,8 @@ final class ImportConditionTests: XCTestCase {
             XCTAssertEqual([], condition.forms)
             XCTAssertEqual(1, condition.documentProperties.count)
             XCTAssertEqual("Creation Time", condition.documentProperties[0].field)
-            XCTAssertEqual(0x8228, condition.documentProperties[0].tag.id)
-            XCTAssertEqual(PropertyType.time, condition.documentProperties[0].tag.type)
+            XCTAssertEqual(0x8228, condition.documentProperties[0].propTag.id)
+            XCTAssertEqual(PropertyType.time, condition.documentProperties[0].propTag.type)
             XCTAssertEqual(.contains, condition.documentProperties[0].stringMatchType)
             XCTAssertEqual("", condition.documentProperties[0].stringValue)
             XCTAssertEqual(.equals, condition.documentProperties[0].numberMatchType)
@@ -2044,8 +2044,8 @@ final class ImportConditionTests: XCTestCase {
             XCTAssertEqual([], condition.forms)
             XCTAssertEqual(1, condition.documentProperties.count)
             XCTAssertEqual("Creation Time", condition.documentProperties[0].field)
-            XCTAssertEqual(0x8228, condition.documentProperties[0].tag.id)
-            XCTAssertEqual(PropertyType.time, condition.documentProperties[0].tag.type)
+            XCTAssertEqual(0x8228, condition.documentProperties[0].propTag.id)
+            XCTAssertEqual(PropertyType.time, condition.documentProperties[0].propTag.type)
             XCTAssertEqual(.contains, condition.documentProperties[0].stringMatchType)
             XCTAssertEqual("", condition.documentProperties[0].stringValue)
             XCTAssertEqual(.equals, condition.documentProperties[0].numberMatchType)
@@ -2099,8 +2099,8 @@ final class ImportConditionTests: XCTestCase {
             XCTAssertEqual(["Accept Meeting Response", " Text Message", " Task"], condition.forms)
             XCTAssertEqual(2, condition.documentProperties.count)
             XCTAssertEqual("Bytes", condition.documentProperties[0].field)
-            XCTAssertEqual(0x8223, condition.documentProperties[0].tag.id)
-            XCTAssertEqual(PropertyType.integer32, condition.documentProperties[0].tag.type)
+            XCTAssertEqual(0x8223, condition.documentProperties[0].propTag.id)
+            XCTAssertEqual(PropertyType.integer32, condition.documentProperties[0].propTag.type)
             XCTAssertEqual(.contains, condition.documentProperties[0].stringMatchType)
             XCTAssertEqual("", condition.documentProperties[0].stringValue)
             XCTAssertEqual(.equals, condition.documentProperties[0].numberMatchType)
@@ -2108,8 +2108,8 @@ final class ImportConditionTests: XCTestCase {
             XCTAssertEqual(0, condition.documentProperties[0].rawBoolMatchType)
             XCTAssertEqual(.before, condition.documentProperties[0].dateMatchType)
             XCTAssertEqual("Author", condition.documentProperties[1].field)
-            XCTAssertEqual(0x8222, condition.documentProperties[1].tag.id)
-            XCTAssertEqual(PropertyType.string, condition.documentProperties[1].tag.type)
+            XCTAssertEqual(0x8222, condition.documentProperties[1].propTag.id)
+            XCTAssertEqual(PropertyType.string, condition.documentProperties[1].propTag.type)
             XCTAssertEqual(.contains, condition.documentProperties[1].stringMatchType)
             XCTAssertEqual("value", condition.documentProperties[1].stringValue)
             XCTAssertEqual(.equals, condition.documentProperties[1].numberMatchType)
@@ -2146,8 +2146,8 @@ final class ImportConditionTests: XCTestCase {
             XCTAssertEqual(0, file.rules[0].exceptions.count)
 
             let condition = file.rules[0].conditions[0].parameter as! RelevanceRangeParameter
-            XCTAssertEqual(10, condition.minimumRelevance)
-            XCTAssertEqual(20, condition.maximumRelevance)
+            XCTAssertEqual(10, condition.minimum)
+            XCTAssertEqual(20, condition.maximum)
         }
         do {
             let file = try OutlookRules(data: Data([
@@ -2174,8 +2174,8 @@ final class ImportConditionTests: XCTestCase {
             XCTAssertEqual(0, file.rules[0].exceptions.count)
 
             let condition = file.rules[0].conditions[0].parameter as! RelevanceRangeParameter
-            XCTAssertEqual(0, condition.minimumRelevance)
-            XCTAssertEqual(20, condition.maximumRelevance)
+            XCTAssertEqual(0, condition.minimum)
+            XCTAssertEqual(20, condition.maximum)
         }
     }
 
@@ -2344,7 +2344,7 @@ final class ImportConditionTests: XCTestCase {
 
             let condition = file.rules[0].conditions[0].parameter as! FormTypeParameter
             XCTAssertEqual("Template3", condition.name)
-            XCTAssertEqual("IPM.InfoPathForm.25bcd4d0a0953612$759f7503f0746cc1", condition.className)
+            XCTAssertEqual("IPM.InfoPathForm.25bcd4d0a0953612$759f7503f0746cc1", condition.messageClass)
         }
     }
 
