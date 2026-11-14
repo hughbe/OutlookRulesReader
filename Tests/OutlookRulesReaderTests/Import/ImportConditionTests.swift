@@ -2488,6 +2488,8 @@ final class ImportConditionTests: XCTestCase {
             XCTAssertEqual(.alertCondition, file.rules[0].conditions[0].identifier)
             XCTAssertTrue(file.rules[0].conditions[0].parameter is AlertParameter)
             XCTAssertEqual("Alert from \"Home\" about \"Documents (All Changes)\"\u{1}{1D7EAA7A-B10A-485D-A8E9-5B3D611597E1}", (file.rules[0].conditions[0].parameter as!AlertParameter).name)
+            XCTAssertEqual("Alert from \"Home\" about \"Documents (All Changes)\"", (file.rules[0].conditions[0].parameter as!AlertParameter).displayName)
+            XCTAssertEqual("{1D7EAA7A-B10A-485D-A8E9-5B3D611597E1}", (file.rules[0].conditions[0].parameter as!AlertParameter).identifier)
             XCTAssertEqual(0, file.rules[0].actions.count)
             XCTAssertEqual(0, file.rules[0].exceptions.count)
         }

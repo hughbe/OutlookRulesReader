@@ -54,6 +54,10 @@ public struct Rule: CustomDebugStringConvertible {
     internal var versionStamp: UInt32?
     internal var sourceVersion: OutlookRulesVersion?
 
+    /// False for a rule read with DataSize 0, which stores no element list (spec §4.3.1). Such a rule is written
+    /// back the same way in the Outlook 2002 and later formats while it still has no elements.
+    internal var hasElementList: Bool = true
+
     public var conditions: [RuleElement] {
         elements.filter { $0.identifier.rawValue >= 200 && $0.identifier.rawValue < 300 }
     }
@@ -113,6 +117,13 @@ public struct Rule: CustomDebugStringConvertible {
         }
 
         self.elements = elements
+        self.hasElementList = header.hasElementList
+
+        if !header.hasElementList {
+            /// Outlook 2003 stores the Download Options rule without elements (spec §4.3.1).
+            self.eventFlags = []
+            return
+        }
 
         guard let eventElement = elements.first(where: { $0.identifier == .eventFlags }),
               let eventParameter = eventElement.parameter as? EventParameter else {
@@ -164,6 +175,19 @@ public struct Rule: CustomDebugStringConvertible {
     internal func write(to dataStream: inout OutputDataStream, version: OutlookRulesVersion, versionStamp: UInt32?, classDeclared: inout Bool) {
         let ruleStamp = (sourceVersion == version ? self.versionStamp : nil) ?? versionStamp ?? RulesHeader.defaultVersionStamp(for: version)
         let contentVersion = RuleHeader.contentVersion(streamVersion: version, versionStamp: ruleStamp)
+
+        if !hasElementList && self.elements.isEmpty && contentVersion >= .outlook2002 {
+            /// Data Size 0, with no element list (spec §4.3.1)
+            var header = RuleHeader(name: storedName, enabled: enabled, numberOfElements: 0, dataSize: 0)
+            header.hasElementList = false
+            header.versionStamp = ruleStamp
+            header.runError = runError
+            header.serverRule = isServerRule ? 1 : 0
+            header.flags = flags.rawValue
+            header.serverRuleId = serverRuleId
+            header.write(to: &dataStream, version: version)
+            return
+        }
 
         var elements: [RuleElement] = [
             /// "Apply this rule <after the message arrives>"

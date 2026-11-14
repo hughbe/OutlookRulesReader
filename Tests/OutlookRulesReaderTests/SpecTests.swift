@@ -447,8 +447,77 @@ final class SpecTests: XCTestCase {
         XCTAssertEqual(data, reread.getData())
     }
 
+    /// A Data Size of 0 means the rule has no element list, not even its count. Outlook 2003 writes the Download
+    /// Options rule this way (spec §4.3.1).
+    func testRuleWithoutElementList() throws {
+        var bigItemRule = Rule(eventFlags: .afterReceived, name: "Big items")
+        bigItemRule.flags = .downloadOptionsRule
+        bigItemRule.hasElementList = false
+        let normalRule = Rule(eventFlags: .afterReceived, name: "Normal", actions: [
+            RuleElement(identifier: .deleteAction)
+        ])
+        let data = OutlookRules(rules: [bigItemRule, normalRule]).getData(version: .outlook2003)
+
+        /// Flags 0x40, Server Rule ID 0, Data Size 0, then the next rule's version stamp.
+        XCTAssertNotNil(data.range(of: Data([0x40, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0xE0, 0xC8, 0x10, 0x00])))
+
+        let file = try OutlookRules(data: data)
+        XCTAssertEqual(2, file.rules.count)
+        XCTAssertEqual("Big items", file.rules[0].name)
+        XCTAssertEqual(.downloadOptionsRule, file.rules[0].flags)
+        XCTAssertTrue(file.rules[0].elements.isEmpty)
+        XCTAssertEqual([.eventFlags, .itemType, .deleteAction], file.rules[1].elements.map { $0.identifier })
+        XCTAssertEqual(data, file.getData())
+    }
+
+    /// Actions defined by Outlook 2003: 0x014D and 0x014E, which it hides, and the colored flag 0x0150 (spec §5.3).
+    func testOutlook2003Actions() throws {
+        let rule = Rule(eventFlags: .afterReceived, name: "2003", actions: [
+            RuleElement(identifier: .hiddenServerReplyAction, parameter: StringParameter(value: "Reply")),
+            RuleElement(identifier: .dotNetNotificationAction),
+            RuleElement(identifier: .flagColorAction, parameter: FlagColorParameter(color: 6))
+        ])
+        let data = OutlookRules(rules: [rule]).getData(version: .outlook2003)
+        XCTAssertNotNil(data.range(of: Data([0x50, 0x01, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 6, 0, 0, 0])))
+
+        let file = try OutlookRules(data: data)
+        let actions = file.rules[0].actions
+        XCTAssertEqual([.hiddenServerReplyAction, .dotNetNotificationAction, .flagColorAction], actions.map { $0.identifier })
+        XCTAssertEqual("Reply", (actions[0].parameter as? StringParameter)?.value)
+        XCTAssertTrue(actions[1].parameters.isEmpty)
+        XCTAssertEqual(6, (actions[2].parameter as? FlagColorParameter)?.color)
+        XCTAssertEqual(data, file.getData())
+    }
+
+    /// Outlook 2003 writes version-0 streams with no field newer than version 0: no folder secondary store
+    /// (970718) and no document property MatchIfMissing (970102) (spec §3).
+    func testSignatureZeroOmitsVersionedFields() throws {
+        let folder = try OutlookRules(data: try getData(name: "Outlook98_MoveToFolder", fileExtension: "rwz"))
+        let folderParameter = try XCTUnwrap(folder.rules[0].actions[0].parameter as? FolderParameter)
+        let folder98 = folder.getData(version: .outlook98)
+        let folderZero = folder.getData(version: .signatureZero)
+        XCTAssertEqual(folder98.count - 4 - 4, folderZero.count)
+        let rereadFolder = try OutlookRules(data: folderZero)
+        let rereadParameter = try XCTUnwrap(rereadFolder.rules[0].actions[0].parameter as? FolderParameter)
+        XCTAssertNil(rereadParameter.secondaryStore)
+        XCTAssertEqual(folderParameter.folderName, rereadParameter.folderName)
+        XCTAssertEqual(folderZero, rereadFolder.getData())
+
+        let properties = try OutlookRules(data: try getData(name: "Outlook98_WithSelectedPropertiesOfDocumentsOrForms", fileExtension: "rwz"))
+        let formParameter = try XCTUnwrap(properties.rules[0].conditions[0].parameter as? FormParameter)
+        let properties98 = properties.getData(version: .outlook98)
+        let propertiesZero = properties.getData(version: .signatureZero)
+        XCTAssertEqual(properties98.count - 4 - 4 * formParameter.documentProperties.count, propertiesZero.count)
+        let rereadProperties = try OutlookRules(data: propertiesZero)
+        XCTAssertEqual(formParameter.documentProperties.count, (rereadProperties.rules[0].conditions[0].parameter as? FormParameter)?.documentProperties.count)
+        XCTAssertEqual(propertiesZero, rereadProperties.getData())
+    }
+
     static var allTests = [
         ("testAllSamplesRoundTrip", testAllSamplesRoundTrip),
+        ("testSignatureZeroOmitsVersionedFields", testSignatureZeroOmitsVersionedFields),
+        ("testRuleWithoutElementList", testRuleWithoutElementList),
+        ("testOutlook2003Actions", testOutlook2003Actions),
         ("testParameterDataSizeMatchesWrittenSize", testParameterDataSizeMatchesWrittenSize),
         ("testRuleHeaderFieldsPreserved", testRuleHeaderFieldsPreserved),
         ("testNetFolders", testNetFolders),

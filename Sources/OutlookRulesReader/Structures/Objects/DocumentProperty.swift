@@ -46,7 +46,9 @@ public struct DocumentProperty {
         return DocumentPropertyDateMatchType(rawValue: rawDateMatchType)!
     }
     public var dateValue: OleDateTime
-    /// Whether a message that does not have the property counts as a match (spec §6.9).
+    /// Whether a message that does not have the property counts as a match (spec §6.9). Outlook 2003 sets this on an
+    /// Office document property chosen in the Document Properties dialog, and adds a second property for the same
+    /// document property's other name with this off. Not stored in version-0 (signature zero) streams.
     public var matchIfMissing: Bool = false
 
     public init(field: String, propTag: PropertyTag, matchType: DocumentPropertyStringMatchType, stringValue: String) {
@@ -133,8 +135,10 @@ public struct DocumentProperty {
         /// Date Value (12 bytes)
         self.dateValue = try OleDateTime(dataStream: &dataStream)
         
-        /// Match If Missing (4 bytes)
-        self.matchIfMissing = (try dataStream.read(endianess: .littleEndian) as UInt32) != 0
+        /// Match If Missing (4 bytes), from version 970102 (spec §6.9). Version-0 streams don't have it.
+        if version != .signatureZero {
+            self.matchIfMissing = (try dataStream.read(endianess: .littleEndian) as UInt32) != 0
+        }
     }
     
     public func write(to dataStream: inout OutputDataStream, version: OutlookRulesVersion) {
@@ -179,7 +183,9 @@ public struct DocumentProperty {
         /// Date Value (12 bytes)
         dateValue.write(to: &dataStream)
         
-        /// Match If Missing (4 bytes)
-        dataStream.write((matchIfMissing ? 1 : 0) as UInt32, endianess: .littleEndian)
+        /// Match If Missing (4 bytes), from version 970102 (spec §6.9). Version-0 streams don't have it.
+        if version != .signatureZero {
+            dataStream.write((matchIfMissing ? 1 : 0) as UInt32, endianess: .littleEndian)
+        }
     }
 }
