@@ -800,6 +800,8 @@ Outlook 97 and 98 allow only **one phrase per condition** **[O97]** **[O98]**:
 
 Several words per condition, stored as several parameters, came with Outlook 2000 **[O2000]**.
 
+**[O98]** Outlook 98 lowercases the text and the word (`CharLowerA`) and does a substring search through its string-function table (`0x6E76F7AC`), so it also ignores case and word boundaries. **[O2002]** Outlook 2002 uses `MSO.DLL` ordinal 1353 with mode `1`, as Outlook 2003 does (`0x34AB2E5A`).
+
 **[O2003]** Outlook 2003 matches if any parameter occurs anywhere in the text: a substring search with no word boundaries, through `MSO.DLL` ordinal 1353 with comparison mode `1`, which compares upper-cased characters, so it ignores case. An empty or missing subject or body never matches ([Appendix I.8](#i8-evaluating-conditions-on-the-client)). **[O2007]** Outlook 2007 is the same: ordinal 1353 with mode `1` (`0x304E4D6B`), and no match for empty text (`0x304E4D24`).
 
 ### 6.4 AddressParameter
@@ -1007,7 +1009,9 @@ Used by `0x00E4`, `0x0210`, `0x00F4` (`CInfoPathFormTypeParameter`) and `0x0218`
 ### 6.13 SendersListParameter
 Used by `0x00E9`, `0x00EB` and `0x00EC`. These elements exist only in G1.
 
-**[O98–2002]** The client test doesn't read the parameter. For `0x00EA` and `0x00EB` it checks that the message's property `0x1083` (`PT_LONG`, one of the properties Outlook fetches for every message it runs rules on) is `1`, and for `0x00EC` that it is `2` (Outlook 98: `0x6E76FD4E`; Outlook 2002: `0x34AB3521`, tag array `0x34BA2988`). `0x00E9` never matches. What sets property `0x1083` was not traced. **[O2003–2007]** All four never match ([Appendix I.8](#i8-evaluating-conditions-on-the-client)).
+**[O98–2002]** The client test doesn't read the parameter. For `0x00EA` and `0x00EB` it checks that the message's property `0x1083` (`PT_LONG`, one of the properties Outlook fetches for every message it runs rules on) is `1`, and for `0x00EC` that it is `2` (Outlook 98: `0x6E76FD4E`; Outlook 2002: `0x34AB3521`, tag array `0x34BA2988`). `0x00E9` never matches. Neither `OUTLLIB.DLL` nor `OUTLAS.DLL` writes property `0x1083` (its tag appears only in the fetch list), so it is set outside them; who sets it was not found.
+
+**[O98]** Outlook 98's junk filter is a hidden rule that Outlook builds in memory (`0x6E408934`) rather than saving: one "perform a custom action" element (`0x013F`) whose location is `4.0;<Office path>\outlas.dll;1;00000101001100` and whose name is `AntiSpam`. `OUTLAS.DLL` (an Exchange client extension exporting `ScanMessage` and `HrGetAntiSpamList`) turns its built-in keyword lists into MAPI restrictions (`0x6E241F22` onwards): `SUBJECT` tests `PR_NORMALIZED_SUBJECT`, `BODY` `PR_BODY`, `HEADER` `PR_TRANSPORT_MESSAGE_HEADERS` and `FROM` `PR_SENDER_EMAIL_ADDRESS`, grouped with `BEGIN_AND`/`BEGIN_OR` tokens, one list for junk and one for adult content. The file `filters.txt` on the CD describes the same lists in prose. The sender lists are the files `Junk Senders.txt`, `Adult Content Senders.txt` and `Exception List.txt`, edited through `OUTLAS.DLL`'s dialogs. **[O2003–2007]** All four never match ([Appendix I.8](#i8-evaluating-conditions-on-the-client)).
 
 | Field | Size | Description |
 |---|---|---|
@@ -1418,12 +1422,14 @@ The builder (`0x6E776D15`) first counts the rule's parts (`0x6E776C01`): restric
 
 * **Conditions** (switch `0x6E777180`) **and exceptions** (`0x6E77727D`). The elements with no server form are the same as in Outlook 2002 ([Appendix G.3](#g3-exchange-server-rules)): `0x00D1`, `0x00D7`, `0x00DA`, `0x00DB`, `0x00DD`, `0x00DF`, `0x00E5` and everything from `0x00E9` on, and their exceptions. `0x00D6` and `0x00D8` share the handler of "from" (`0x00CB`), and `0x00D9` that of "words in the body" (`0x00CE`), as they still do in Outlook 2003 ([Appendix I.3](#i3-exchange-server-rules)). The address conditions (`0x00CB`, `0x00CC`, `0x00D6`, `0x00D8`, `0x00DB`) and the forward actions set a flag of their own.
 * **Client-only parts.** Conditions `0x00D7`, `0x00DD`, `0x00DF`, `0x00E5` and `0x00E9`–`0x00EC` (exceptions `0x0203`, `0x020B`, `0x0211`), and actions `0x012F`, `0x0130`, `0x0132`, `0x0133`, `0x0136`, `0x013A`, `0x013B`, `0x013F`, `0x0141` and `0x0143`, mark the rule as needing the client. Such a rule gets one more action, the deferred action that hands it back to Outlook, as in Outlook 2002. A rule with no server action is marked the same way.
-* **Actions** (from `0x6E7771CB`): move to folder (`0x012C`, and the undefined `0x0134`) becomes a move; "delete it" (`0x012D`) a move to Deleted Items that also stops processing; forward (`0x012E`, and the undefined `0x0135`) a forward; copy (`0x0139`) a copy; and "stop processing more rules" (`0x0142`) sets `ST_EXIT_LEVEL`. No other action gets a server action.
+* **Actions** (from `0x6E7771CB`): move to folder (`0x012C`, and the undefined `0x0134`) becomes a move; "delete it" (`0x012D`) a move to Deleted Items that also stops processing; forward (`0x012E`, and the undefined `0x0135`) a forward; copy (`0x0139`) a copy; and "stop processing more rules" (`0x0142`) sets `ST_EXIT_LEVEL`. No other action gets a server action. The counting pass still counts mark importance (`0x0137`), mark sensitivity (`0x0138`), Cc (`0x013C`), `0x013D`, `0x013E` and `0x0140` as server actions (and the flag action `0x0131` twice) without marking the rule as needing the client, so their slots in the zero-filled action array (`0x6E776E82`) stay empty while the action count includes them. How the server treats such a rule was not tested.
 
 ### E.2 Exchange server rules
 
 * **Options dialog** (2322). Outlook 97's "Update server" section (Manually, Automatically, Update Now), Export Rules and Import Rules, and "Prompt to convert Inbox Assistant rules" ([§4.2](#42-rulesheader)).
 * **Inbox Assistant conversion** (dialog 2323). "Rules Wizard has detected active Inbox Assistant rules located on the Microsoft Exchange Server. Would you like to convert these to Rules Wizard rules?" with Yes, No, "Do not prompt me again" and "I want to use the Inbox Assistant instead". Converted rules are deleted from the server, and rules that can't be converted are reported one by one: too complex, type not supported, form conditions, reply templates, or a limitation of the import (strings 59530–59534).
+  * The reason codes (`0x6E7782B5`) are `2` too complex, `3` type not supported, `4` form conditions, `5` reply template (set when a server reply's template can't be imported, `0x6E78242A`) and anything else a limitation of the import. Where codes 2–4 are produced was not found.
+  * Actions are converted by MAPI action type (`0x6E78210A`, switch `0x6E7821C8`): `OP_MOVE` and `OP_COPY` to move or copy, `OP_REPLY` to a reply, `OP_DEFER_ACTION` to an alert or sound, `OP_FORWARD` to forward, `OP_TAG` to a tag action, `OP_DELETE` to "delete it" (`0x012D`). `OP_OOF_REPLY`, `OP_BOUNCE` and any unknown type become `0x013D`, an action no definition table has, so Outlook 98 can't run them ([Appendix E.4](#e4-running-client-rules)). `OP_DELEGATE` adds no element.
 * **Server space.** When the server has no room, Outlook deactivates the rules that failed to upload (string 59536).
 
 ### E.3 Client and server rules conflict
@@ -1439,7 +1445,7 @@ The message "Your client rules have been modified more recently than your Exchan
 ### E.4 Running client rules
 
 * **Conditions** (`0x6E408E86`). Each condition calls a method of the message being processed, as in Outlook 2002 and 2003 ([Appendix I.8](#i8-evaluating-conditions-on-the-client)); the switch for `0x00C9`–`0x00EC` is at `0x6E408EF3`. `0x00D1`, `0x00D6`, `0x00D8`, `0x00D9` and `0x00DD` have no test, `0x00E9` never matches, and `0x00EA`–`0x00EC` use the junk-mail test ([§6.13](#613-senderslistparameter)). Document properties are matched with MatchIfMissing pairs ([§6.9.1](#691-matchifmissing)).
-* **Actions** (`0x6E408F3B`, switch `0x6E408FE2` for `0x012C`–`0x0142`). After each action Outlook stores its result in RunError and sets Enabled ([§4.3.1](#431-ruleheader)).
+* **Actions** (`0x6E408F3B`, switch `0x6E408FE2` for `0x012C`–`0x0142`). Each action is a method of the message being processed; copy (`0x0139`) uses the same method as move, "play a sound" (`0x0136`) has its own handler, and "stop processing more rules" (`0x0142`) is handled by the loop. `0x0134`, `0x0135`, `0x013D` and `0x0140` have no handler, as in Outlook 2003 ([Appendix I.4](#i4-running-client-rules)). After each action Outlook stores its result in RunError and sets Enabled ([§4.3.1](#431-ruleheader)).
 * **Reading foreign server rules back.** The restriction reader (around `0x6E781000`) recognises the same properties as Outlook 2003's ([Appendix I.3](#i3-exchange-server-rules)), except `PR_NEWSGROUP_NAME`.
 
 ## Appendix F. Findings from Outlook 2000
