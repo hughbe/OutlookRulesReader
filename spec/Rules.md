@@ -982,13 +982,13 @@ The smallest G2 stream: one enabled rule named `RULENAME`, applied "after the me
 
 ## Appendix B. Open questions
 
-1. RulesHeader Unknown2, Unknown3 and the footer's Unknown, which Outlook 97–2007 only preserve. (Unknown4 is explained by Outlook 2007, [§4.2](#42-rulesheader).)
-2. What later versions put in the header's ExtraData. Outlook 2002–2007 only preserve it.
-3. Whether versions after Outlook 2003 give the parameter Reserved field a meaning. (Outlook 2003 writes MatchIfMissing `1` for document properties, [§6.9](#69-formparameter).)
+1. RulesHeader Unknown2, Unknown3 and the footer's Unknown. Outlook 97–2003 only preserve them, and Outlook 2007's loader and saver treat them the same way (its other code was not searched). (Unknown4 is explained by Outlook 2007, [§4.2](#42-rulesheader).)
+2. What later versions put in the header's ExtraData. Outlook 2002 and 2003 only preserve it, and Outlook 2007's loader and saver do the same.
+3. Whether versions after Outlook 2007 give the parameter Reserved field a meaning. Outlook 2007's base parameter class still only sets it to `0` and serializes it. (Outlook 2003 writes MatchIfMissing `1` for document properties, [§6.9](#69-formparameter).)
 4. Whether `PidTagRwRulesStream` differs from an exported `.rwz` in versions after Outlook 2003. In Outlook 2003 both are written by the same code with the same layout; only the mode differs (Outlook's own copy keeps rule VersionStamps and ServerRuleIds, [Appendix I.5](#i5-the-rules-message-and-cached-exchange-mode)).
-5. DocumentProperty Unknown1: always `1`, and never read by Outlook 97–2003 (not checked in Outlook 2007).
+5. DocumentProperty Unknown1: always `1`, and never read by Outlook 97–2003. Outlook 2007's three constructors still set it to `1`.
 6. Whether stamp 0x150000 changes the layout.
-7. Rule Flags bits `0x1`/`0x2`. Outlook 97–2003 never set them; Outlook 2003 and 2007 forgive errors in single rules that have them ([§4.3.1.1](#4311-rule-flags)).
+7. Rule Flags bits `0x1`/`0x2`. Outlook 97–2007 never set them; Outlook 2003 and 2007 forgive errors in single rules that have them ([§4.3.1.1](#4311-rule-flags)).
 8. The meaning of the definition flags at `+0x20` and `+0x24` (Appendix D.1). Outlook 97–2003 never read `+0x24`; Outlook 2003 reads `+0x20` only to build the description of `0x00F3`, the one element where it is `0`. Also the meaning of the field Outlook 2002 added to its definition records ([Appendix G](#appendix-g-findings-from-outlook-2002)), and of bit `0x1` of the rule-set mask Outlook 2003 added. Outlook 2003 and 2007 never use it, and the Out of Office rules don't explain it ([Appendix I.7](#i7-out-of-office-rules)). Only `0x014D` and `0x014E` have it, and nothing creates them.
 
 ## Appendix C. Corrections to earlier notes
@@ -1487,6 +1487,12 @@ Outlook 2007 reads and writes the same layout as Outlook 2003. The differences:
   * `0x00F6` and `0x021A` (any category): `RES_EXIST` on the `Keywords` named property in `PS_PUBLIC_STRINGS` (`PT_MV_UNICODE`).
   * `0x00F5`, `0x00F7`, `0x0219` and `0x021B` (RSS): a placeholder that never matches on the server, `PR_MESSAGE_CLASS` equal to the empty string. RSS items only arrive on the client.
   * "Assigned to category" (`0x00D7`) still has no server form.
+* **Unchanged from Outlook 2003:**
+  * **Document properties:** the serializer (`0x304E106F`) and the three constructors (`0x30655378`, `0x30655572`, `0x3065563F`) are the same. Unknown1 is always `1`, and the constructor used for Office document properties sets MatchIfMissing to `1` ([§6.9](#69-formparameter)).
+  * **Definition records:** the definition objects (`0x309ABA90`) still don't copy the record's `+0x24` flag.
+  * **Junk-mail rules:** they are still deleted on save (`0x309CD433`, called from the save loop at `0x309AD4D5`).
+  * **Old rules files:** the `.RWZ` migration path is kept (`0x309BB4E3`).
+  * **Rule Flags `0x1`/`0x2`:** no code sets them; the writes found at those offsets are on message objects, not rules.
 * **Running rules.** The client condition switch is at `0x302C459F` (IDs `0x0064`–`0x00F4`, later IDs by comparisons after it) and the action switch at `0x302F1676` (`0x012C`–`0x0152`). The tests and actions are methods of the message being processed (vtable `0x30197F1C`, with its property list at `0x30AB409C`). `0x014D` still runs like "reply using a template", and `0x014E` still has no handler. The new elements:
   * `0x00F4` InfoPath form type: the message class against each parameter's message class.
   * `0x00F5` RSS feed name: the message class starts with `IPM.Post.Rss`, an RSS setting is on, and the feed's subscription name (the PostRss named property `0x8906`) equals one of the parameter's strings (`_wcsicmp`, so whole name, ignoring case). Despite the UI text, this is the feed's name, not the item's title.
