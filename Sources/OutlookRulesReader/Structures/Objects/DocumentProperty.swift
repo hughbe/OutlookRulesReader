@@ -46,10 +46,17 @@ public struct DocumentProperty {
         return DocumentPropertyDateMatchType(rawValue: rawDateMatchType)!
     }
     public var dateValue: OleDateTime
-    /// Whether a message that does not have the property counts as a match (spec §6.9). Outlook 2003 sets this on an
-    /// Office document property chosen in the Document Properties dialog, and adds a second property for the same
-    /// document property's other name with this off. Not stored in version-0 (signature zero) streams.
-    public var matchIfMissing: Bool = false
+    /// Whether a message that does not have the property is tested against the next property instead (spec §6.9.1).
+    /// Outlook 2003 and 2007 set this on an Office document property chosen in the Document Properties dialog, and add
+    /// a second property for the same document property's other name with this off. They test for exactly 1, so this
+    /// is true only when `rawMatchIfMissing` is 1. Not stored in version-0 (signature zero) streams.
+    public var matchIfMissing: Bool {
+        get { rawMatchIfMissing == 1 }
+        set { rawMatchIfMissing = newValue ? 1 : 0 }
+    }
+
+    /// The stored MatchIfMissing value, preserved when round-tripping.
+    public var rawMatchIfMissing: UInt32 = 0
 
     public init(field: String, propTag: PropertyTag, matchType: DocumentPropertyStringMatchType, stringValue: String) {
         self.field = field
@@ -135,9 +142,9 @@ public struct DocumentProperty {
         /// Date Value (12 bytes)
         self.dateValue = try OleDateTime(dataStream: &dataStream)
         
-        /// Match If Missing (4 bytes), from version 970102 (spec §6.9). Version-0 streams don't have it.
+        /// Match If Missing (4 bytes), from version 970102 (spec §6.9.1). Version-0 streams don't have it.
         if version != .signatureZero {
-            self.matchIfMissing = (try dataStream.read(endianess: .littleEndian) as UInt32) != 0
+            self.rawMatchIfMissing = try dataStream.read(endianess: .littleEndian)
         }
     }
     
@@ -183,9 +190,9 @@ public struct DocumentProperty {
         /// Date Value (12 bytes)
         dateValue.write(to: &dataStream)
         
-        /// Match If Missing (4 bytes), from version 970102 (spec §6.9). Version-0 streams don't have it.
+        /// Match If Missing (4 bytes), from version 970102 (spec §6.9.1). Version-0 streams don't have it.
         if version != .signatureZero {
-            dataStream.write((matchIfMissing ? 1 : 0) as UInt32, endianess: .littleEndian)
+            dataStream.write(rawMatchIfMissing, endianess: .littleEndian)
         }
     }
 }
