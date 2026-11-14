@@ -72,6 +72,7 @@ This document specifies the binary format used by Microsoft Outlook to store cli
   * [E.1 Server forms of elements](#e1-server-forms-of-elements)
   * [E.2 Exchange server rules](#e2-exchange-server-rules)
   * [E.3 Client and server rules conflict](#e3-client-and-server-rules-conflict)
+  * [E.4 Running client rules](#e4-running-client-rules)
 * [Appendix F. Findings from Outlook 2000](#appendix-f-findings-from-outlook-2000)
 * [Appendix G. Findings from Outlook 2002](#appendix-g-findings-from-outlook-2002)
   * [G.1 Format](#g1-format)
@@ -403,7 +404,7 @@ What a new profile starts with:
 
 | Version | VersionStamp | Unknown1–3, ClearCategoriesRuleCreated | ServerRulesOutOfDate, ServerUpdateMode | Inbox Assistant fields |
 |---|---|---|---|---|
-| Outlook 98 **[O98]** | — | `0` | not traced | not traced |
+| Outlook 98 **[O98]** | — | `0` | `0`, `2` (Automatically) | `1`, `1` |
 | Outlook 2000 **[O2000]** | 970812 | `0` | `0`, `2` (Automatically) | `1`, `1` |
 | Outlook 2002 **[O2002]** | 1000000 | `0` (Unknown1 always written as `0`) | always written as `0` | `1`, `1` |
 | Outlook 2003 **[O2003]** | 1100000, WriterVersion `0x0010C8E0` | `0` | always written as `0` | `1`, `1` |
@@ -493,13 +494,14 @@ Notes:
 * **RunError.**
   * **[O97]** New rules get `0`; Outlook 97 copies and saves it but never reads it.
   * **[O2000]** When an action of a client rule fails, Outlook 2000 sets this field to `1`, turns the rule off (Enabled = `0`) and shows an error message naming the rule. A rule that runs without error gets `0`.
-  * **[O2002]** Outlook 2002 does the same, but adds the rule to a "Rules in Error" window instead of showing a message, and doesn't turn a rule back on when it later runs without error.
-  * **[O2003–2007]** Outlook 2003 and 2007 run the actions one by one and, after each, set RunError to whether that action failed (Outlook 2003: setter `0x30335DAB` called at `0x305FD240`; Outlook 2007: `0x30569244`). When an action fails they also turn the rule off and add it to the "Rules in Error" list. Because the field is set after every action, a later action that succeeds sets it back to `0`, though the rule stays off.
+  * **[O98]** Outlook 98 runs the actions one by one (`0x6E408F3B`). After each it sets RunError to the action's HRESULT, so a failure stores an error code such as `0x80004005` rather than `1`, and sets Enabled to whether the action succeeded. A failure also shows an error naming the rule; the remaining actions still run, and a later success resets both fields. Readers SHOULD treat any non-zero RunError as an error.
+  * **[O2002]** Outlook 2002 does the same as Outlook 2000, but adds the rule to a "Rules in Error" window instead of showing a message, and doesn't turn a rule back on when it later runs without error.
+  * **[O2002–2007]** Outlook 2002, 2003 and 2007 run the actions one by one and, after each, set RunError to whether that action failed (Outlook 2002: `0x34AA0749`; Outlook 2003: setter `0x30335DAB` called at `0x305FD240`; Outlook 2007: `0x30569244`). When an action fails they also turn the rule off and add it to the "Rules in Error" list. Because the field is set after every action, a later action that succeeds sets it back to `0`, though the rule stays off.
 * **ServerRule.** **[O97]** Outlook 97 serializes the rule and writes `PR_RULE_PROVIDER_DATA`, `PR_RULE_STATE` and the other server-rule properties through MAPI, then sets this to `1`. It is cleared again if saving fails or the server rules are reset. **[O98–2007]** Later versions read and write the field in the same place; what sets it was traced only in Outlook 97.
 * **Flags.**
   * **[O98–2007]** Outlook 98 and later read and write it only for streams of version 970812 or later, which is why Outlook 97 exports don't have it ([§4.1.1](#411-version-dependent-fields)).
   * **[O98]** **[O2000]** Outlook 98 and 2000 copy it to and from offset `0x18` of the rule's Exchange server rule (`PR_RULE_PROVIDER_DATA`). **[O2002]** From Outlook 2002 the provider data embeds the whole rule instead ([Appendix E](#appendix-e-findings-from-outlook-98)).
-  * **[O98]** **[O2000]** Outlook 98 and 2000 clear it to `0` when the user edits a rule that has bit `0x1` or `0x2` set, so those bits **[Inferred]** mark errors that editing fixes. Not traced in later versions; **[O2003–2007]** Outlook 2003 and 2007 instead forgive read errors in rules with these bits ([§4.3.1.1](#4311-rule-flags)). The other bits mark rules that Outlook 2000 and later create themselves and find again by their flag.
+  * **[O98]** **[O2000]** Outlook 98 and 2000 clear it to `0` when the user edits a rule that has bit `0x1` or `0x2` set, so those bits **[Inferred]** mark errors that editing fixes. **[O2002]** Outlook 2002 still does (`0x34ABD8AB`, in a rules-dialog command handler for control `0x3025`). No such code was found in Outlook 2003, where the only test of these bits on the Flags field is the reader's. **[O2003–2007]** Outlook 2003 and 2007 instead forgive read errors in rules with these bits ([§4.3.1.1](#4311-rule-flags)). The other bits mark rules that Outlook 2000 and later create themselves and find again by their flag.
 * **ServerRuleId.** **[O2002]** When Outlook 2002 first saves a rule to the server it gives it the next number from a counter. The counter isn't stored anywhere: when Outlook reads the server's rules it sets it to the highest ID found in their provider data. It also stores the number at offset 4 of the rule's `PR_RULE_PROVIDER_DATA`, and uses it to match local rules with server rules. Importing a rules file clears it. **[O2003–2007]** Outlook 2003 and 2007 give a rule with ServerRuleId `0` the next number from the counter when they build its server rule (Outlook 2003: `0x3062BC41`; Outlook 2007: `0x3099D35C`), and their import mode clears it (Outlook 2007: `0x307E59B7`; [Appendix I.3](#i3-exchange-server-rules), [Appendix I.7](#i7-the-rules-message-and-cached-exchange-mode)). When they read the server's rules they reset the counter to `0` and raise it to the highest ID at offset 4 of the provider data, as Outlook 2002 does (Outlook 2003: `0x300C5DBB`, raised at `0x302AF8BE`; Outlook 2007: `0x308B3338`).
 * **DataSize.**
   * **[O2002]** It lets an older version keep rules it can't read. Outlook 2002 parses the elements only when the rule's version is 1000000. For a newer rule it stores the DataSize bytes unparsed and writes them back unchanged.
@@ -918,7 +920,7 @@ Used by `0x00D0` and `0x01FC`. **[O97]** This is the same class as FlagParameter
 | Unknown1 | 4 | **[Unknown]** Always `1`. **[O97]** Every constructor sets it to `1`; the matching code never reads it, and the Document or Form Properties dialog never changes it. Outlook 2000 is the same **[O2000]**, and Outlook 2002's constructors still set it to `1` **[O2002]**. So do Outlook 2003's; it only copies the field **[O2003]**. So do Outlook 2007's three constructors **[O2007]**. |
 | DateMatch | 4 | `0` = before, `1` = after. |
 | DateValue | 12 | OleDateTime. Defaults to the current time **[O97]**. |
-| MatchIfMissing | 4 | **[O2003–2007]** `1`: if the message lacks this property, test the next property instead; any other value: a missing property fails the condition. Only present when the stream's version is 970102 or later: every format except G0s, which is version 0 **[O2003]**. G0 streams count as 970102. Always `0` in the samples, none of which uses a document property. See [§6.9.1](#691-matchifmissing). |
+| MatchIfMissing | 4 | **[O98–2007]** `1`: if the message lacks this property, test the next property instead; any other value: a missing property fails the condition. Only present when the stream's version is 970102 or later: every format except G0s, which is version 0 **[O2003]**. G0 streams count as 970102. Always `0` in the samples, none of which uses a document property. See [§6.9.1](#691-matchifmissing). |
 
 **[O2002]** When writing a format older than 1000000, Outlook 2002 changes a `PT_UNICODE` type in PropTag to `PT_STRING8`. When loading, it maps Field back to a property ID in the current store by name, so the stored ID only matters if the name isn't found. **[O2003–2007]** Outlook 2003 (`0x3060766B`) and 2007 (`0x306556B5`) make the same type change when writing below 1000000; When loading, they look Field up, ignoring case (`_wcsicmp`), in a table of the 26 Office document properties' menu texts (Outlook 2003: `0x306077C8`; Outlook 2007: `0x304E11B0`). On a match they use the property's internal name ([§6.9.2](#692-office-document-properties)), and otherwise Field itself. They then call `GetIDsFromNames` with `MAPI_CREATE` on the default store's Inbox for that name in `PS_PUBLIC_STRINGS`, and replace PropTag's ID with the result, keeping its type (Outlook 2003: `0x30607627`; Outlook 2007: `0x304E0F53`). With `MAPI_CREATE` the name always gets an ID, so the stored ID is always replaced when the lookup succeeds.
 
@@ -927,7 +929,7 @@ Used by `0x00D0` and `0x01FC`. **[O97]** This is the same class as FlagParameter
 * **[O97]** Non-zero: a message without this property counts as a match; `0`: it does not. Every constructor sets it to `0`, and the dialog has no control for it, so Outlook 97 never creates a non-zero value. Its matcher does honour one.
 * **[O2000]** Outlook 2000 never sets it either. Its Document Properties dialog keeps a non-zero value when it saves the list again, and adds a copy of that property with the tag of the property's other name (for example `Subject` and `Document Subject`) and MatchIfMissing `0`.
 * **[O2003]** Outlook 2003's matcher (`0x30612940`) tests the properties in order and needs all of them to match. MatchIfMissing changes that for the property and the one after it: if the message has the property, Outlook tests it and **skips the next property**; if the message doesn't have it, Outlook ignores it and tests the next property instead. So a pair means "test the property under its first name, or under its other name if the first is missing". A missing property without MatchIfMissing fails the condition.
-* **[O2003–2007]** Outlook 2007's matcher (`0x303AD79E`) works the same way. Both test for MatchIfMissing equal to `1` (Outlook 2003: `0x30612C79`), not just non-zero, so any other value behaves like `0`.
+* **[O98–2007]** Every matcher from Outlook 98 on works this way and tests for MatchIfMissing equal to `1`, not just non-zero, so any other value behaves like `0` (Outlook 98: `0x6E76FF44`; Outlook 2000: `0x3A877F18`; Outlook 2002: `0x34AB38D9`; Outlook 2003: `0x30612C79`; Outlook 2007: `0x303AD79E`). The pair behaviour therefore dates from Outlook 98, although only Outlook 2003 and later create pairs.
 * **[O2003–2007]** Outlook 2003 and 2007 do set MatchIfMissing (Outlook 2007's constructor for Office document properties, [Appendix J.8](#j8-unchanged-from-outlook-2003)). When the user picks one of the Office document properties listed in [§6.9.2](#692-office-document-properties) from the dialog's menu, the new property gets MatchIfMissing `1` (`0x30607080`, called from `0x3060A64A`), and saving the list adds the copy under the other name with MatchIfMissing `0` (`0x30607FA4`). Fields of a form get `0`.
 
 #### 6.9.2 Office document properties
@@ -1004,6 +1006,8 @@ Used by `0x00E4`, `0x0210`, `0x00F4` (`CInfoPathFormTypeParameter`) and `0x0218`
 
 ### 6.13 SendersListParameter
 Used by `0x00E9`, `0x00EB` and `0x00EC`. These elements exist only in G1.
+
+**[O98–2002]** The client test doesn't read the parameter. For `0x00EA` and `0x00EB` it checks that the message's property `0x1083` (`PT_LONG`, one of the properties Outlook fetches for every message it runs rules on) is `1`, and for `0x00EC` that it is `2` (Outlook 98: `0x6E76FD4E`; Outlook 2002: `0x34AB3521`, tag array `0x34BA2988`). `0x00E9` never matches. What sets property `0x1083` was not traced. **[O2003–2007]** All four never match ([Appendix I.8](#i8-evaluating-conditions-on-the-client)).
 
 | Field | Size | Description |
 |---|---|---|
@@ -1209,8 +1213,8 @@ The smallest G2 stream: one enabled rule named `RULENAME`, applied "after the me
 5. DocumentProperty Unknown1: always `1`, and never read by Outlook 97–2003. Outlook 2007's three constructors still set it to `1`.
 6. Whether stamp 0x150000 changes the layout.
 7. Rule Flags bits `0x1`/`0x2`. Outlook 97–2007 never set them; Outlook 2003 and 2007 forgive errors in single rules that have them ([§4.3.1.1](#4311-rule-flags)).
-8. The meaning of the definition flags at `+0x20` and `+0x24` (Appendix D.1). Outlook 97–2003 never read `+0x24`; Outlook 2003 reads `+0x20` only to build the description of `0x00F3`, the one element where it is `0`.
-9. The meaning of the field Outlook 2002 added to its definition records ([Appendix G.2](#g2-definitions-and-parameters)).
+8. The meaning of the definition flags at `+0x20` and `+0x24` (Appendix D.1). Outlook 97–2003 never read `+0x24`; Outlook 2003 reads `+0x20` only to build the description of `0x00F3`, the one element where it is `0` (getter at vtable slot `0x4` of the definition class `0x30126BB0`, called at `0x30621993`). A search of every virtual call made on a definition reached through an element or the ID lookup (`0x306335E1`) found no other reader in Outlook 2002 or 2003.
+9. The meaning of the field Outlook 2002 added to its definition records ([Appendix G.2](#g2-definitions-and-parameters)). The same search found no caller of its getter (Outlook 2003: definition object `+0x24`, vtable slot `0xC`, `0x30632403`) in Outlook 2002 or 2003, so neither version uses it.
 10. The meaning of bit `0x1` of the rule-set mask Outlook 2003 added ([§4.3.4](#434-rule-set-mask)). Outlook 2003 and 2007 never use it, and the Out of Office rules don't explain it ([Appendix I.9](#i9-out-of-office-rules)). Only `0x014D` and `0x014E` have it, and nothing creates them.
 
 ## Appendix C. Corrections to earlier notes
@@ -1432,7 +1436,11 @@ When Outlook 98 reads the server's rules (`0x6E77A1A7`) it notes whether any loc
 
 The message "Your client rules have been modified more recently than your Exchange Server rules" (string 59286) is still in the resources and still unused, as in Outlook 97.
 
-The client-side rule evaluator was not located in Outlook 98.
+### E.4 Running client rules
+
+* **Conditions** (`0x6E408E86`). Each condition calls a method of the message being processed, as in Outlook 2002 and 2003 ([Appendix I.8](#i8-evaluating-conditions-on-the-client)); the switch for `0x00C9`–`0x00EC` is at `0x6E408EF3`. `0x00D1`, `0x00D6`, `0x00D8`, `0x00D9` and `0x00DD` have no test, `0x00E9` never matches, and `0x00EA`–`0x00EC` use the junk-mail test ([§6.13](#613-senderslistparameter)). Document properties are matched with MatchIfMissing pairs ([§6.9.1](#691-matchifmissing)).
+* **Actions** (`0x6E408F3B`, switch `0x6E408FE2` for `0x012C`–`0x0142`). After each action Outlook stores its result in RunError and sets Enabled ([§4.3.1](#431-ruleheader)).
+* **Reading foreign server rules back.** The restriction reader (around `0x6E781000`) recognises the same properties as Outlook 2003's ([Appendix I.3](#i3-exchange-server-rules)), except `PR_NEWSGROUP_NAME`.
 
 ## Appendix F. Findings from Outlook 2000
 
@@ -1449,6 +1457,7 @@ The CD image (an Alcohol 120% `.mdf`, a Turkish Outlook 2000) stores raw 2448-by
 * **New elements:** `0x00ED` (relevance range, client-only), `0x00EE` and `0x0214` (account, client-only), `0x0144` (redirect), `0x0145` (add to relevance, client-only), `0x0146` (server reply), `0x0147` (forward as attachment), `0x0148` (print, client-only), `0x0149` (start application, client-only) and `0x014A` (permanently delete, client-only). "Play a sound" (`0x0136`) moved to a new parameter class with the same layout.
 * **Parameter factory** (jump table `0x3A5269F4`, kinds 1–`0x20`). New kinds: `0x1C` add to relevance (Reserved, u32), `0x1D` server reply (Reserved, entry ID, String), `0x1E` account (Reserved, String, String), and `0x1F`/`0x20` sound and application paths (Reserved, String). Every other kind's layout is unchanged from Outlook 98.
 * **Server forms** (condition switch `0x3A525315`). The conditions with no server form are the same as in Outlook 98 and 2002: `0x00D1`, `0x00D7`, `0x00DA`, `0x00DB`, `0x00DD`, `0x00DF`, `0x00E5` and everything from `0x00E9` on ([Appendix E.1](#e1-server-forms-of-elements)). `0x00D6` and `0x00D8` share the handler of "from" (`0x00CB`); `0x00D9` now has its own. The actions with a server form are those of Outlook 2002's table ([Appendix G.3](#g3-exchange-server-rules)): move (`0x012C`, and `0x0134`), copy, delete, forward (`0x012E`, and `0x0135`), redirect (`0x0144`), forward as attachment (`0x0147`), have server reply (`0x0146`) and stop processing (`0x0142`).
+* **Client conditions** (`0x3A873784`). The same design and tests as Outlook 98's and 2002's ([Appendix E.4](#e4-running-client-rules)), plus relevance (`0x00ED`).
 * **Client and server rules conflict** (`0x3A884321`). The same check as Outlook 98's ([Appendix E.3](#e3-client-and-server-rules-conflict)): the newest server timestamp (`0x3A87EF19`) against the footer Timestamp, then dialog 234 (`0x3A88F2D7`).
 
 ## Appendix G. Findings from Outlook 2002

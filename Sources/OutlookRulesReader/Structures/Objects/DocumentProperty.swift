@@ -48,8 +48,8 @@ public struct DocumentProperty {
     public var dateValue: OleDateTime
     /// Whether a message that does not have the property is tested against the next property instead (spec §6.9.1).
     /// Outlook 2003 and 2007 set this on an Office document property chosen in the Document Properties dialog, and add
-    /// a second property for the same document property's other name with this off. They test for exactly 1, so this
-    /// is true only when `rawMatchIfMissing` is 1. Not stored in version-0 (signature zero) streams.
+    /// a second property for the same document property's other name with this off. Outlook 98 and later test for exactly
+    /// 1, so this is true only when `rawMatchIfMissing` is 1. Not stored in version-0 (signature zero) streams.
     public var matchIfMissing: Bool {
         get { rawMatchIfMissing == 1 }
         set { rawMatchIfMissing = newValue ? 1 : 0 }

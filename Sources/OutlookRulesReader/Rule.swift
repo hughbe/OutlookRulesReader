@@ -36,7 +36,8 @@ public struct Rule: CustomDebugStringConvertible {
     public var elements: [RuleElement] = []
 
     /// Whether the rule failed while Outlook was running it on the client (RuleHeader RunError, spec §4.3.1).
-    /// Outlook 2000 sets this, and disables the rule, when one of the rule's actions fails.
+    /// Outlook 2000 and later set it to 1, and disable the rule, when one of the rule's actions fails; Outlook 98
+    /// stores the failing action's HRESULT instead, so any non-zero value means an error.
     public var hasRunError: Bool {
         get { runError != 0 }
         set { runError = newValue ? 1 : 0 }
