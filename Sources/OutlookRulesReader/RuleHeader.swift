@@ -24,6 +24,9 @@ internal struct RuleHeader {
     public var serverRuleId: UInt32? = 0
     /// The number of bytes from the end of this field to the end of the rule (Outlook 2002 and later only).
     public var dataSize: UInt32?
+    /// Whether NumberOfElements and the elements follow. In the Outlook 2002 and later formats, a DataSize of 0 means
+    /// the rule stores no element list at all, not even its count (Outlook 2003; spec §4.3.1).
+    public var hasElementList: Bool = true
     public var numberOfElements: UInt16
 
     public init(name: String, enabled: Bool = false, numberOfElements: UInt16, dataSize: UInt32) {
@@ -77,14 +80,20 @@ internal struct RuleHeader {
             self.serverRuleId = try dataStream.read(endianess: .littleEndian)
 
             /// Data Size (4 bytes)
-            self.dataSize = try dataStream.read(endianess: .littleEndian)
+            let dataSize: UInt32 = try dataStream.read(endianess: .littleEndian)
+            self.dataSize = dataSize
+            self.hasElementList = dataSize != 0
         } else {
             self.serverRuleId = nil
             self.dataSize = nil
         }
 
-        /// Number of Elements (2 bytes)
-        self.numberOfElements = try dataStream.read(endianess: .littleEndian)
+        /// Number of Elements (2 bytes), absent when Data Size is 0
+        if hasElementList {
+            self.numberOfElements = try dataStream.read(endianess: .littleEndian)
+        } else {
+            self.numberOfElements = 0
+        }
     }
 
     /// Writes the header. `version` is the stream's version; the rule's contents use `contentVersion`.
@@ -119,7 +128,11 @@ internal struct RuleHeader {
             dataStream.write(serverRuleId ?? 0, endianess: .littleEndian)
 
             /// Data Size (4 bytes)
-            dataStream.write(dataSize ?? 0, endianess: .littleEndian)
+            dataStream.write(hasElementList ? dataSize ?? 0 : 0, endianess: .littleEndian)
+
+            if !hasElementList {
+                return
+            }
         }
 
         /// Number of Elements (2 bytes)

@@ -7,6 +7,7 @@
 
 /// The flags in a rule's header (spec §4.3.1.1). Rules the user creates have none. Outlook 2000 sets them on the
 /// rules it creates itself (junk mail, Download Options), and finds those rules again by their flag rather than by name.
+/// Outlook 2003 deletes the junk-mail rules (0x08, 0x10 and 0x20) whenever it saves.
 /// Present from version 970812 (Outlook 98); 0 in older formats.
 public struct RuleFlags: OptionSet, Hashable {
     public let rawValue: UInt32
@@ -15,8 +16,9 @@ public struct RuleFlags: OptionSet, Hashable {
         self.rawValue = rawValue
     }
 
-    /// Outlook 98 and 2000 clear all the flags when the user edits a rule with this bit or `0x2` set.
-    /// The meaning is unknown; probably an error that editing fixes.
+    /// Outlook 98 and 2000 clear all the flags when the user edits a rule with this bit or `0x2` set, and
+    /// Outlook 2003 ignores errors reading such a rule's elements. The meaning is unknown; probably an error
+    /// that editing fixes.
     public static let unknown1 = RuleFlags(rawValue: 0x01)
 
     /// See `unknown1`.
@@ -33,6 +35,7 @@ public struct RuleFlags: OptionSet, Hashable {
     public static let exceptionListRule = RuleFlags(rawValue: 0x20)
 
     /// The "big item rule" of the "Download Options" dialog: don't download messages larger than a size,
-    /// except from chosen senders, with high importance or with a flag.
+    /// except from chosen senders, with high importance or with a flag. Outlook 2003 stores it with no
+    /// elements (DataSize 0) at version 1100000.
     public static let downloadOptionsRule = RuleFlags(rawValue: 0x40)
 }

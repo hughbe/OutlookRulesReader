@@ -252,8 +252,18 @@ public enum RuleElementIdentifier: UInt32 {
     /// “mark as read”
     case markAsReadAction = 0x0000014C
 
+    /// “have server reply using <a specific message>”: a hidden variant of 0x0146 that Outlook 2003 defines for
+    /// another kind of rule and drops when it loads a rule (spec §5.3).
+    case hiddenServerReplyAction = 0x0000014D
+
+    /// “notify me using a .NET notification”: hidden in Outlook 2003, which drops it when it loads a rule (spec §5.3).
+    case dotNetNotificationAction = 0x0000014E
+
     /// “display a Desktop alert”
     case displayDesktopAlertAction = 0x0000014F
+
+    /// “flag message with <a colored flag>” (Outlook 2003)
+    case flagColorAction = 0x00000150
 
     /// “flag message for <follow up at this time>”
     case flagForFollowUpAction = 0x00000151

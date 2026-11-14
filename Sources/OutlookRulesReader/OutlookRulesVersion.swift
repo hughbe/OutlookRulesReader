@@ -9,8 +9,10 @@
 public enum OutlookRulesVersion: Comparable {
     /// Outlook 97's Export Rules format: no signature, header or footer. The stream starts with the number of rules.
     case outlook97
-    /// A stream whose signature is 0. Laid out like the Outlook 98/2000 format, but without the rule flags.
-    /// Which application writes it is unknown.
+    /// A stream whose signature is 0: everything Outlook writes at version 0. Laid out like the Outlook 98/2000
+    /// format, but without the rule flags, the folder's secondary-store field or the document property's
+    /// match-if-missing field. Outlook 2003's Export Rules writes it when the rules were last saved by a newer
+    /// Outlook whose version it doesn't know (spec §3).
     case signatureZero
     /// Signature 970102 (0x000ECD76): the copy of the rules Outlook 97 keeps in the profile. Laid out like the
     /// Outlook 98 format, but without the rule flags (added in 970812) or the folder's secondary-store field

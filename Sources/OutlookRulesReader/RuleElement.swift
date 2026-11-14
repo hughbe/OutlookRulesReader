@@ -203,8 +203,14 @@ public struct RuleElement {
                     parameter = try ScriptParameter(dataStream: &dataStream, version: version)
                 case .markAsReadAction: // 0x014C
                     throw OutlookRulesReadError.corrupted
+                case .hiddenServerReplyAction: // 0x014D
+                    parameter = try StringParameter(dataStream: &dataStream, version: version)
+                case .dotNetNotificationAction: // 0x014E
+                    throw OutlookRulesReadError.corrupted
                 case .displayDesktopAlertAction: // 0x014F
                     throw OutlookRulesReadError.corrupted
+                case .flagColorAction: // 0x0150
+                    parameter = try FlagColorParameter(dataStream: &dataStream, version: version)
                 case .flagForFollowUpAction: // 0x0151
                     parameter = try FlagForFollowUpParameter(dataStream: &dataStream, version: version)
                 case .clearCategoriesAction: // 0x0152
