@@ -513,8 +513,25 @@ final class SpecTests: XCTestCase {
         XCTAssertEqual(propertiesZero, rereadProperties.getData())
     }
 
+    /// Outlook 2007 reads "from any RSS feed" with an optional parameter that holds only the Reserved field (spec §5.2).
+    func testFromAnyRSSFeedReservedParameter() throws {
+        let rule = Rule(eventFlags: .afterReceived, name: "RSS", conditions: [
+            RuleElement(identifier: .fromAnyRSSFeedCondition, parameter: ReservedParameter())
+        ], exceptions: [
+            RuleElement(identifier: .fromAnyRSSFeedException)
+        ])
+        let data = OutlookRules(rules: [rule]).getData(version: .outlook2007)
+        XCTAssertNotNil(data.range(of: Data([0xF7, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0])))
+
+        let file = try OutlookRules(data: data)
+        XCTAssertTrue(file.rules[0].conditions[0].parameter is ReservedParameter)
+        XCTAssertTrue(file.rules[0].exceptions[0].parameters.isEmpty)
+        XCTAssertEqual(data, file.getData())
+    }
+
     static var allTests = [
         ("testAllSamplesRoundTrip", testAllSamplesRoundTrip),
+        ("testFromAnyRSSFeedReservedParameter", testFromAnyRSSFeedReservedParameter),
         ("testSignatureZeroOmitsVersionedFields", testSignatureZeroOmitsVersionedFields),
         ("testRuleWithoutElementList", testRuleWithoutElementList),
         ("testOutlook2003Actions", testOutlook2003Actions),
