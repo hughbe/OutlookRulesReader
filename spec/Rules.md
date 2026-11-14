@@ -69,6 +69,9 @@ This document specifies the binary format used by Microsoft Outlook to store cli
   * [D.4 The rule evaluator](#d4-the-rule-evaluator)
   * [D.5 Saving and exporting](#d5-saving-and-exporting)
 * [Appendix E. Findings from Outlook 98](#appendix-e-findings-from-outlook-98)
+  * [E.1 Server forms of elements](#e1-server-forms-of-elements)
+  * [E.2 Exchange server rules](#e2-exchange-server-rules)
+  * [E.3 Client and server rules conflict](#e3-client-and-server-rules-conflict)
 * [Appendix F. Findings from Outlook 2000](#appendix-f-findings-from-outlook-2000)
 * [Appendix G. Findings from Outlook 2002](#appendix-g-findings-from-outlook-2002)
   * [G.1 Format](#g1-format)
@@ -386,7 +389,7 @@ Outlook 2007 doesn't follow these rules: its exports "for Outlook 98" keep every
 | ClearCategoriesRuleCreated | 4 | not G0 | **[O2007]** Flags, of which only bit `0x1` is known: Outlook 2007 has created its "Clear categories on mail (recommended)" rule. Readers MUST accept any value. See [§4.2.3](#423-clearcategoriesrulecreated). |
 | ServerRulesOutOfDate | 4 | not G0 | **[O97]** `1` when the copy of the rules on the Exchange server needs updating. See [§4.2.4](#424-server-settings). |
 | ServerUpdateMode | 4 | not G0 | **[O97]** The "Update server" option in the Rules Wizard's Options dialog: `1` = Manually, `2` = Automatically, `0` = not set. See [§4.2.4](#424-server-settings). |
-| PromptToConvertInboxAssistantRules | 4 | not G0 | **[O97]** The "Prompt to convert Inbox Assistant rules" option: `1` = ask whether to convert the old Exchange Inbox Assistant rules found on the server. Cleared by "Do not prompt me again". Always `1` observed. **[O2002–2007]** Only kept: Outlook 2002 and later load, save and copy it unchanged. No such option was found in Outlook 2003's or 2007's resources. |
+| PromptToConvertInboxAssistantRules | 4 | not G0 | **[O97]** The "Prompt to convert Inbox Assistant rules" option: `1` = ask whether to convert the old Exchange Inbox Assistant rules found on the server. Cleared by "Do not prompt me again". Always `1` observed. **[O98]** Outlook 98 has the same option and prompt ([Appendix E.2](#e2-exchange-server-rules)). **[O2002–2007]** Only kept: Outlook 2002 and later load, save and copy it unchanged. No such option was found in Outlook 2003's or 2007's resources. |
 | ConvertInboxAssistantRules | 4 | not G0 | **[O97]** The last answer to that prompt: `1` = Yes (convert), `0` = No. Always `1` observed, but `0` is valid. Readers MUST accept both. **[O2002–2007]** Only kept, as PromptToConvertInboxAssistantRules. |
 | ExtraDataSize | 4 | G2 | Number of bytes of ExtraData. Always `0` observed. |
 | ExtraData | ExtraDataSize | G2 | Readers MUST skip it and SHOULD preserve it. See [§4.2.5](#425-extradata). |
@@ -438,7 +441,7 @@ Always `0` in the samples, but hughbe/OutlookRulesReader#2 reports fields like t
 #### 4.2.4 Server settings
 
 * **ServerRulesOutOfDate** **[O97]** is set when the rules or options change, or when an upload fails for lack of server space, and cleared after a successful upload. When updates are automatic, Outlook uploads at startup if it's set.
-* **ServerUpdateMode** **[O97]**: `1` = Manually (only when the user clicks "Update Now"), `2` = Automatically. `0` = not set, as written by Outlook 2010+. Switching from Manually to Automatically triggers an immediate upload.
+* **ServerUpdateMode** **[O97]** **[O98]** (Outlook 98's Options dialog still has the setting): `1` = Manually (only when the user clicks "Update Now"), `2` = Automatically. `0` = not set, as written by Outlook 2010+. Switching from Manually to Automatically triggers an immediate upload.
 * **[O2002–2007]** Outlook 2002, 2003 and 2007 discard ServerRulesOutOfDate and ServerUpdateMode when loading and write `0` for both, which is why later writers have `(…, 0, 0)` below. No "Update server" option was found in Outlook 2003's or 2007's resources.
 
 #### 4.2.5 ExtraData
@@ -581,8 +584,9 @@ TemplateDirectory notes:
 Timestamp notes:
 
 * **[O97]** When the Rules Wizard window saves, it supplies this timestamp; other saves write the stored value again. `RULESWIZ.DLL` has the message "Your client rules have been modified more recently than your Exchange Server rules", but no code uses it, so Outlook 97 never compares this timestamp.
+* **[O98]** Outlook 98 is the first version to compare: when it reads the server rules it finds the newest provider-data timestamp and shows a conflict dialog when they disagree with this field ([Appendix E.3](#e3-client-and-server-rules-conflict)).
 * **[O2002]** Outlook 2002 keeps it in memory as minutes since 1601-01-01 (OLE days × 1440 + 157255200). It uses `0x5AE980E0` for "none", and writes that value as a null OleDateTime. When it reads the server rules, it finds the newest timestamp in their provider data ([Appendix E](#appendix-e-findings-from-outlook-98)) and compares it with this field. If they differ, it asks: "The rules on this machine do not match the rules on your Exchange server. Only one set of rules can be kept. You will usually want to keep the rules on the server. Which rules do you want to keep?" (Client / Server).
-* **[O2003]** **[O2007]** Both keep the "none" value `0x5AE980E0` and the same prompt. Outlook 2007 rewords it: "The rules on this computer do not match the rules on Microsoft Exchange. …". The same pass that sets the ServerRuleId counter also finds the newest provider-data timestamp, in minutes, starting from "none" (Outlook 2003: `0x300C5DBB`; Outlook 2007: `0x308B3193`). Where that result is compared with this field was not traced again.
+* **[O2003]** **[O2007]** Both keep the "none" value `0x5AE980E0` and the same prompt. Outlook 2007 rewords it: "The rules on this computer do not match the rules on Microsoft Exchange. …". The same pass that sets the ServerRuleId counter also finds the newest provider-data timestamp, in minutes, starting from "none" (Outlook 2003: `0x300C5DBB`; Outlook 2007: `0x308B3193`). The comparison is a method of the server-rules object (Outlook 2003: `0x300C5855`, vtable slot `+0x1C`; Outlook 2007: `0x309ABB3E`). It counts the local rules that can go to the server and compares this field with the newest server timestamp. Any difference counts, whichever side is newer. If neither side has anything, nothing happens. If the two differ (in one mode also when only the local side has rules), Outlook shows the prompt, but only on its main thread; elsewhere it gives up (`E_ABORT`). The prompt's buttons are Client (ID 1: keep the local rules and this timestamp), Server (ID 3: take the server's rules and timestamp) and Cancel (ID 2: give up). **[O2003–2007]** The comparison takes a flag word. **[O2003]** In Outlook 2003 it is passed down from the function that finds or creates a store's rules object (`0x300C1890`, through `0x300C18B6`, `0x300C3C57` and `0x300C4936`). There, bit `0x8` skips the check and bit `0x2` marks the call from saving, which also clears bit `0x1` (`0x30619CFA`). Bit `0x1` makes an empty side prompt too, but no caller in Outlook 2003 sets it: every caller passes `0` or `4`. So in Outlook 2003 the prompt appears only when the server has rules and its newest timestamp differs from this field. Outlook 2007's comparison has the same branches; its callers were not enumerated.
 * Status is null in 231 of 291 samples: those rules were never synchronized with an Exchange server.
 * A valid timestamp of `-109205.0` is 1601-01-01 00:00, the `FILETIME` epoch. It is a zero `FILETIME` converted to an OLE date, and means "never saved".
 * Several Outlook 2000 samples hold `-649728.2264`, about the year 120 AD. This is presumably garbage: an uninitialised value or a conversion bug.
@@ -1404,6 +1408,32 @@ Relevance (`0x00ED`, `0x0145`) isn't in Outlook 98, so it arrived with Outlook 2
 | `0x10` | variable | Versions other than 1 only: the whole rule serialized in this file format (a RuleHeader and its elements, [§4.3](#43-rule)), in the layout of that version. Outlook 98 and 2002 embed it when the rule has parts the server can't run. The property's size is `0x18` + the rule's length, so 8 zero bytes follow the rule. |
 | `0x18` | 4 | Version 1 only, when the rule's Flags are non-zero: the Flags. The property is then `0x1C` bytes; otherwise `0x18`. |
 
+### E.1 Server forms of elements
+
+The builder (`0x6E776D15`) first counts the rule's parts (`0x6E776C01`): restrictions, server actions, and whether any part needs the client.
+
+* **Conditions** (switch `0x6E777180`) **and exceptions** (`0x6E77727D`). The elements with no server form are the same as in Outlook 2002 ([Appendix G.3](#g3-exchange-server-rules)): `0x00D1`, `0x00D7`, `0x00DA`, `0x00DB`, `0x00DD`, `0x00DF`, `0x00E5` and everything from `0x00E9` on, and their exceptions. `0x00D6` and `0x00D8` share the handler of "from" (`0x00CB`), and `0x00D9` that of "words in the body" (`0x00CE`), as they still do in Outlook 2003 ([Appendix I.3](#i3-exchange-server-rules)). The address conditions (`0x00CB`, `0x00CC`, `0x00D6`, `0x00D8`, `0x00DB`) and the forward actions set a flag of their own.
+* **Client-only parts.** Conditions `0x00D7`, `0x00DD`, `0x00DF`, `0x00E5` and `0x00E9`–`0x00EC` (exceptions `0x0203`, `0x020B`, `0x0211`), and actions `0x012F`, `0x0130`, `0x0132`, `0x0133`, `0x0136`, `0x013A`, `0x013B`, `0x013F`, `0x0141` and `0x0143`, mark the rule as needing the client. Such a rule gets one more action, the deferred action that hands it back to Outlook, as in Outlook 2002. A rule with no server action is marked the same way.
+* **Actions** (from `0x6E7771CB`): move to folder (`0x012C`, and the undefined `0x0134`) becomes a move; "delete it" (`0x012D`) a move to Deleted Items that also stops processing; forward (`0x012E`, and the undefined `0x0135`) a forward; copy (`0x0139`) a copy; and "stop processing more rules" (`0x0142`) sets `ST_EXIT_LEVEL`. No other action gets a server action.
+
+### E.2 Exchange server rules
+
+* **Options dialog** (2322). Outlook 97's "Update server" section (Manually, Automatically, Update Now), Export Rules and Import Rules, and "Prompt to convert Inbox Assistant rules" ([§4.2](#42-rulesheader)).
+* **Inbox Assistant conversion** (dialog 2323). "Rules Wizard has detected active Inbox Assistant rules located on the Microsoft Exchange Server. Would you like to convert these to Rules Wizard rules?" with Yes, No, "Do not prompt me again" and "I want to use the Inbox Assistant instead". Converted rules are deleted from the server, and rules that can't be converted are reported one by one: too complex, type not supported, form conditions, reply templates, or a limitation of the import (strings 59530–59534).
+* **Server space.** When the server has no room, Outlook deactivates the rules that failed to upload (string 59536).
+
+### E.3 Client and server rules conflict
+
+When Outlook 98 reads the server's rules (`0x6E77A1A7`) it notes whether any local rule could go to the server, and finds the newest timestamp in the server rules' provider data (`0x6E777A7A`).
+
+* If neither side has rules, nothing happens. If both do and the stored footer Timestamp ([§4.4](#44-rulesfooter)) equals the server's newest, nothing happens either.
+* Otherwise it shows dialog 234: "Rules created in this profile conflict with rules on the Microsoft Exchange Server. Only one set of rules can be saved. Which rules do you want to save?" with Client (ID 1), Server (ID 3) and Cancel (ID 2). Outlook 2002 has the same buttons with new wording.
+* **Client** keeps the local rules to be uploaded. **Server** takes the server's timestamp and deletes the local rules that would go to the server (`0x6E77A309`). If the chosen side has no rules, Outlook first asks "There are no rules in your current selection. Do you wish to proceed?" and shows the dialog again on No.
+
+The message "Your client rules have been modified more recently than your Exchange Server rules" (string 59286) is still in the resources and still unused, as in Outlook 97.
+
+The client-side rule evaluator was not located in Outlook 98.
+
 ## Appendix F. Findings from Outlook 2000
 
 The CD image (an Alcohol 120% `.mdf`, a Turkish Outlook 2000) stores raw 2448-byte sectors with 2048 data bytes at offset 16. `PFILES/MSOFFICE/OFFICE/OUTLLIB.DLL` holds the code. From Outlook 2000 on, the UI strings and dialogs are in a separate resource DLL (`1055/OUTLLIBR.DLL` for Turkish), with the same string IDs as before.
@@ -1418,6 +1448,8 @@ The CD image (an Alcohol 120% `.mdf`, a Turkish Outlook 2000) stores raw 2448-by
 * **Definition tables** (40-byte records, the same layout as Outlook 98's): item type `0x3A5271A8`, conditions `0x3A5271D0` (29), actions `0x3A527658` (28), exceptions `0x3A527AB8` (24), event `0x3A527E78`.
 * **New elements:** `0x00ED` (relevance range, client-only), `0x00EE` and `0x0214` (account, client-only), `0x0144` (redirect), `0x0145` (add to relevance, client-only), `0x0146` (server reply), `0x0147` (forward as attachment), `0x0148` (print, client-only), `0x0149` (start application, client-only) and `0x014A` (permanently delete, client-only). "Play a sound" (`0x0136`) moved to a new parameter class with the same layout.
 * **Parameter factory** (jump table `0x3A5269F4`, kinds 1–`0x20`). New kinds: `0x1C` add to relevance (Reserved, u32), `0x1D` server reply (Reserved, entry ID, String), `0x1E` account (Reserved, String, String), and `0x1F`/`0x20` sound and application paths (Reserved, String). Every other kind's layout is unchanged from Outlook 98.
+* **Server forms** (condition switch `0x3A525315`). The conditions with no server form are the same as in Outlook 98 and 2002: `0x00D1`, `0x00D7`, `0x00DA`, `0x00DB`, `0x00DD`, `0x00DF`, `0x00E5` and everything from `0x00E9` on ([Appendix E.1](#e1-server-forms-of-elements)). `0x00D6` and `0x00D8` share the handler of "from" (`0x00CB`); `0x00D9` now has its own. The actions with a server form are those of Outlook 2002's table ([Appendix G.3](#g3-exchange-server-rules)): move (`0x012C`, and `0x0134`), copy, delete, forward (`0x012E`, and `0x0135`), redirect (`0x0144`), forward as attachment (`0x0147`), have server reply (`0x0146`) and stop processing (`0x0142`).
+* **Client and server rules conflict** (`0x3A884321`). The same check as Outlook 98's ([Appendix E.3](#e3-client-and-server-rules-conflict)): the newest server timestamp (`0x3A87EF19`) against the footer Timestamp, then dialog 234 (`0x3A88F2D7`).
 
 ## Appendix G. Findings from Outlook 2002
 
@@ -1494,7 +1526,7 @@ These have no server form: conditions `0x00D1`, `0x00D7` (category), `0x00DA`, `
 
 ### G.4 Running client rules
 
-* **Client rules.** Before running client rules on a message, Outlook 2002 fetches the message body only if a rule needs it: word conditions on the body (`0x00CE`, `0x00CF` and their exceptions) or the junk-mail conditions (`0x00E9`–`0x00EC`). The matching code itself was not traced.
+* **Client rules.** Before running client rules on a message, Outlook 2002 fetches the message body only if a rule needs it: word conditions on the body (`0x00CE`, `0x00CF` and their exceptions) or the junk-mail conditions (`0x00E9`–`0x00EC`). The matching code (`0x34AA0050`) dispatches each condition to a method of the message being processed, exactly as Outlook 2003 does ([Appendix I.8](#i8-evaluating-conditions-on-the-client)); Outlook 2003's methods are the same ones one vtable slot further on. A test returns `0` for a match. The differences: Outlook 2002 tests `0x00EA`–`0x00EC` with a junk-mail method (vtable `+0xD8`), which Outlook 2003 replaced with "never matches". In both, `0x00D1`, `0x00D6`, `0x00D8`, `0x00D9`, `0x00DD` and `0x00E9` go to the default branch, which counts as no match.
 * **Remote mail.** The "Filter Messages" dialog (1910), "Download only header for items larger than…", doesn't create a Rules Wizard rule; only "Download Options" (1129) does, with Flags `0x40`.
 
 ### G.5 Rules Wizard UI
