@@ -85,7 +85,7 @@ The server treats this format as client-specific and opaque<sup>[8]</sup>. `.rwz
 The format is the output of MFC's `CArchive` serialization **[O97]**. Most of the structure follows from this:
 
 * Rule elements are `CObject`s of class `CRuleElement` (runtime-class schema 0), written with `CArchive::WriteObject`. Each element is preceded by an object tag ([§2.5](#25-object-tag)).
-* A rule (`CRule`) writes its name, Enabled, Unknown1 and ServerRule, then its element list, a `CObList`. `CRule` is not written as an object, so it has no tag.
+* A rule (`CRule`) writes its name, Enabled, RunError and ServerRule, then its element list, a `CObList`. `CRule` is not written as an object, so it has no tag.
 * `CRuleElement::Serialize` writes the element ID, a has-parameter flag ([§4.3.2](#432-element)), and then calls the parameter object's own `Serialize`.
 * Length-prefixed strings use `CString`'s length encoding ([§2.2](#22-string)).
 * Dates are written with `operator<<(CArchive&, COleDateTime)` ([§2.4](#24-oledatetime)).
@@ -191,7 +191,7 @@ Stamps 960706–970811 also cover pre-release builds whose footer or folder fiel
 
 **[O2002]** Outlook 2002 tests differently: a first u32 with any of its top four bits set (`0x10000000` or more) is G0, which it reads as version 970102. Any stamp above 1000000 is read with the Outlook 2002 layout, and rules whose own stamp is newer are kept unparsed ([§4.3.1](#431-ruleheader)). **[O2003]** Outlook 2003 does the same with 1100000 in place of 1000000: any stamp above 1100000 is read with the Outlook 2003 layout and kept as 1100000. **[O2007]** Outlook 2007 does the same with 1200000.
 
-**G0s** has two samples (`Versions/Outlook2003/*`). The layout is G1 with VersionStamp = 0 and without the rule's Flags. The missing field follows from its version stamp: rule Flags are only read and written when the version is 970812 or later, and 0 is below that **[O98]**. **[O2003]** Outlook 2003's Export Rules writes it. Its default file type, "Rules Wizard rules", uses the stamp at WriterVersion's index in its version table ([§4.2](#42-rulesheader)). When WriterVersion holds a stamp the table doesn't have, such as Outlook 2010's `0x140000`, the index is the table's length, 7, and the entry there is the table's terminating `0`. Outlook then writes the whole file at version 0: no WriterVersion or ExtraData, no rule VersionStamp, Flags, ServerRuleId or DataSize, no folder SecondaryStore or DocumentProperty MatchIfMissing ([§4.1.1](#411-version-dependent-fields)), ANSI strings, and the footer, which its writer always adds. Neither G0s sample has a folder or document property to confirm the last two. The rest of the G0s header fits too: Outlook 2003 writes both server settings as `0` and keeps Unknown4 as it found it, here `1`, which Outlook 2007 had set and Outlook 2010 kept ([§4.2](#42-rulesheader)). Outlook 2003 imports such a file at version 0, reading the same fields, but stops before the footer, which its loader only reads from version 960723 on ([§4.4](#44-rulesfooter)).
+**G0s** has two samples (`Versions/Outlook2003/*`). The layout is G1 with VersionStamp = 0 and without the rule's Flags. The missing field follows from its version stamp: rule Flags are only read and written when the version is 970812 or later, and 0 is below that **[O98]**. **[O2003]** Outlook 2003's Export Rules writes it. Its default file type, "Rules Wizard rules", uses the stamp at WriterVersion's index in its version table ([§4.2](#42-rulesheader)). When WriterVersion holds a stamp the table doesn't have, such as Outlook 2010's `0x140000`, the index is the table's length, 7, and the entry there is the table's terminating `0`. Outlook then writes the whole file at version 0: no WriterVersion or ExtraData, no rule VersionStamp, Flags, ServerRuleId or DataSize, no folder SecondaryStore or DocumentProperty MatchIfMissing ([§4.1.1](#411-version-dependent-fields)), ANSI strings, and the footer, which its writer always adds. Neither G0s sample has a folder or document property to confirm the last two. The rest of the G0s header fits too: Outlook 2003 writes both server settings as `0` and keeps ClearCategoriesRuleCreated as it found it, here `1`, which Outlook 2007 had set and Outlook 2010 kept ([§4.2](#42-rulesheader)). Outlook 2003 imports such a file at version 0, reading the same fields, but stops before the footer, which its loader only reads from version 960723 on ([§4.4](#44-rulesfooter)).
 
 Field presence by generation:
 
@@ -199,7 +199,7 @@ Field presence by generation:
 |---|---|---|---|---|---|
 | RulesHeader.VersionStamp | – | ✓ (=0) | ✓ | ✓ | ✓ |
 | RulesHeader.WriterVersion | – | – | – | – | ✓ |
-| RulesHeader.Unknown1–8 | – | ✓ | ✓ | ✓ | ✓ |
+| RulesHeader.Unknown1 … ConvertInboxAssistantRules | – | ✓ | ✓ | ✓ | ✓ |
 | RulesHeader.ExtraDataSize, ExtraData | – | – | – | – | ✓ |
 | RuleHeader.VersionStamp | – | – | – | – | ✓ |
 | RuleHeader.Flags | – | – | – | ✓ | ✓ |
@@ -275,10 +275,10 @@ Outlook 2007 doesn't follow these rules: its exports "for Outlook 98" keep every
 |---|---|---|---|
 | VersionStamp | 4 | G0s, G1, G2 | The target format's version stamp ([§4.1](#41-version-stamps)), or `0` in G0s. Writers converting between formats SHOULD write the stamp of the target format; readers SHOULD preserve an unrecognised stamp within a known range ([§3](#3-format-generations)). |
 | WriterVersion | 4 | G2 | A version word for the rules as a whole. Bits 0–23: the version stamp the rules have been brought up to, normally the stamp of the newest Outlook that saved them. Bits 24–31: that version's position in the table in [§4.1](#41-version-stamps). The position lets versions with different stamp schemes compare versions; a stamp missing from the reader's table gets the table's length. **[O2002]** When loading, Outlook 2002 raises the index until its table entry is at least the low 24 bits. It raises both parts when it upgrades the rules, and uses the stamp at that index as the default format for "Export Rules". **[O2003]** Outlook 2003 does the same. A stamp it doesn't know, such as Outlook 2010's `0x140000`, gets index 7, whose table entry is `0`, so its default export then writes a G0s stream ([§3](#3-format-generations)). A new profile starts with `0x0010C8E0` (index 0) until the index is next set. |
-| Unknown1 | 4 | not G0 | Writers SHOULD write `0`; readers MUST accept any value. Always `0` in the samples, but hughbe/OutlookRulesReader#2 reports fields like these being `1` in the copy of the rules stored in the mailbox. **[O97]** **[O98]** **[O2000]** Outlook loads and saves Unknown1–4 unchanged; nothing else reads or writes them, and new profiles start with 0. **[O2002]** Outlook 2002 discards Unknown1 when loading and always writes `0`. |
+| Unknown1 | 4 | not G0 | Writers SHOULD write `0`; readers MUST accept any value. Always `0` in the samples, but hughbe/OutlookRulesReader#2 reports fields like these being `1` in the copy of the rules stored in the mailbox. **[O97]** **[O98]** **[O2000]** Outlook loads and saves Unknown1–3 and ClearCategoriesRuleCreated unchanged; nothing else reads or writes them, and new profiles start with 0. **[O2002]** Outlook 2002 discards Unknown1 when loading and always writes `0`. |
 | Unknown2 | 4 | not G0 | As Unknown1, except that Outlook 2002 also loads and saves Unknown2 unchanged. |
 | Unknown3 | 4 | not G0 | As Unknown2. |
-| Unknown4 | 4 | not G0 | **[O2007]** Flags. Bit `0x1` records that Outlook 2007 has created its "Clear categories on mail (recommended)" rule ([Appendix J](#appendix-j-findings-from-outlook-2007)); no other bit was found. Outlook 97–2003 only preserve the field (new profiles get 0) **[O2003]**, and Outlook 2010 and later keep a `1` they find. Every sample with `1` was written by Outlook 2007 (stamp 1200000), by Outlook 2010+ over rules that had been through Outlook 2007, or by Outlook 2003 exporting such rules (the G0s samples). Readers MUST accept any value. |
+| ClearCategoriesRuleCreated | 4 | not G0 | **[O2007]** Flags, of which only bit `0x1` is known: Outlook 2007 has created its "Clear categories on mail (recommended)" rule ([Appendix J](#appendix-j-findings-from-outlook-2007)). Outlook 97–2003 only preserve the field (new profiles get 0) **[O2003]**, and Outlook 2010 and later keep a `1` they find. Every sample with `1` was written by Outlook 2007 (stamp 1200000), by Outlook 2010+ over rules that had been through Outlook 2007, or by Outlook 2003 exporting such rules (the G0s samples). Readers MUST accept any value. This field was called Unknown4 before Outlook 2007 explained it. |
 | ServerRulesOutOfDate | 4 | not G0 | **[O97]** `1` when the copy of the rules on the Exchange server needs updating. It is set when the rules or options change, or when an upload fails for lack of server space, and cleared after a successful upload. When updates are automatic, Outlook uploads at startup if it's set. |
 | ServerUpdateMode | 4 | not G0 | **[O97]** The "Update server" option in the Rules Wizard's Options dialog: `1` = Manually (only when the user clicks "Update Now"), `2` = Automatically. `0` = not set, as written by Outlook 2010+. Switching from Manually to Automatically triggers an immediate upload. **[O2002]** Outlook 2002 discards ServerRulesOutOfDate and ServerUpdateMode when loading and writes `0` for both, which is why later writers have `(…, 0, 0)` below. Outlook 2003 does the same **[O2003]**. |
 | PromptToConvertInboxAssistantRules | 4 | not G0 | **[O97]** The "Prompt to convert Inbox Assistant rules" option: `1` = ask whether to convert the old Exchange Inbox Assistant rules found on the server. Cleared by "Do not prompt me again". Always `1` observed. |
@@ -299,11 +299,11 @@ Observed WriterVersion values:
 | Outlook 2010+ (`New732.rwz`) | 1000000 | `0x03140000` (index 3) |
 | Outlook 2010+ (`Outlook2003All.rwz`) | 1100000 | `0x04140000` (index 4) |
 
-**[O2000]** Outlook 2000 reads and writes these fields in the same order. A new profile starts with Unknown1–4 = `0`, ServerRulesOutOfDate = `0`, ServerUpdateMode = `2` (Automatically) and both Inbox Assistant fields = `1`.
+**[O2000]** Outlook 2000 reads and writes these fields in the same order. A new profile starts with Unknown1–3 and ClearCategoriesRuleCreated = `0`, ServerRulesOutOfDate = `0`, ServerUpdateMode = `2` (Automatically) and both Inbox Assistant fields = `1`.
 
-Unknown4, ServerRulesOutOfDate and ServerUpdateMode depend on the writer, not the target format:
+ClearCategoriesRuleCreated, ServerRulesOutOfDate and ServerUpdateMode depend on the writer, not the target format:
 
-| Writer | (Unknown4, ServerRulesOutOfDate, ServerUpdateMode) |
+| Writer | (ClearCategoriesRuleCreated, ServerRulesOutOfDate, ServerUpdateMode) |
 |---|---|
 | Outlook 98 / 2000 | (0, 1, 2) |
 | Outlook 2003 | (kept, 0, 0) **[O2003]** |
@@ -941,7 +941,7 @@ Used by `0x0150`. `FlagColorParameter` in the library.
 To produce a stream that Outlook accepts:
 
 1. Choose a generation and VersionStamp. Unless backward compatibility is needed, write G2 with VersionStamp `0x00140000` and WriterVersion `0x06140000`.
-2. Header Unknown1–4 = `0`, ServerRulesOutOfDate = `0`, ServerUpdateMode = `0`, PromptToConvertInboxAssistantRules = `1`, ConvertInboxAssistantRules = `1`, ExtraDataSize = `0` with no ExtraData.
+2. Header Unknown1–3 and ClearCategoriesRuleCreated = `0`, ServerRulesOutOfDate = `0`, ServerUpdateMode = `0`, PromptToConvertInboxAssistantRules = `1`, ConvertInboxAssistantRules = `1`, ExtraDataSize = `0` with no ExtraData.
 3. For each rule, write RuleHeader.VersionStamp = the stream's VersionStamp, and compute DataSize as defined in [§4.3.1](#431-ruleheader).
 4. Write `CRuleElement`'s class descriptor before the stream's first element, and `0x8001` before every other element.
 5. Every rule MUST begin with elements `0x0190` and `0x0064`.
@@ -956,8 +956,8 @@ The smallest G2 stream: one enabled rule named `RULENAME`, applied "after the me
 ```
 00 00 14 00                         VersionStamp        0x00140000 (v14)
 00 00 14 06                         WriterVersion       index 6, stamp 0x140000
-00 00 00 00 ×3                      Unknown1-3
-00 00 00 00                         Unknown4
+00 00 00 00 ×3                      Unknown1–3
+00 00 00 00                         ClearCategoriesRuleCreated
 00 00 00 00  00 00 00 00             ServerRulesOutOfDate, ServerUpdateMode
 01 00 00 00                         PromptToConvertInboxAssistantRules
 01 00 00 00                         ConvertInboxAssistantRules
@@ -982,7 +982,7 @@ The smallest G2 stream: one enabled rule named `RULENAME`, applied "after the me
 
 ## Appendix B. Open questions
 
-1. RulesHeader Unknown2, Unknown3 and the footer's Unknown. Outlook 97–2003 only preserve them, and Outlook 2007's loader and saver treat them the same way (its other code was not searched). (Unknown4 is explained by Outlook 2007, [§4.2](#42-rulesheader).)
+1. RulesHeader Unknown1–3 and the footer's Unknown. Outlook 97–2003 only preserve them (Outlook 2002 and later discard Unknown1), and Outlook 2007's loader and saver treat them the same way (its other code was not searched).
 2. What later versions put in the header's ExtraData. Outlook 2002 and 2003 only preserve it, and Outlook 2007's loader and saver do the same.
 3. Whether versions after Outlook 2007 give the parameter Reserved field a meaning. Outlook 2007's base parameter class still only sets it to `0` and serializes it. (Outlook 2003 writes MatchIfMissing `1` for document properties, [§6.9](#69-formparameter).)
 4. Whether `PidTagRwRulesStream` differs from an exported `.rwz` in versions after Outlook 2003. In Outlook 2003 both are written by the same code with the same layout; only the mode differs (Outlook's own copy keeps rule VersionStamps and ServerRuleIds, [Appendix I.5](#i5-the-rules-message-and-cached-exchange-mode)).
@@ -1000,7 +1000,7 @@ These items in `docs/RWZ Format.docx` contradict the sample corpus:
 * **"Extended" field.** This is NumberOfParameters ([§4.3.2](#432-element)). It can be 2 or more for word lists.
 * **"Separator" / "Padding" / "Class Name" in the rule header.** These are the MFC object tag and the class schema of the next element ([§2.5](#25-object-tag)).
 * **"Unknown3 MUST NOT be present in Outlook 2000 and earlier."** That field is the rule's Flags, which G1 (Outlook 98/2000) has.
-* **"Unknown8 always one … Unknown4–6 unknown."** Unknown7 is also always `1`. Unknown4–6 follow the writer ([§4.2](#42-rulesheader)).
+* **"Unknown8 always one … Unknown4–6 unknown."** Unknown7 (PromptToConvertInboxAssistantRules) is also always `1`, and Unknown4–6 are ClearCategoriesRuleCreated, ServerRulesOutOfDate and ServerUpdateMode, which follow the writer ([§4.2](#42-rulesheader)).
 * **Fixed property IDs `0x8222`–`0x823A` for document properties.** Observed IDs differ because they are named-property mappings ([§6.9](#69-formparameter)).
 * **PropertyValueArray "Unknown, always zero".** It is `ADRENTRY.ulReserved1`, and is usually non-zero garbage.
 * **Signature (VersionStamp) format "major × 100000 + minor/build".** Only true for stamps 1000000–1200000 ([§4.1](#41-version-stamps)).
@@ -1140,7 +1140,7 @@ None of these IDs is in Outlook 97's definition table, so Outlook 97 can't load 
 
 **Serialization.** Outlook 98 doesn't use MFC's `CArchive`. It reimplements the same byte format on top of its own stream class, with one routine for both loading and storing:
 
-* `CRule::Serialize` (`0x6E454A21`) handles the name (split on a tab into rule and template names), Enabled, Unknown1, ServerRule, then the Flags (only from 970812), then the element list.
+* `CRule::Serialize` (`0x6E454A21`) handles the name (split on a tab into rule and template names), Enabled, RunError, ServerRule, then the Flags (only from 970812), then the element list.
 * The element list (`0x6E454B20`) reads the count and, for each element, the object tag (`0xFFFF` plus class descriptor, or a class reference), then calls the element's serializer.
 * Each element (`0x6E454C69`) reads its ID, looks up the definition, reads the has-parameter flag, and creates and serializes at most one parameter.
 
@@ -1205,7 +1205,7 @@ The CD image (an Alcohol 120% `.mdf`, a Turkish Outlook 2000) stores raw 2448-by
 
 The CD image (`OFFICE10.mdf`, an English Outlook 2002 from April 2001) stores raw 2448-byte sectors with 2048 data bytes at offset 16. `OFFICE1.CAB` holds `OUTLLIB.DLL` (version of 7 March 2001), which contains the code, and `OUTLLIBR.DLL`, which holds the resources. Addresses below are in `OUTLLIB.DLL`.
 
-* **Header** (load `0x34AB9841`, save `0x34AB9CC9`). Same field order as before, plus WriterVersion and the ExtraData block ([§4.2](#42-rulesheader)). Unknown1, ServerRulesOutOfDate and ServerUpdateMode are read and discarded and written as `0`. Unknown2–4, the two Inbox Assistant settings, ExtraData and the footer's Unknown are only loaded, saved and copied (`0x34AB9F95`). New profiles get Unknown2–4 = `0`, both Inbox Assistant settings = `1` and stamp 1000000 (constructor `0x3463EA33`).
+* **Header** (load `0x34AB9841`, save `0x34AB9CC9`). Same field order as before, plus WriterVersion and the ExtraData block ([§4.2](#42-rulesheader)). Unknown1, ServerRulesOutOfDate and ServerUpdateMode are read and discarded and written as `0`. Unknown2, Unknown3, ClearCategoriesRuleCreated, the two Inbox Assistant settings, ExtraData and the footer's Unknown are only loaded, saved and copied (`0x34AB9F95`). New profiles get Unknown2, Unknown3 and ClearCategoriesRuleCreated = `0`, both Inbox Assistant settings = `1` and stamp 1000000 (constructor `0x3463EA33`).
 * **Version words** (table at `0x347B6890`: 970102, 970812, 980413, 1000000, 1100000, 1200000, 1300000). Both WriterVersion and each rule's VersionStamp hold a stamp in bits 0–23 and a table index in bits 24–31. `0x34AB9648` reads the stamp at a word's index, `0x34AB960D` and `0x34AB871F` set the index from a stamp, and `0x34ABA443` upgrades the rules and copies the result into every rule. "Export Rules" (`0x34ABE0D0`) offers three file types: "Rules Wizard rules (\*.rwz)" writes the stamp at WriterVersion's index, "Outlook 2000 Compatible Rules Wizard rules" writes 980413, and "Outlook 98 Compatible Rules Wizard rules" writes 970812.
 * **Rule** (`0x34AB8768`). VersionStamp, Name, Enabled, RunError, ServerRule, Flags (from 970812), ServerRuleId and DataSize (from 1000000), then the elements. The rule's contents use the older of the stream's version and the rule's own ([§4.3.1](#431-ruleheader)). Rules newer than 1000000 are kept as unparsed bytes. Load and save of Outlook's own copy pass mode 0; in that mode the rule's VersionStamp and ServerRuleId are read and written whatever the version. Import (mode 2) clears ServerRuleId, and export (mode 4) leaves out rules that the target version can't hold.
 * **Element list** (`0x34ABA4B6`) and **element** (`0x34ABF690`). Unchanged from Outlook 2000, including writing at most one parameter at version 970812 and reading `0x00EA` as `0x00EB`. An unknown identifier fails the load.
@@ -1333,7 +1333,7 @@ The DVD image (`en_microsoft_office_2003_dvd.iso`, Office 2003 Professional, Aug
 Every structure in this document was checked against this code. Outlook 2003 reads and writes exactly the layout Outlook 2002 does; the differences are in which versions and elements it accepts, and in what it does with some rules.
 
 * **Version table** (`0x3032CCF8`). 970102, 970812, 980413, 1000000, 1100000, 1200000, 1300000, then `0`, as in Outlook 2002. `0x30617DF0` sets WriterVersion's index from a stamp (the table's length, 7, for an unknown stamp) and `0x30617E26` reads the stamp at the index ([§4.2](#42-rulesheader)).
-* **Header** (load `0x3061929B`, save `0x30619600`, copy `0x3061A0D1`). Same fields and handling as Outlook 2002. A first u32 with a top-four bit set is G0, read as 970102; a stamp above 1100000 is read as 1100000. New profiles (constructor `0x300C3BF4`) get stamp 1100000, WriterVersion `0x0010C8E0`, Unknown1–4 = `0` and both Inbox Assistant settings = `1`. When Outlook imports the rules from a message's `PR_RW_RULES_STREAM` (`0x302AF45F`), it then raises the stamp to 1100000 if it is lower.
+* **Header** (load `0x3061929B`, save `0x30619600`, copy `0x3061A0D1`). Same fields and handling as Outlook 2002. A first u32 with a top-four bit set is G0, read as 970102; a stamp above 1100000 is read as 1100000. New profiles (constructor `0x300C3BF4`) get stamp 1100000, WriterVersion `0x0010C8E0`, Unknown1–3 and ClearCategoriesRuleCreated = `0` and both Inbox Assistant settings = `1`. When Outlook imports the rules from a message's `PR_RW_RULES_STREAM` (`0x302AF45F`), it then raises the stamp to 1100000 if it is lower.
 * **Upgrade Now** (`0x30619895`). Raises WriterVersion to 1100000 (index 4) and copies it into every rule's VersionStamp.
 * **Export Rules** (`0x3061CB05`). Four file types: the stamp at WriterVersion's index, 1000000, 980413 and 970812 ([§5.5](#55-downgrading)). With an unknown WriterVersion the first gives stamp 0, the G0s layout ([§3](#3-format-generations)).
 * **Rule list** (`0x3061911B`). When saving at a lower version than a rule's own, a rule is left out unless all its elements fit that version (`0x306186F6`, element versions at `0x30632290`).
@@ -1472,8 +1472,8 @@ The DVD image (`en_office_ultimate_2007_DVD_X12-22244.iso`) is a plain ISO 9660 
 Outlook 2007 reads and writes the same layout as Outlook 2003. The differences:
 
 * **Version table** (`0x309BB564`): 970102, 970812, 980413, 1000000, 1100000, 1200000, `0x140000`, then `0`. Index 6 is Outlook 2010's stamp rather than Outlook 2002's 1300000.
-* **Header** (load `0x3078B710`, save `0x309AD4E2`). Same fields and handling as before: Unknown1, ServerRulesOutOfDate and ServerUpdateMode are discarded and written as `0`; Unknown2, Unknown3, the Inbox Assistant settings, ExtraData and the footer's Unknown are kept. A stamp above 1200000 is read as 1200000. New profiles (constructor `0x309BAFBC`) get stamp 1200000 and Unknown1–4 = `0`.
-* **Unknown4 and the "Clear categories on mail" rule** (`0x309AD2C2`). Outlook 2007 reads the registry value `AcceptCategories` and checks header Unknown4 bit `0x1`:
+* **Header** (load `0x3078B710`, save `0x309AD4E2`). Same fields and handling as before: Unknown1, ServerRulesOutOfDate and ServerUpdateMode are discarded and written as `0`; Unknown2, Unknown3, the Inbox Assistant settings, ExtraData and the footer's Unknown are kept. A stamp above 1200000 is read as 1200000. New profiles (constructor `0x309BAFBC`) get stamp 1200000 and Unknown1–3 and ClearCategoriesRuleCreated = `0`.
+* **ClearCategoriesRuleCreated and the "Clear categories on mail" rule** (`0x309AD2C2`). Outlook 2007 reads the registry value `AcceptCategories` and checks header ClearCategoriesRuleCreated bit `0x1`:
   * If `AcceptCategories` is `0` (the default) and the bit is clear, Outlook adds a rule named "Clear categories on mail (recommended)" (string `0x7539`). The rule has "assigned to any category" (`0x00F6`) and "clear message's categories" (`0x0152`) and VersionStamp 1200000. Outlook then sets the bit. It doesn't add the rule if WriterVersion is below 1000000, if a rule with exactly those elements already exists, or if a store property (`0x66570014`, an 8-byte value) has a top word of `8` or more, which [Inferred] marks a server of Exchange 2007 or later.
   * If the bit is already set, Outlook only raises an existing rule of that shape to VersionStamp 1200000.
   * If `AcceptCategories` is non-zero and the bit is set, Outlook marks the rule deleted and clears the bit.
@@ -1493,6 +1493,12 @@ Outlook 2007 reads and writes the same layout as Outlook 2003. The differences:
   * **Junk-mail rules:** they are still deleted on save (`0x309CD433`, called from the save loop at `0x309AD4D5`).
   * **Old rules files:** the `.RWZ` migration path is kept (`0x309BB4E3`).
   * **Rule Flags `0x1`/`0x2`:** no code sets them; the writes found at those offsets are on message objects, not rules.
+* **Import.** `HrImportRules` (`0x304DDDF6`) maps the import codes to the same elements as Outlook 2002 and 2003 ([Appendix H](#appendix-h-outlook-express-rule-import-outlook-2002)). The Import and Export Wizard now offers "Outlook Express 4.x, 5.x, 6.x or Windows Mail". `IMPMAIL.DLL` (26 October 2006) no longer contains the Outlook Express 5 registry key, and the "Outlook Express rule #*n*" naming string is gone from the resources; how it finds Outlook Express 6 and Windows Mail rules was not traced.
+* **Rules and Alerts dialogs** (`OUTLLIBR.DLL`, compared with Outlook 2003's):
+  * The main window (2300) adds a "Rule List" and an "Enable rules on all RSS Feeds" checkbox. That is the RSS setting the conditions `0x00F5` and `0x00F7` check.
+  * A new "Flag Message" dialog (2337, "Flag to:" and "For:") edits the follow-up action `0x0151`.
+  * "Document or Form Properties" (2311) gains an "Add to List" button.
+  * The junk-mail list editors are gone ("Edit Junk Senders" 23000, "Edit Exception List" 23001, and the sender dialog 23002), matching the removal of the old junk-mail conditions.
 * **Running rules.** The client condition switch is at `0x302C459F` (IDs `0x0064`–`0x00F4`, later IDs by comparisons after it) and the action switch at `0x302F1676` (`0x012C`–`0x0152`). The tests and actions are methods of the message being processed (vtable `0x30197F1C`, with its property list at `0x30AB409C`). `0x014D` still runs like "reply using a template", and `0x014E` still has no handler. The new elements:
   * `0x00F4` InfoPath form type: the message class against each parameter's message class.
   * `0x00F5` RSS feed name: the message class starts with `IPM.Post.Rss`, an RSS setting is on, and the feed's subscription name (the PostRss named property `0x8906`) equals one of the parameter's strings (`_wcsicmp`, so whole name, ignoring case). Despite the UI text, this is the feed's name, not the item's title.

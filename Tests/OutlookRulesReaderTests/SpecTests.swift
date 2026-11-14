@@ -96,7 +96,7 @@ final class SpecTests: XCTestCase {
         let header = try RulesHeader(dataStream: &dataStream)
         XCTAssertEqual(.signatureZero, header.version)
         XCTAssertEqual(0, header.versionStamp)
-        XCTAssertEqual(1, header.unknown4)
+        XCTAssertEqual(1, header.clearCategoriesRuleCreated)
         XCTAssertEqual(1, header.promptToConvertInboxAssistantRules)
         XCTAssertEqual(1, header.convertInboxAssistantRules)
         XCTAssertNil(header.extraData)
