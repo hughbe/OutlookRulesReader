@@ -438,7 +438,7 @@ The "Param" column refers to [§6](#6-parameters). "—" means the element has n
 | `0x00D7` | assigned to *category* category | §6.8 | ✓ | |
 | `0x00DA` | sent to *people or public group* as Cc | §6.4 | | As `0x00D4`. **[Inferred]** parameter, from the evaluator reading the element's address list. |
 | `0x00DB` | sent to *people or public group* | §6.4 | | As `0x00DA`, but the same test as `0x00CC`. |
-| `0x00DC` | which is an automatic reply / Out of Office message | — | | |
+| `0x00DC` | which is an automatic reply / Out of Office message | — | | **[O2003]** Matches messages whose `PR_MESSAGE_CLASS` is `IPM.Note.Rules.OofTemplate.Microsoft`, ignoring case (`lstrcmpiA`), on the client and in the server form: the class of the Exchange Out of Office template, which Exchange's auto-replies carry. |
 | `0x00DE` | which has an attachment | — | | |
 | `0x00DF` | with *selected properties* of documents or forms | §6.9 | ✓ | |
 | `0x00E0` | with a size *in a specific range* | §6.10 | | |
@@ -983,13 +983,13 @@ The smallest G2 stream: one enabled rule named `RULENAME`, applied "after the me
 ## Appendix B. Open questions
 
 1. RulesHeader Unknown2, Unknown3 and the footer's Unknown, which Outlook 97–2007 only preserve. (Unknown4 is explained by Outlook 2007, [§4.2](#42-rulesheader).)
-2. What later versions put in the header's ExtraData.
+2. What later versions put in the header's ExtraData. Outlook 2002–2007 only preserve it.
 3. Whether versions after Outlook 2003 give the parameter Reserved field a meaning. (Outlook 2003 writes MatchIfMissing `1` for document properties, [§6.9](#69-formparameter).)
-4. Whether `PidTagRwRulesStream` differs from an exported `.rwz` in later versions. In Outlook 2003 both are written by the same code with the same layout; only the mode differs (Outlook's own copy keeps rule VersionStamps and ServerRuleIds, [Appendix I.5](#i5-the-rules-message-and-cached-exchange-mode)).
-5. DocumentProperty Unknown1: always `1`, and never read by Outlook 97–2003.
+4. Whether `PidTagRwRulesStream` differs from an exported `.rwz` in versions after Outlook 2003. In Outlook 2003 both are written by the same code with the same layout; only the mode differs (Outlook's own copy keeps rule VersionStamps and ServerRuleIds, [Appendix I.5](#i5-the-rules-message-and-cached-exchange-mode)).
+5. DocumentProperty Unknown1: always `1`, and never read by Outlook 97–2003 (not checked in Outlook 2007).
 6. Whether stamp 0x150000 changes the layout.
-7. Rule Flags bits `0x1`/`0x2`. Outlook 97–2003 never set them; Outlook 2003 forgives errors in single rules that have them ([§4.3.1.1](#4311-rule-flags)).
-8. The meaning of the definition flags at `+0x20` and `+0x24` (Appendix D.1). Outlook 97–2003 never read `+0x24`; Outlook 2003 reads `+0x20` only to build the description of `0x00F3`, the one element where it is `0`. Also the meaning of the field Outlook 2002 added to its definition records ([Appendix G](#appendix-g-findings-from-outlook-2002)), and of bit `0x1` of the rule-set mask Outlook 2003 added, which Outlook 2003 never uses and which may mark server-side rules ([§4.3.2](#432-element)).
+7. Rule Flags bits `0x1`/`0x2`. Outlook 97–2003 never set them; Outlook 2003 and 2007 forgive errors in single rules that have them ([§4.3.1.1](#4311-rule-flags)).
+8. The meaning of the definition flags at `+0x20` and `+0x24` (Appendix D.1). Outlook 97–2003 never read `+0x24`; Outlook 2003 reads `+0x20` only to build the description of `0x00F3`, the one element where it is `0`. Also the meaning of the field Outlook 2002 added to its definition records ([Appendix G](#appendix-g-findings-from-outlook-2002)), and of bit `0x1` of the rule-set mask Outlook 2003 added. Outlook 2003 and 2007 never use it, and the Out of Office rules don't explain it ([Appendix I.7](#i7-out-of-office-rules)). Only `0x014D` and `0x014E` have it, and nothing creates them.
 
 ## Appendix C. Corrections to earlier notes
 
@@ -1424,7 +1424,7 @@ Resources in `OUTLLIBR.DLL`, compared with Outlook 2002's:
 
 It loads what it found in import mode, which clears every ServerRuleId, and raises the stream's stamp to at least 1100000 (`0x302AF4A3`). It then sets the "migrated" setting and marks the rules to be saved into the store's rules message.
 
-**Cached Exchange Mode.** `HrTriggerCachedExchangeRules` (exported, `0x30623A77`) is new in Outlook 2003. It takes a structure whose first field must be `1`. It queues a job on Outlook's main thread and waits for it (`0x306239C0`). The job opens the default store's Inbox (`GetReceiveFolder`) and runs the client rules on newly arrived items (`0x306021E4`). Something outside `OUTLLIB.DLL` calls this export, presumably the cached Exchange store when it has downloaded new mail. The rules themselves are stored and read exactly as in online mode.
+**Cached Exchange Mode.** `HrTriggerCachedExchangeRules` (exported, `0x30623A77`) is new in Outlook 2003. It takes a structure whose first field must be `1`. It queues a job on Outlook's main thread and waits for it (`0x306239C0`). The job opens the default store's Inbox (`GetReceiveFolder`) and runs the client rules on newly arrived items (`0x306021E4`). The caller is the Exchange store provider, `EMSMDB32.DLL` (Office 2003, version 11.0.5604). It finds the loaded `outllib.dll`, looks up `HrTriggerCachedExchangeRules` and calls it (`0x35C020ED`). It also loads `HrGetRulesMachineID` to get this computer's 33-character ID, and uses it to restrict the server's rules table to three providers (`0x35C04E98`): Outlook's own rules (`RuleOrganizer`), the Out of Office Assistant's (`MSFT:TDX OOF Rules`) and the Inbox Assistant's (`MSFT:TDX Rules`). For each provider it matches the plain name as a prefix, or the name (`RuleOrganizer2` for Outlook's rules) followed by the computer ID exactly. The rules themselves are stored and read exactly as in online mode.
 
 **Saving.** Each store has its own rules object, and Outlook saves every rules object marked as changed (`0x30623B37`, which calls `0x30619C51` for each).
 
@@ -1452,6 +1452,18 @@ It loads what it found in import mode, which clears every ServerRuleId, and rais
 | `0x0064`, `0x0190` | The item type and event are tested too. |
 
 Every other condition has its own method; the switch is at `0x305FC057` (IDs `0x0064`–`0x00EF`), with the later IDs and the exceptions tested by comparisons after it.
+
+### I.7 Out of Office rules
+
+Out of Office rules are server rules whose `PR_RULE_PROVIDER` is `MSFT:TDX OOF Rules`. They are created by Exchange's Out of Office Assistant, not by the code that reads and writes this format:
+
+* **Outlook 2003.** `OUTLLIB.DLL` has no Out of Office Assistant: neither it nor `OUTLLIBR.DLL` has its dialogs. Outlook only recognises the provider name:
+  * on deferred action messages (`0x30601BF8`), where a provider of `MSFT:TDX OOF Rules` or `MSFT:TDX Rules` marks the message as coming from an Exchange assistant's rule rather than one of Outlook's;
+  * through `EMSMDB32.DLL`'s cached-mode query ([Appendix I.5](#i5-the-rules-message-and-cached-exchange-mode)).
+* **Outlook 2007.** `OUTLOOK.EXE` has an "Out of Office Assistant" dialog, but it is Exchange 2007's: on or off, a time range, and the reply text. It has no rule editor. Its only use of the provider name is the same deferred-action test (`0x303AA6F7`).
+* **Rule elements.** No code in either version creates an element with ID `0x014D` or `0x014E`, or a rule with rule-set mask `1`.
+
+So the guess that mask bit `0x1` marks Out of Office or other server-only rules ([§4.3.2](#432-element)) is not supported by anything in Outlook 2003 or 2007. If those elements were meant for Out of Office rules, the code that would use them was never shipped in these versions.
 
 ## Appendix J. Findings from Outlook 2007
 
