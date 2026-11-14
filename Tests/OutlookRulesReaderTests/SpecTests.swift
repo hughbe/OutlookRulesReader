@@ -272,6 +272,14 @@ final class SpecTests: XCTestCase {
         property.write(to: &stream, version: .outlook2010)
         var reader = DataStream(stream.data)
         XCTAssertTrue(try DocumentProperty(dataStream: &reader, version: .outlook2010).matchIfMissing)
+
+        // Outlook 2003 and 2007 test for exactly 1 (spec §6.9.1); other values are kept but don't count.
+        property.rawMatchIfMissing = 2
+        XCTAssertFalse(property.matchIfMissing)
+        stream = OutputDataStream()
+        property.write(to: &stream, version: .outlook2010)
+        reader = DataStream(stream.data)
+        XCTAssertEqual(2, try DocumentProperty(dataStream: &reader, version: .outlook2010).rawMatchIfMissing)
     }
 
     /// Element IDs that only Outlook 97's rule evaluator knows (spec Appendix D.4) can be read and written back.
