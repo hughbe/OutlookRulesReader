@@ -22,7 +22,15 @@ internal struct RulesHeader {
     public var unknown1: UInt32? = 0
     public var unknown2: UInt32? = 0
     public var unknown3: UInt32? = 0
-    public var unknown4: UInt32? = 0
+    /// Flags; bit 0x1 records that Outlook 2007 has created its "Clear categories on mail (recommended)" rule, so it
+    /// isn't created again (spec §4.2). Formerly `unknown4`.
+    public var clearCategoriesRuleCreated: UInt32? = 0
+
+    @available(*, deprecated, renamed: "clearCategoriesRuleCreated")
+    public var unknown4: UInt32? {
+        get { clearCategoriesRuleCreated }
+        set { clearCategoriesRuleCreated = newValue }
+    }
     /// 1 when the copy of the rules on the Exchange server is out of date (spec §4.2).
     public var serverRulesOutOfDate: UInt32? = 0
     /// how the server copy is updated: 0 = not set, 1 = manually, 2 = automatically (spec §4.2).
@@ -104,7 +112,7 @@ internal struct RulesHeader {
             self.unknown1 = nil
             self.unknown2 = nil
             self.unknown3 = nil
-            self.unknown4 = nil
+            self.clearCategoriesRuleCreated = nil
             self.serverRulesOutOfDate = nil
             self.serverUpdateMode = nil
             self.promptToConvertInboxAssistantRules = nil
@@ -136,8 +144,8 @@ internal struct RulesHeader {
         /// Unknown3 (4 bytes)
         self.unknown3 = try dataStream.read(endianess: .littleEndian)
 
-        /// Unknown4 (4 bytes)
-        self.unknown4 = try dataStream.read(endianess: .littleEndian)
+        /// Clear Categories Rule Created (4 bytes)
+        self.clearCategoriesRuleCreated = try dataStream.read(endianess: .littleEndian)
 
         /// Server Rules Out Of Date (4 bytes)
         self.serverRulesOutOfDate = try dataStream.read(endianess: .littleEndian)
@@ -199,8 +207,8 @@ internal struct RulesHeader {
             /// Unknown3 (4 bytes)
             dataStream.write(source.unknown3 ?? 0, endianess: .littleEndian)
 
-            /// Unknown4 (4 bytes)
-            dataStream.write(source.unknown4 ?? 0, endianess: .littleEndian)
+            /// Clear Categories Rule Created (4 bytes)
+            dataStream.write(source.clearCategoriesRuleCreated ?? 0, endianess: .littleEndian)
 
             /// Server Rules Out Of Date (4 bytes)
             dataStream.write(source.serverRulesOutOfDate ?? 0, endianess: .littleEndian)

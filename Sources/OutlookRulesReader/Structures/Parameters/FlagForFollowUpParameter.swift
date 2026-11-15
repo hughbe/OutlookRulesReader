@@ -13,6 +13,11 @@ public enum FollowUp: UInt32 {
     case tomorrow = 0x00000002
     case thisWeek = 0x00000003
     case nextWeek = 0x00000004
+    /// Accepted by Outlook 2007's follow-up action, which looks up dates for values 1–6 (spec §6.27). The name is
+    /// inferred from its date rule; no sample uses it.
+    case thisMonth = 0x00000005
+    /// See `thisMonth`.
+    case nextMonth = 0x00000006
     case noDate = 0x00000007
     case completed = 0x0000000A
 }

@@ -140,7 +140,7 @@ public struct RuleElement {
                 case .assignedToAnyCategoryCondition: // 0x00F6
                     throw OutlookRulesReadError.corrupted
                 case .fromAnyRSSFeedCondition: // 0x00F7
-                    throw OutlookRulesReadError.corrupted
+                    parameter = try ReservedParameter(dataStream: &dataStream, version: version)
                     
                 /// Actions
                 case .forwardAction: // 0x012E
@@ -286,7 +286,7 @@ public struct RuleElement {
                 case .assignedToAnyCategoryException: // 0x021A
                     throw OutlookRulesReadError.corrupted
                 case .fromAnyRSSFeedException: // 0x021B
-                    throw OutlookRulesReadError.corrupted
+                    parameter = try ReservedParameter(dataStream: &dataStream, version: version)
             }
             
             parameters.append(parameter)

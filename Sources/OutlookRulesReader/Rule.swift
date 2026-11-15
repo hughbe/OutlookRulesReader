@@ -35,17 +35,18 @@ public struct Rule: CustomDebugStringConvertible {
     /// When the rule is written, those two are regenerated from `eventFlags` and `itemTypes`.
     public var elements: [RuleElement] = []
 
-    /// Whether the rule failed while Outlook was running it on the client (RuleHeader Unknown1, spec §4.3.1).
-    /// Outlook 2000 sets this, and disables the rule, when one of the rule's actions fails.
+    /// Whether the rule failed while Outlook was running it on the client (RuleHeader RunError, spec §4.3.1).
+    /// Outlook 2000 and later set it to 1, and disable the rule, when one of the rule's actions fails; Outlook 98
+    /// stores the failing action's HRESULT instead, so any non-zero value means an error.
     public var hasRunError: Bool {
         get { runError != 0 }
         set { runError = newValue ? 1 : 0 }
     }
 
-    /// The raw run-error field (RuleHeader Unknown1), preserved when round-tripping.
+    /// The raw RunError field, preserved when round-tripping.
     internal var runError: UInt32 = 0
 
-    /// The ID Outlook gave the rule's copy on the Exchange server (RuleHeader Unknown4, Outlook 2002 and later;
+    /// The ID Outlook gave the rule's copy on the Exchange server (RuleHeader ServerRuleId, Outlook 2002 and later;
     /// spec §4.3.1). 0 if the rule has never been saved to the server. Not stored in older formats.
     public var serverRuleId: UInt32 = 0
 
