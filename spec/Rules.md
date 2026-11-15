@@ -497,7 +497,23 @@ Notes:
   * **[O2000]** When an action of a client rule fails, Outlook 2000 sets this field to `1`, turns the rule off (Enabled = `0`) and shows an error message naming the rule. A rule that runs without error gets `0`.
   * **[O2002]** Outlook 2002 does the same as Outlook 2000, but adds the rule to a "Rules in Error" window instead of showing a message, and doesn't turn a rule back on when it later runs without error.
   * **[O2002–2007]** Outlook 2002, 2003 and 2007 run the actions one by one and, after each, set RunError to whether that action failed (Outlook 2002: `0x34AA0749`; Outlook 2003: setter `0x30335DAB` called at `0x305FD240`; Outlook 2007: `0x30569244`). When an action fails they also turn the rule off and add it to the "Rules in Error" list. Because the field is set after every action, a later action that succeeds sets it back to `0`, though the rule stays off.
-* **ServerRule.** **[O97]** Outlook 97 serializes the rule and writes `PR_RULE_PROVIDER_DATA`, `PR_RULE_STATE` and the other server-rule properties through MAPI, then sets this to `1`. It is cleared again if saving fails or the server rules are reset. **[O98–2007]** Later versions read and write the field in the same place; what sets it was traced only in Outlook 97. **[O2003]** Outlook 2003 reads it when building server rules (`0x3062E65C`); what sets it was not found.
+* **ServerRule.** **[O97]** Outlook 97 serializes the rule and writes `PR_RULE_PROVIDER_DATA`, `PR_RULE_STATE` and the other server-rule properties through MAPI, then sets this to `1`. It is cleared again if saving fails or the server rules are reset. **[O98–2007]** Later versions read and write the field in the same place, and every version sets it through a one-line setter called only from the server-rules code. In every version the setter is called to:
+  * set `1` once a rule's server copy has been written;
+  * set `0` when that fails or the rule isn't uploaded;
+  * reset every rule to `0` before the server rules are rebuilt.
+
+  **[O98]** Setter `0x6E76D301` (rule `+0x6C`), called four times: the upload loop sets `1` after writing a row (`0x6E777097`) and `0` on failure (`0x6E77742B`).
+  **[O2000]** Setter `0x3A5256A5` (rule `+0x6C`), called seven times, including the same upload pair (`0x3A5254E8` sets `1`, `0x3A87E7CD` sets `0`) and a loop that sets `0` (`0x3A8831CF`). Two more calls set `1` (`0x3A87EB61`, `0x3A87ECE4`; the second also enables the rule); what they handle was not traced.
+  **[O2002]** Setter `0x34AB9555` (rule `+0x70`), called six times:
+  * `0x34AC445C` sets every rule to `0`;
+  * `0x34AC70F8` sets `1` once the rule's server actions are built;
+  * `0x34AC72AC` sets `1` if saving the server rule (`0x34ABAFD0`) succeeded, else `0`;
+  * `0x34AC7E96` sets `1` after the server row is written;
+  * `0x34AC8045` sets `1` on a rule Outlook builds from a server rule it didn't create, naming it from `PR_RULE_NAME` (or a generated name, string `0x180088`) and enabling it if the server rule's `ST_ENABLED` bit is set;
+  * `0x34AC830A` sets `0` on a rule the upload loop skips (stamp above 1000000, among other checks).
+
+  **[O2003]** Rule `+0xA4`. The setter is shared with unrelated classes by identical-code folding (`0x301DEED1`), which is why it wasn't found before. It has the same six callers as Outlook 2002: `0x3062582D` (all `0`), `0x3062BC3C`, `0x3062BE3E` (save at `0x3061A780`), `0x30629D98`, `0x3062A9E8` (server rule Outlook didn't create) and `0x3062C094`. Besides the serializer and copy routine, one other routine reads ServerRule (`0x30619E21`). When the junk-mail options (`0x305FA19B`) or Download options (`0x305FE8BF`) save their own special rule, it keeps the stored rule unchanged if its ServerRule and Enabled match the new one. Otherwise it replaces the rule and marks the rules changed (collection `+0x54`). An earlier note said Outlook 2003 reads ServerRule at `0x3062E65C`. That code reads an account-settings row, not the rule.
+  **[O2007]** Rule `+0x90`, setter `0x3004459A` (also shared by folding). The same pattern appears at `0x304DC30B` (all `0`), `0x304EFFC2` (server rule Outlook didn't create), `0x306658D0`, `0x3099D357` and `0x3099D426` (`1`). The skip path is at `0x302891C1`, for stamps above 1200000.
 * **Flags.**
   * **[O98–2007]** Outlook 98 and later read and write it only for streams of version 970812 or later, which is why Outlook 97 exports don't have it ([§4.1.1](#411-version-dependent-fields)).
   * **[O98]** **[O2000]** Outlook 98 and 2000 copy it to and from offset `0x18` of the rule's Exchange server rule (`PR_RULE_PROVIDER_DATA`). **[O2002]** From Outlook 2002 the provider data embeds the whole rule instead ([Appendix E](#appendix-e-findings-from-outlook-98)).
@@ -1152,10 +1168,14 @@ Used by `0x014B`.
 
 | Field | Size | Description |
 |---|---|---|
-| Name | variable | String **[O2002]**: UTF-16 in G2, ANSI if written in an older format. **[Unknown]** Presumably the VBA project/module name. |
-| Function | variable | String, like Name. |
+| Name | variable | String **[O2002]**: UTF-16 in G2, ANSI if written in an older format. **[O2003]** The full name of the VBA procedure to run, such as `Project1.CustomMailMessageRule`. This is the string Outlook passes to VBA and shows in the rule. |
+| Function | variable | String, like Name. **[O2003]** A second string from the same macro-list entry. Outlook stores and copies it but doesn't use it to run the script. Observed equal to Name. |
 
-**[O2003–2007]** Read and written as in Outlook 2002 ([Appendix I.1](#i1-format), [Appendix J.1](#j1-format)); how the script is run was not traced.
+**[O2002]** Read and written as described above; how the script is run was not traced. **[O2003]** Read and written as in Outlook 2002 ([Appendix I.1](#i1-format)). The name is not split between the two strings. The parameter object (kind `0x23`, vtable `0x30125330`) holds Name at `+0x14` and Function at `+0x8`, and serializes them in that order (`0x3060FB69`).
+* **Running it.** The script action (`0x305FCE68`) gets the text through the element (`0x3061EB3E`, parameter method `+0x10` = `0x3060023A`), which returns Name only, and calls VBA with it (`0x303F11A7`). If that fails, the error (`0x1E025C`) quotes Name.
+* **Choosing it.** The "select script" dialog (`0x3060FEB0`) lists the procedures from a list Outlook reads from its VBA project (`0x303F14E6`). Each entry has two strings of up to 255 characters, and choosing one (`0x3060FD1B`) copies the first into Name and the second into Function. The current choice is found by comparing Name. With no procedures, both strings are cleared (`0x3060FB55`).
+
+**[O2007]** Read and written as in Outlook 2002 ([Appendix J.1](#j1-format)); how the script is run was not traced.
 
 ### 6.27 FlagForFollowUpParameter
 `ToDoActionDlg`. Used by `0x0151`.
@@ -1244,7 +1264,7 @@ The smallest G2 stream: one enabled rule named `RULENAME`, applied "after the me
 
 ## Appendix B. Open questions
 
-1. RulesHeader Unknown1–3 and the footer's Unknown. Outlook 97–2003 only preserve them (Outlook 2002 and later discard Unknown1), and Outlook 2007's loader and saver treat them the same way (its other code was not searched).
+1. RulesHeader Unknown1–3 and the footer's Unknown. Outlook 97–2003 only preserve them (Outlook 2002 and later discard Unknown1), and Outlook 2007's loader and saver treat them the same way. Outlook 2007's loader (`0x3078B710`) keeps Unknown2 and Unknown3 at `+0x2C` and `+0x30` of the rules object; a search of its other code for those fields has not been done.
 2. What later versions put in the header's ExtraData. Outlook 2002 and 2003 only preserve it, and Outlook 2007's loader and saver do the same.
 3. Whether versions after Outlook 2007 give the parameter Reserved field a meaning. Outlook 2007's base parameter class still only sets it to `0` and serializes it. (Outlook 2003 writes MatchIfMissing `1` for document properties, [§6.9](#69-formparameter).)
 4. Whether `PidTagRwRulesStream` differs from an exported `.rwz` in versions after Outlook 2003. In Outlook 2003 both are written by the same code with the same layout; only the mode differs (Outlook's own copy keeps rule VersionStamps and ServerRuleIds, [Appendix I.7](#i7-the-rules-message-and-cached-exchange-mode)).
@@ -1711,7 +1731,7 @@ The actions with a server form are unchanged (`0x012C`, `0x012D`, `0x012E`, `0x0
 
 ### I.4 Running client rules
 
-**How a run works.** Every trigger first builds a run context (`0x305FC972`) and then calls the run (`0x305FD62E`), which goes through the rules in list order (`0x305FD3EA`). The context's mode (`+0x18`) depends on the trigger: Cached Exchange Mode passes `4` (`0x30625584`), one caller passes `2` (`0x30300BDE`), and the others `0`; what each mode changes was not traced. For each rule:
+**How a run works.** Every trigger first builds a run context (`0x305FC972`) and then calls the run (`0x305FD62E`), which goes through the rules in list order (`0x305FD3EA`). The context's mode (`+0x18`) depends on the trigger: Cached Exchange Mode passes `4` (`0x30625584`), one caller passes `2` (`0x30300BDE`), and the others `0` (`0x30300B17`, `0x306016D1`). The run copies the mode into the rule-evaluation object (`+0x13C`, at `0x305FD424` and in the deferred path `0x305FD2D1`). The mode says which kind of message is being processed. The event test (`0x30610131`) matches a rule whose `0x0190` flags have "arrives" (`0x1`) only in modes `0` and `4`, and "sent" (`0x4`) only in modes `2` and `4`. So `0` is a received message, `2` a sent one, and `4` (Cached Exchange Mode) runs both kinds of rule. In mode `2` the run first saves the message (`SaveChanges(KEEP_OPEN_READWRITE)`, `0x305FD677`). The move/copy helper (`0x30613960`) checks the message's store (`PR_MDB_PROVIDER`, `0x30237D10`) and may read named property `0x8578` (`0x30611642`), but only in modes `0` and `4`. **[O97–2002]** **[O2007]** Run modes were not traced in other versions. For each rule:
 
 1. The run stops if it was aborted or a rule stopped processing.
 2. Rules Outlook can't run are skipped: rules newer than 1100000, which are kept unparsed, and rules with internal state bit `0x20` or `0x40` set (rule method `+0x8`, `0x30617F09`; these bits are in memory, not in the file's Flags).
