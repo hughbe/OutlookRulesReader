@@ -203,11 +203,12 @@ public enum RuleElementIdentifier: UInt32 {
     case deferDeliveryAction = 0x0000013E
     
     /// "perform <a custom action>"
-    /// Removed in Outlook 2010
+    /// Reported as removed in Outlook 2010, but Outlook 2010 RTM still defines and runs it.
     case performCustomActionAction = 0x0000013F
     
     /// Hands the message to Net Folders: moves it to Net Folders' own folder for processing and stops processing
     /// more rules. Used by the hidden "#NET FOLDERS#" rule. Client-only; there is no UI text. Takes no parameters.
+    /// Outlook 2010 does nothing for it and deletes the "#NET FOLDERS#" rule when it saves.
     case netFoldersAction = 0x00000141
     
     /// Defined by Outlook 97 with no UI text and no parameter: a hidden or retired action.
@@ -272,6 +273,7 @@ public enum RuleElementIdentifier: UInt32 {
     case clearCategoriesAction = 0x00000152
     
     /// "apply retention policy: <retention policy>"
+    /// Added in Outlook 2010; needs version 0x00140000.
     case applyRetentionPolicyAction = 0x00000153
     
     /// “except where my name is in the To box”
