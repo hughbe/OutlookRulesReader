@@ -1718,9 +1718,9 @@ The actions with a server form are unchanged (`0x012C`, `0x012D`, `0x012E`, `0x0
 3. A rule that can run entirely on the server is normally left to it. Rule method `+0x18` (`0x3061849F`) says whether it can: the rule has an action, doesn't run on sent mail (event bit `0x4`), and every element can run on the server, as in Outlook 97 ([Appendix D.3](#d3-server-rules)). Such a rule is skipped when a global state bit (`0x2`, read by `0x3009596E`) is set; **[Inferred]** that bit means Outlook is connected to the server. When the bit is clear, the rule runs on the client only if it moves or copies the message (`0x0139` or `0x012C`, checked at `0x306186BC`).
 4. Disabled rules are skipped (rule method `+0x14`).
 5. The conditions and exceptions are tested ([Appendix I.8](#i8-evaluating-conditions-on-the-client)). If they all pass, the actions run in order (`0x305FD1F2`), with RunError and Enabled updated after each ([§4.3.1](#431-ruleheader)).
-6. After the rule, the run stops if it is marked as stopped, and otherwise moves to the next rule.
+6. After the rule, the run stops if one of its actions set the stop flag, and otherwise moves to the next rule. "Stop processing more rules" (`0x0142`) and the Net Folders action (`0x0141`) set it (`0x305FD012`). So do "delete it" and "permanently delete", which also mark the message as gone (`0x305FCBB4`, `0x305FCBCF`), so deleting a message always ends processing.
 
-When the run finishes, Outlook saves the rules (`0x305FD5E2`, calling the save routine `0x30619C51`) if any rule's actions returned `1` (`0x305FD554`); what that result stands for was not traced.
+When the run finishes, Outlook saves the rules (`0x305FD5E2`, calling the save routine `0x30619C51`) if any action returned `1` (`0x305FD554`). An action returns `1` when it failed and has already reported the error itself, as the script and redirect handlers do, so the save records the changed RunError.
 
 **Deferred actions.** For a rule that the server matched and handed back with a deferred action, Outlook runs a shorter routine (`0x305FD29E`). It skips the rule if it is disabled or can't be run (as above), and retests only the conditions and exceptions that are client-only, apart from "on this computer only" (element method `+0x28`, the definition's client-only flag). If there are none, it runs the actions without testing anything, because the server has already matched the rest.
 
@@ -1729,8 +1729,8 @@ When the run finishes, Outlook saves the rules (`0x305FD5E2`, calling the save r
 | Action | Method | Notes |
 |---|---|---|
 | `0x012C` move, `0x0139` copy | `+0xA8` (`0x30614A87`) | One method for both. |
-| `0x012D` delete | `+0xBC` | |
-| `0x014A` permanently delete | `+0xB0` | Separate from "delete it". |
+| `0x012D` delete | `+0xBC` | Also stops processing (see step 6). |
+| `0x014A` permanently delete | `+0xB0` | Separate from "delete it"; also stops processing. |
 | `0x012E` forward | `+0xB4` | |
 | `0x0147` forward as attachment | `+0xB8` | |
 | `0x0144` redirect | own code (`0x305FD02E`) | |
@@ -1748,12 +1748,12 @@ When the run finishes, Outlook saves the rules (`0x305FD5E2`, calling the save r
 | `0x0145` add to relevance | `+0xD0` | |
 | `0x0148` print | `+0xAC` | |
 | `0x0149` start application | own code (`0x3061EB3E`) | |
-| `0x014B` run a script | own code (`0x305FC73A`) | Not traced further. |
+| `0x014B` run a script | own code (`0x305FCE68`) | Opens the message as an Outlook item (`0x305FC73A`: `OpenEntry`, then its store, then item type `5`), passes it as a single VARIANT argument, and calls the VBA procedure the parameter names (`0x303F1215`, `0x303F11A7`). On failure it reports an error naming the procedure (string `0x1E025C`). |
 | `0x014C` mark as read | `+0xEC` | |
 | `0x014F` Desktop Alert, `0x0150` coloured flag | `+0xC8`, `+0xD8` | See below. |
-| `0x0141` Net Folders, `0x0142` stop processing | common exit (`0x305FD093`) | |
+| `0x0141` Net Folders, `0x0142` stop processing | `0x305FD012` | Set the run's stop flag. |
 | `0x0143` | none | Returns without doing anything. |
-| `0x0134`, `0x0135`, `0x013D`, `0x0140`, `0x014E` | `+0x18` (`0x306101FC`) | No handler: reports an error for the rule. |
+| `0x0134`, `0x0135`, `0x013D`, `0x0140`, `0x014E` | none (`0x305FD01B`) | No handler. Outlook asks the element (element method `+0x18`) and, if it answers false, reports an error for the rule (message `0x32004F`). |
 
 **[O2002]** **[O2007]** Outlook 2002 (`0x34AB9540`) and 2007 (`0x304E77C2`) have the same move-or-copy check for server-capable rules. Outlook 98 and 2000 don't have it in this form.
 
