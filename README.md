@@ -100,6 +100,10 @@ Each rule has a `name`, an `enabled` flag, and `conditions`, `actions` and `exce
 
 People and public groups (`AddressParameter`) are lists of MAPI properties. `recipients` decodes the common ones: `displayName`, `addressType`, `emailAddress`, `smtpAddress`, `entryId` and `recipientType`.
 
+Folders, templates and address books are identified by MAPI entry IDs. These are kept exactly as stored (`folderEntryIdBytes`, `storeEntryIdBytes`, `messageEntryIdBytes`, `entryIdBytes`) and decoded on demand (`folderEntryId` and so on), which is nil for an entry ID that can't be decoded.
+
+Every file the library reads is written back byte for byte, including values Outlook itself never writes, such as a boolean stored as 5. The `Bool` properties are backed by `raw…` properties that hold the stored value.
+
 Rules can be edited and written back to a file. The rest of the file (template directory, server settings) is kept:
 
 ```swift
