@@ -74,6 +74,16 @@ public struct OutlookRules: CustomDebugStringConvertible {
         self.footer = RulesFooter()
     }
     
+    /// Reads a rules file, such as one made with Outlook's Export Rules.
+    public init(contentsOf url: URL) throws {
+        try self.init(data: try Data(contentsOf: url))
+    }
+
+    /// Writes the rules to a file, in the format of `version` or the format they were read from.
+    public func write(to url: URL, version: OutlookRulesVersion? = nil) throws {
+        try getData(version: version).write(to: url, options: .atomic)
+    }
+
     public init(data: Data) throws {
         var dataStream = DataStream(data)
         try self.init(dataStream: &dataStream)

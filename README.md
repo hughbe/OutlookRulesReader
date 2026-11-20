@@ -47,7 +47,7 @@ To get a `.rwz` file, use **File → Manage Rules & Alerts → Options → Expor
 
 ## Example Usage
 
-This reads a rules file and prints each rule with its conditions, actions and exceptions:
+This reads a rules file and prints each rule the way Outlook's Rules Wizard describes it:
 
 ```swift
 import Foundation
@@ -58,42 +58,42 @@ guard CommandLine.arguments.count > 1 else {
     exit(1)
 }
 
-let data = try Data(contentsOf: URL(fileURLWithPath: CommandLine.arguments[1]))
-let rules = try OutlookRules(data: data)
-
-for (index, rule) in rules.rules.enumerated() {
-    print("Rule \(index + 1): \(rule.name) (\(rule.enabled ? "enabled" : "disabled"))")
-
-    let sections = [("Conditions", rule.conditions), ("Actions", rule.actions), ("Exceptions", rule.exceptions)]
-    for (title, elements) in sections where !elements.isEmpty {
-        print("  \(title):")
-        for element in elements {
-            var line = "    \(element.identifier)"
-            // Parameters hold the details of an element, such as the words to look for.
-            if let words = element.parameter as? StringParameter {
-                line += ": \(words.value)"
-            } else if let folder = element.parameter as? FolderParameter {
-                line += ": \(folder.folderName)"
-            } else if let categories = element.parameter as? CategoryParameter {
-                line += ": \(categories.categories.joined(separator: ", "))"
-            } else if let addresses = element.parameter as? AddressParameter {
-                line += ": \(addresses.recipients.compactMap { $0.displayName }.joined(separator: ", "))"
-            }
-            print(line)
-        }
-    }
+let rules = try OutlookRules(contentsOf: URL(fileURLWithPath: CommandLine.arguments[1]))
+for rule in rules.rules {
+    print("\(rule.name)\(rule.enabled ? "" : " (disabled)")")
+    print(rule.text)
+    print()
 }
 ```
 
 Example output:
 
 ```
-Rule 1: RULE2 (enabled)
-  Actions:
-    flagAction
-Rule 2: RULE1 (enabled)
-  Conditions:
-    automaticReplyCondition
+Invoices
+Apply this rule after the message arrives
+from Hugh Bellamy or Accounts
+and with 'invoice' or 'bill' in the subject
+assign it to the Finance category
+and stop processing more rules
+except if it has an attachment
+```
+
+`rule.text` uses the wording Outlook's Rules Wizard uses for each condition, action and exception, recorded in the specification. `element.text` describes a single element, and `identifier.textTemplate` gives the wording with its placeholder, such as "from *people or public group*".
+
+To work with the details instead, cast `element.parameter` to its type:
+
+```swift
+for rule in rules.rules {
+    for element in rule.conditions + rule.actions + rule.exceptions {
+        if let words = element.parameter as? StringParameter {
+            print("\(element.identifier): \(words.value)")
+        } else if let folder = element.parameter as? FolderParameter {
+            print("\(element.identifier): \(folder.folderName)")
+        } else if let addresses = element.parameter as? AddressParameter {
+            print("\(element.identifier): \(addresses.recipients.compactMap { $0.displayName })")
+        }
+    }
+}
 ```
 
 Each rule has a `name`, an `enabled` flag, and `conditions`, `actions` and `exceptions`. Rules made with the Outlook 97 Rules Wizard also record the wizard template they came from in `templateName`. Each of those is a `RuleElement` with an `identifier` (what the element is) and `parameters` (its details). Cast `element.parameter` to the matching type, such as `StringParameter`, `FolderParameter` or `AddressParameter`, to read them. See the [tests](Tests/OutlookRulesReaderTests) for an example of every kind of condition, action and exception. `identifier.parameterType` says which parameter type an element takes, and `print(rules)` prints every rule with its elements and parameters.
@@ -107,17 +107,17 @@ Every file the library reads is written back byte for byte, including values Out
 Rules can be edited and written back to a file. The rest of the file (template directory, server settings) is kept:
 
 ```swift
-var rules = try OutlookRules(data: data)
+var rules = try OutlookRules(contentsOf: URL(fileURLWithPath: "Rules.rwz"))
 rules.rules[0].enabled = false
 rules.rules.append(Rule(eventFlags: .afterReceived, name: "Tidy invoices", conditions: [
     RuleElement(identifier: .specificWordsInSubjectCondition, parameter: StringParameter(value: "invoice"))
 ], actions: [
     RuleElement(identifier: .deleteAction)
 ]))
-let newData = rules.getData()
+try rules.write(to: URL(fileURLWithPath: "Rules.rwz"))
 ```
 
-`getData(version:)` writes the file in the format of a specific Outlook version, such as `.outlook2007`.
+`getData()` returns the file's bytes instead. `write(to:version:)` and `getData(version:)` write the file in the format of a specific Outlook version, such as `.outlook2007`.
 
 Like Outlook's own Export Rules, writing to an older format leaves out every rule that contains a condition, action or exception that format can't store, since that version of Outlook would fail to load the file. `unsupportedRules(in:)` lists the rules that would be left out.
 
