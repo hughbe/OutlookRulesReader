@@ -154,7 +154,7 @@ internal enum ObjectTag {
         switch tag {
         case newClass:
             guard !classDeclared else {
-                throw OutlookRulesReadError.corrupted
+                throw OutlookRulesReadError.invalidClassDeclaration
             }
 
             /// Schema (2 bytes)
@@ -163,13 +163,11 @@ internal enum ObjectTag {
             /// Class Name Length (2 bytes)
             let classNameLength: UInt16 = try dataStream.read(endianess: .littleEndian)
             guard classNameLength <= dataStream.remainingCount else {
-                throw OutlookRulesReadError.corrupted
+                throw OutlookRulesReadError.lengthOutOfRange
             }
 
             /// Class Name (variable)
-            guard let className = try dataStream.readString(count: Int(classNameLength), encoding: .ascii) else {
-                throw OutlookRulesReadError.corrupted
-            }
+            let className = ANSIEncoding.decode(try dataStream.readBytes(count: Int(classNameLength)))
             guard className == ObjectTag.className else {
                 throw OutlookRulesReadError.unknownRuleClass(ruleClass: className)
             }
@@ -177,7 +175,7 @@ internal enum ObjectTag {
             classDeclared = true
         case firstClass:
             guard classDeclared else {
-                throw OutlookRulesReadError.corrupted
+                throw OutlookRulesReadError.invalidClassDeclaration
             }
         default:
             throw OutlookRulesReadError.invalidObjectTag(tag: tag)

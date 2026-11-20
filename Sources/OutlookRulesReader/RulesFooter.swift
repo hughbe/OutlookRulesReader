@@ -27,16 +27,12 @@ internal struct RulesFooter {
         /// fields that follow stay aligned.
         let templateDirectoryLength: UInt32 = try dataStream.read(endianess: .littleEndian)
         guard Int(templateDirectoryLength) <= dataStream.remainingCount / (version >= .outlook2002 ? 2 : 1) else {
-            throw OutlookRulesReadError.corrupted
+            throw OutlookRulesReadError.lengthOutOfRange
         }
         
         /// Template (variable)
         if version >= .outlook2002 {
-            guard let templateDirectory = try dataStream.readString(count: Int(templateDirectoryLength) * 2, encoding: .utf16LittleEndian) else {
-                throw OutlookRulesReadError.corrupted
-            }
-
-            self.templateDirectory = templateDirectory
+            self.templateDirectory = try UTF16Decoding.decode(try dataStream.readBytes(count: Int(templateDirectoryLength) * 2))
         } else {
             self.templateDirectory = ANSIEncoding.decode(try dataStream.readBytes(count: Int(templateDirectoryLength)))
         }

@@ -120,7 +120,7 @@ internal struct AdrEntry {
         let propertyBlockDataSize: UInt32 = try dataStream.read(endianess: .littleEndian)
         guard propertyBlockDataSize <= dataStream.remainingCount,
               UInt64(numberOfProperties) * UInt64(SPropValue.dataSize) <= UInt64(propertyBlockDataSize) else {
-            throw OutlookRulesReadError.corrupted
+            throw OutlookRulesReadError.lengthOutOfRange
         }
 
         /// Property Block (variable): the SPropValue array, then the data block. Offsets in the array are measured
@@ -140,23 +140,7 @@ internal struct AdrEntry {
             case PropertyType.string:
                 /// A null-terminated UTF-16 string in the data block.
                 let bytes = try AdrEntry.nullTerminatedBytes(in: block, at: Int(header.valueLow), unitSize: 2)
-                let units = stride(from: 0, to: bytes.count, by: 2).map { UInt16(bytes[$0]) | UInt16(bytes[$0 + 1]) << 8 }
-                var string = String.UnicodeScalarView()
-                var iterator = units.makeIterator()
-                var decoder = UTF16()
-                decoding: while true {
-                    switch decoder.decode(&iterator) {
-                    case .scalarValue(let scalar):
-                        string.append(scalar)
-                    case .emptyInput:
-                        break decoding
-                    case .error:
-                        /// An unpaired surrogate.
-                        throw OutlookRulesReadError.corrupted
-                    }
-                }
-
-                value = String(string)
+                value = try UTF16Decoding.decode(bytes)
             case PropertyType.string8:
                 /// A null-terminated ANSI string in the data block.
                 value = ANSIEncoding.decode(try AdrEntry.nullTerminatedBytes(in: block, at: Int(header.valueLow), unitSize: 1))
@@ -165,15 +149,14 @@ internal struct AdrEntry {
                 let length = Int(header.valueLow)
                 let offset = Int(header.valueHigh)
                 guard offset <= block.count, length <= block.count - offset else {
-                    throw OutlookRulesReadError.corrupted
+                    throw OutlookRulesReadError.lengthOutOfRange
                 }
 
                 value = Array(block[offset..<offset + length])
             case PropertyType.boolean:
                 value = UInt16(truncatingIfNeeded: header.valueLow) != 0
             default:
-                // Property type not yet supported.
-                throw OutlookRulesReadError.corrupted
+                throw OutlookRulesReadError.unsupportedPropertyType(type: header.propTag.type.rawValue)
             }
             
             propertyValues.append(Property(type: header.propTag.type, id: header.propTag.id, alignPad: header.alignPad, valueHigh: header.valueHigh, value: value))
@@ -188,7 +171,7 @@ internal struct AdrEntry {
         var end = offset
         while true {
             guard end <= block.count - unitSize else {
-                throw OutlookRulesReadError.corrupted
+                throw OutlookRulesReadError.lengthOutOfRange
             }
             if block[end..<end + unitSize].allSatisfy({ $0 == 0 }) {
                 return Array(block[offset..<end])

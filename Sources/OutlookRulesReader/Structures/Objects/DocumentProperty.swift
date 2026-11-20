@@ -105,11 +105,6 @@ public struct DocumentProperty {
         self.dateValue = OleDateTime()
     }
     
-    @available(*, deprecated, message: "matchType was ignored. Use init(field:propTag:boolValue:).")
-    public init(field: String, propTag: PropertyTag, matchType: DocumentPropertyNumberMatchType, boolValue: Bool) {
-        self.init(field: field, propTag: propTag, boolValue: boolValue)
-    }
-
     public init(dataStream: inout DataStream, version: OutlookRulesVersion) throws {
         /// Field (variable)
         if version >= .outlook2002 {

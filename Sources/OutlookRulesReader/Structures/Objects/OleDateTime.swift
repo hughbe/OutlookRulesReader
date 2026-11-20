@@ -8,7 +8,7 @@
 import DataStream
 import Foundation
 
-public struct OleDateTime {
+public struct OleDateTime: Hashable {
     public let dataSize: UInt32 = 12
     
     public var rawStatus: UInt32

@@ -30,13 +30,4 @@ public enum OutlookRulesVersion: Comparable {
     case outlook2007
     /// Signature 0x00140000 (version 14). Written by Outlook 2010 and every later version, including Outlook 2019.
     case outlook2010
-
-    @available(*, deprecated, renamed: "outlook97")
-    public static var noSignature: OutlookRulesVersion { .outlook97 }
-
-    @available(*, deprecated, renamed: "signatureZero")
-    public static var noSignatureOutlook2003: OutlookRulesVersion { .signatureZero }
-
-    @available(*, deprecated, renamed: "outlook2010")
-    public static var outlook2019: OutlookRulesVersion { .outlook2010 }
 }

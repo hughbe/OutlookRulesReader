@@ -30,7 +30,7 @@ internal struct ASCIIString {
         /// Length (1, 3 or 7 bytes)
         let length = try StringLength.read(from: &dataStream)
         guard length <= dataStream.remainingCount else {
-            throw OutlookRulesReadError.corrupted
+            throw OutlookRulesReadError.lengthOutOfRange
         }
         
         /// Value (variable)

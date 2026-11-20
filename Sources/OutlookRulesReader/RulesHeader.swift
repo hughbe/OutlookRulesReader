@@ -26,11 +26,6 @@ internal struct RulesHeader {
     /// isn't created again (spec §4.2). Formerly `unknown4`.
     public var clearCategoriesRuleCreated: UInt32? = 0
 
-    @available(*, deprecated, renamed: "clearCategoriesRuleCreated")
-    public var unknown4: UInt32? {
-        get { clearCategoriesRuleCreated }
-        set { clearCategoriesRuleCreated = newValue }
-    }
     /// 1 when the copy of the rules on the Exchange server is out of date (spec §4.2).
     public var serverRulesOutOfDate: UInt32? = 0
     /// how the server copy is updated: 0 = not set, 1 = manually, 2 = automatically (spec §4.2).
@@ -163,7 +158,7 @@ internal struct RulesHeader {
             /// Extra Data Size (4 bytes)
             let extraDataSize: UInt32 = try dataStream.read(endianess: .littleEndian)
             guard extraDataSize <= dataStream.remainingCount else {
-                throw OutlookRulesReadError.corrupted
+                throw OutlookRulesReadError.lengthOutOfRange
             }
 
             /// Extra Data (variable)

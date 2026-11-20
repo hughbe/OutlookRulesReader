@@ -85,7 +85,107 @@ final class RobustnessTests: XCTestCase {
         // ServerRuleId (20), then DataSize.
         let dataSizeOffset = 46 + 4 + 3 + 20
         data[dataSizeOffset] &+= 1
-        XCTAssertThrowsError(try OutlookRules(data: data))
+        XCTAssertEqual(.dataSizeMismatch(dataSize: 55, actualSize: 54), readError(data))
+    }
+
+    // MARK: - Errors
+
+    /// The error reading `data`, or nil if it reads without one.
+    private func readError(_ data: Data) -> OutlookRulesReadError? {
+        do {
+            _ = try OutlookRules(data: data)
+            return nil
+        } catch {
+            return error as? OutlookRulesReadError
+        }
+    }
+
+    /// Replaces the only occurrence of `pattern` in `data`.
+    private func replacing(_ pattern: [UInt8], with replacement: [UInt8], in data: Data) throws -> Data {
+        let range = try XCTUnwrap(data.range(of: Data(pattern)))
+        XCTAssertNil(data.range(of: Data(pattern), in: range.upperBound..<data.endIndex))
+        var data = data
+        data.replaceSubrange(range, with: replacement)
+        return data
+    }
+
+    func testSpecificErrors() throws {
+        let delete = OutlookRules(rules: [
+            Rule(eventFlags: .afterReceived, name: "R", actions: [RuleElement(identifier: .deleteAction)])
+        ]).getData(version: .outlook2010)
+        XCTAssertNil(readError(delete))
+
+        // The delete action (0x012D, no parameters) after its object tag.
+        let unknown = try replacing([0x01, 0x80, 0x2D, 0x01, 0x00, 0x00], with: [0x01, 0x80, 0xFF, 0x0F, 0x00, 0x00], in: delete)
+        XCTAssertEqual(.unknownElement(identifier: 0x0FFF), readError(unknown))
+
+        let parameter = try replacing([0x2D, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00], with: [0x2D, 0x01, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00], in: delete)
+        XCTAssertEqual(.unexpectedParameter(element: .deleteAction), readError(parameter))
+
+        // The name "R" with its length, then an unpaired high surrogate in place of the "R".
+        let surrogate = try replacing([0x01, 0x52, 0x00], with: [0x01, 0x00, 0xD8], in: delete)
+        XCTAssertEqual(.invalidString, readError(surrogate))
+
+        // The CRuleElement class descriptor declared twice.
+        let twice = OutlookRules(rules: [
+            Rule(eventFlags: .afterReceived, name: "R")
+        ]).getData(version: .outlook2010)
+        let declaration: [UInt8] = [0xFF, 0xFF, 0x00, 0x00, 0x0C, 0x00] + Array("CRuleElement".utf8)
+        let redeclared = try replacing([0x01, 0x80], with: declaration, in: twice)
+        XCTAssertEqual(.invalidClassDeclaration, readError(redeclared))
+    }
+
+    /// Every identifier says whether it takes a parameter, and reads the parameters Outlook writes for it.
+    func testParameterTypes() throws {
+        XCTAssertTrue(RuleElementIdentifier.fromCondition.parameterType == AddressParameter.self)
+        XCTAssertTrue(RuleElementIdentifier.applyRetentionPolicyAction.parameterType == RetentionPolicyParameter.self)
+        XCTAssertNil(RuleElementIdentifier.deleteAction.parameterType)
+        XCTAssertNil(RuleElementIdentifier.hasAttachmentException.parameterType)
+    }
+
+    // MARK: - Equality and descriptions
+
+    func testEquality() throws {
+        let data = try getData(name: "Outlook2003All", fileExtension: "rwz")
+        let first = try OutlookRules(data: data)
+        let second = try OutlookRules(data: data)
+        XCTAssertEqual(first, second)
+        XCTAssertEqual(first.rules, second.rules)
+
+        var changed = second
+        changed.rules[0].enabled.toggle()
+        XCTAssertNotEqual(first, changed)
+        XCTAssertNotEqual(first.rules, changed.rules)
+
+        var element = first.rules[0].conditions[0]
+        XCTAssertEqual(element, first.rules[0].conditions[0])
+        element.parameters.append(StringParameter(value: "x"))
+        XCTAssertNotEqual(element, first.rules[0].conditions[0])
+    }
+
+    func testRecipients() throws {
+        let file = try OutlookRules(data: try getData(name: "Outlook2003All", fileExtension: "rwz"))
+        let from = try XCTUnwrap(file.rules[0].conditions.first { $0.identifier == .fromCondition }?.parameter as? AddressParameter)
+        XCTAssertEqual(1, from.recipients.count)
+        XCTAssertEqual("SMTP", from.recipients[0].addressType)
+        XCTAssertEqual(1, from.recipients[0].recipientType)
+        XCTAssertNotNil(from.recipients[0].displayName)
+        XCTAssertNotNil(from.recipients[0].emailAddress)
+        XCTAssertNotNil(from.recipients[0].entryId)
+        XCTAssertTrue(from.debugDescription.hasPrefix("AddressParameter(\""))
+    }
+
+    func testDebugDescription() throws {
+        let rule = Rule(eventFlags: .afterReceived, name: "Tidy", enabled: false, conditions: [
+            RuleElement(identifier: .specificWordsInSubjectCondition, parameter: StringParameter(value: "invoice"))
+        ], actions: [RuleElement(identifier: .deleteAction)])
+        XCTAssertEqual("""
+        Rule "Tidy", disabled
+          Conditions:
+            specificWordsInSubjectCondition: StringParameter(reserved: 0, value: "invoice")
+          Actions:
+            deleteAction
+        """, rule.debugDescription)
     }
 
     // MARK: - Unknown values

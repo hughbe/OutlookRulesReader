@@ -135,10 +135,6 @@ public struct OutlookRules: CustomDebugStringConvertible {
     }
     
     public var debugDescription: String {
-        var s = ""
-        for rule in rules {
-            s += "\(rule)\n"
-        }
-        return s
+        rules.map { $0.debugDescription }.joined(separator: "\n")
     }
 }

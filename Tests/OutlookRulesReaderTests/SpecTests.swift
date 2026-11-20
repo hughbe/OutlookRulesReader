@@ -75,9 +75,11 @@ final class SpecTests: XCTestCase {
         var rules = file.rules
         rules[0].hasRunError = true
         var changed = OutputDataStream()
-        rules[0].write(to: &changed, index: 0, version: .outlook98)
+        var classDeclared = false
+        rules[0].write(to: &changed, version: .outlook98, versionStamp: nil, classDeclared: &classDeclared)
         var dataStream = DataStream(changed.data)
-        let rule = try Rule(dataStream: &dataStream, index: 0, version: .outlook98)
+        classDeclared = false
+        let rule = try Rule(dataStream: &dataStream, version: .outlook98, classDeclared: &classDeclared)
         XCTAssertTrue(rule.hasRunError)
         file = try OutlookRules(data: data)
         XCTAssertEqual(data, file.getData())

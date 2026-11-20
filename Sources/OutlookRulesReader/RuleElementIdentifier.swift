@@ -380,14 +380,92 @@ public enum RuleElementIdentifier: UInt32 {
     /// “except from any RSS Feed”
     case fromAnyRSSFeedException = 0x0000021B
 
-    @available(*, deprecated, renamed: "serverReplyAction")
-    public static var automaticReply: RuleElementIdentifier { .serverReplyAction }
-
-    @available(*, deprecated, renamed: "sentToException")
-    public static var toException: RuleElementIdentifier { .sentToException }
-
-    @available(*, deprecated, renamed: "sensitivityException")
-    public static var sensitivityConditionException: RuleElementIdentifier { .sensitivityException }
+    /// The type of the element's parameters, or nil if the element takes none (spec §5 and §6).
+    public var parameterType: RuleParameter.Type? {
+        switch self {
+        case .eventFlags:
+            return EventParameter.self
+        case .itemType:
+            return ItemTypeParameter.self
+        case .fromCondition, .sentToCondition, .sentToAsCcCondition, .sentToAlternateCondition, .forwardAction,
+             .ccAction, .redirectAction, .forwardAsAttachmentAction, .fromException, .sentToException,
+             .sentToAsCcException, .sentToAlternateException:
+            return AddressParameter.self
+        case .specificWordsInSubjectCondition, .specificWordsInBodyCondition, .specificWordsInSubjectOrBodyCondition,
+             .specificWordsInRecipientsAddressCondition, .specificWordsInSendersAddressCondition,
+             .specificWordsInMessageHeaderCondition, .fromRSSFeedsWithSpecifiedTextInTitleCondition,
+             .hiddenServerReplyAction, .specificWordsInSubjectException, .specificWordsInBodyException,
+             .specificWordsInSubjectOrBodyException, .specificWordsInRecipientsAddressException,
+             .specificWordsInSendersAddressException, .specificWordsInMessageHeaderException,
+             .fromRSSFeedsWithSpecifiedTextInTitleException:
+            return StringParameter.self
+        case .flaggedForActionCondition, .flaggedForActionException:
+            return FlaggedForActionParameter.self
+        case .importanceCondition, .markImportanceAction, .importanceException:
+            return ImportanceParameter.self
+        case .sensitivityCondition, .markSensitivityAction, .sensitivityException:
+            return SensitivityParameter.self
+        case .assignedToCategoryCondition, .assignToCategoryAction, .assignedToCategoryException:
+            return CategoryParameter.self
+        case .withSelectedPropertiesOfDocumentOrFormsCondition, .withSelectedPropertiesOfDocumentOrFormsException:
+            return FormParameter.self
+        case .sizeInSpecificRangeCondition, .sizeInSpecificRangeException:
+            return SizeParameter.self
+        case .receivedInSpecificDateSpanCondition, .receivedInSpecificDateSpanException:
+            return TimeParameter.self
+        case .usesFormCondition, .specificInfoPathFormCondition, .usesFormException, .specificInfoPathFormException:
+            return FormTypeParameter.self
+        case .exceptionListCondition, .legacyJunkCondition, .junkCondition, .adultCondition:
+            return SendersListParameter.self
+        case .relevanceInSpecificRangeCondition:
+            return RelevanceRangeParameter.self
+        case .throughSpecifiedAccountCondition, .throughSpecifiedAccountException:
+            return AccountParameter.self
+        case .onThisComputerOnlyCondition:
+            return ProfileStampParameter.self
+        case .senderInSpecifiedAddressBookCondition, .senderInSpecifiedAddressBookException:
+            return AddressBookParameter.self
+        case .alertCondition:
+            return AlertParameter.self
+        case .fromAnyRSSFeedCondition, .fromAnyRSSFeedException:
+            return ReservedParameter.self
+        case .moveToFolderAction, .moveCopyToFolderAction:
+            return FolderParameter.self
+        case .replyUsingTemplateAction, .playSoundAction, .startApplicationAction:
+            return PathParameter.self
+        case .displayMessageInNewItemAlertWindowAction:
+            return MessageParameter.self
+        case .flagAction:
+            return FlagParameter.self
+        case .deferDeliveryAction:
+            return DeferParameter.self
+        case .performCustomActionAction:
+            return CustomActionParameter.self
+        case .addToRelevanceAction:
+            return RelevanceParameter.self
+        case .serverReplyAction:
+            return TemplateParameter.self
+        case .runScriptAction:
+            return ScriptParameter.self
+        case .flagColorAction:
+            return FlagColorParameter.self
+        case .flagForFollowUpAction:
+            return FlagForFollowUpParameter.self
+        case .applyRetentionPolicyAction:
+            return RetentionPolicyParameter.self
+        case .nameInToBoxCondition, .sentOnlyToMeCondition, .nameNotInToBoxCondition, .nameInToBoxMeetingCondition,
+             .nameNotInToBoxMeetingCondition, .automaticReplyCondition, .hasAttachmentCondition, .nameInCcBoxCondition,
+             .nameInToOrCcBoxCondition, .netFoldersCondition, .whichIsAMeetingInvitationOrInviteCondition,
+             .assignedToAnyCategoryCondition, .deleteAction, .clearFlagAction, .notifyReadAction,
+             .notifyDeliveredAction, .netFoldersAction, .unusedAction, .stopProcessingMoreRulesAction,
+             .doNotSearchForCommercialOrAdultContentAction, .printAction, .permanentlyDeleteAction, .markAsReadAction,
+             .dotNetNotificationAction, .displayDesktopAlertAction, .clearCategoriesAction, .nameInToBoxException,
+             .sentOnlyToMeException, .nameNotInToBoxException, .nameInToBoxMeetingException,
+             .nameNotInToBoxMeetingException, .automaticReplyException, .hasAttachmentException, .nameInCcBoxException,
+             .nameInToOrCcBoxException, .whichIsAMeetingInvitationOrInviteException, .assignedToAnyCategoryException:
+            return nil
+        }
+    }
 
     /// The oldest format that can store this element: the first version of Outlook that defines it (spec §5.2–§5.4).
     /// An exception is defined in the same versions as its condition.

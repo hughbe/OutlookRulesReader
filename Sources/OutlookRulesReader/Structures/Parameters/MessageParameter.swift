@@ -14,11 +14,6 @@ public struct MessageParameter: RuleParameter {
     public init(message: String) {
         self.message = message
     }
-
-    @available(*, deprecated, renamed: "init(message:)")
-    public init(path: String) {
-        self.init(message: path)
-    }
     
     public init(dataStream: inout DataStream, version: OutlookRulesVersion) throws {
         /// Reserved (4 bytes)

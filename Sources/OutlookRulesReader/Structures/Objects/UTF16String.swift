@@ -25,15 +25,11 @@ internal struct UTF16String {
         /// Length (1, 3 or 7 bytes)
         let length = try StringLength.read(from: &dataStream)
         guard length <= dataStream.remainingCount / 2 else {
-            throw OutlookRulesReadError.corrupted
+            throw OutlookRulesReadError.lengthOutOfRange
         }
         
         /// Value (variable)
-        guard let value = try dataStream.readString(count: length * 2, encoding: .utf16LittleEndian) else {
-            throw OutlookRulesReadError.corrupted
-        }
-        
-        self.value = value
+        self.value = try UTF16Decoding.decode(try dataStream.readBytes(count: length * 2))
     }
     
     public func write(to dataStream: inout OutputDataStream) {

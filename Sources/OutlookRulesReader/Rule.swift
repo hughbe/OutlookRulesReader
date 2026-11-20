@@ -97,15 +97,6 @@ public struct Rule: CustomDebugStringConvertible {
         self.elements = conditions + actions + exceptions
     }
 
-    /// Reads a single rule. `index` stands in for whether an earlier rule in the stream already declared the
-    /// `CRuleElement` class, which is wrong when an earlier rule had no elements (spec §2.5).
-    @available(*, deprecated, message: "Read the whole stream with OutlookRules(data:), which tracks the class declaration.")
-    public init(dataStream: inout DataStream, index: Int, version: OutlookRulesVersion) throws {
-        /// The class descriptor for `CRuleElement` precedes the first element of the stream.
-        var classDeclared = index != 0
-        try self.init(dataStream: &dataStream, version: version, classDeclared: &classDeclared)
-    }
-
     internal init(dataStream: inout DataStream, version: OutlookRulesVersion, classDeclared: inout Bool) throws {
         /// Header (variable)
         let header = try RuleHeader(dataStream: &dataStream, version: version)
@@ -124,7 +115,7 @@ public struct Rule: CustomDebugStringConvertible {
         let elementsStart = dataStream.position
         if let dataSize = header.dataSize, header.hasElementList {
             guard dataSize >= 2, Int(dataSize - 2) <= dataStream.remainingCount else {
-                throw OutlookRulesReadError.corrupted
+                throw OutlookRulesReadError.lengthOutOfRange
             }
         }
 
@@ -141,7 +132,7 @@ public struct Rule: CustomDebugStringConvertible {
 
         if let dataSize = header.dataSize, header.hasElementList {
             guard dataStream.position - elementsStart == Int(dataSize - 2) else {
-                throw OutlookRulesReadError.corrupted
+                throw OutlookRulesReadError.dataSizeMismatch(dataSize: dataSize, actualSize: dataStream.position - elementsStart + 2)
             }
         }
 
@@ -156,7 +147,7 @@ public struct Rule: CustomDebugStringConvertible {
 
         guard let eventElement = elements.first(where: { $0.identifier == .eventFlags }),
               let eventParameter = eventElement.parameter as? EventParameter else {
-            throw OutlookRulesReadError.corrupted
+            throw OutlookRulesReadError.missingEventFlags
         }
 
         self.eventFlags = eventParameter.flags
@@ -184,21 +175,23 @@ public struct Rule: CustomDebugStringConvertible {
         return name + "\t" + templateName
     }
 
+    /// The rule's name, state and elements, one element per line.
     public var debugDescription: String {
-        var s = ""
-        s += "Name: \(name)"
+        var s = "Rule \"\(name)\""
         if let templateName = templateName {
-            s += "\tTemplate: \(templateName)"
+            s += " (template \"\(templateName)\")"
+        }
+        s += enabled ? ", enabled" : ", disabled"
+        if hasRunError {
+            s += ", run error"
+        }
+        for (title, elements) in [("Conditions", conditions), ("Actions", actions), ("Exceptions", exceptions)] where !elements.isEmpty {
+            s += "\n  \(title):"
+            for element in elements {
+                s += "\n    \(element.debugDescription)"
+            }
         }
         return s
-    }
-
-    /// Writes a single rule. See `init(dataStream:index:version:)` for why `index` can be wrong.
-    @available(*, deprecated, message: "Write the whole stream with OutlookRules.getData(version:), which tracks the class declaration.")
-    public func write(to dataStream: inout OutputDataStream, index: Int, version: OutlookRulesVersion) {
-        /// The class descriptor for `CRuleElement` precedes the first element of the stream.
-        var classDeclared = index != 0
-        write(to: &dataStream, version: version, versionStamp: nil, classDeclared: &classDeclared)
     }
 
     /// `versionStamp` is the stream's version stamp, which each rule header repeats in the Outlook 2002 and later
