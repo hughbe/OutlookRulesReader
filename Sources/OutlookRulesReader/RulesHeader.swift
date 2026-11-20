@@ -37,9 +37,9 @@ internal struct RulesHeader {
     /// Outlook 2002 and later: a byte count (the field once called Unknown9) followed by that many bytes, which
     /// Outlook 2002 only loads and saves (spec §4.2). Always empty in the samples. nil before Outlook 2002.
     var extraData: Data? = Data()
-    var numberOfRules: UInt16
+    var numberOfRules: UInt32
 
-    init(numberOfRules: UInt16, version: OutlookRulesVersion = .outlook2010) {
+    init(numberOfRules: UInt32, version: OutlookRulesVersion = .outlook2010) {
         self.version = version
         self.versionStamp = RulesHeader.defaultVersionStamp(for: version)
         self.writerVersion = RulesHeader.defaultWriterVersion(for: version)
@@ -114,8 +114,8 @@ internal struct RulesHeader {
             self.convertInboxAssistantRules = nil
             self.extraData = nil
 
-            /// Number of Rules (2 bytes)
-            self.numberOfRules = try dataStream.read(endianess: .littleEndian)
+            /// Number of Rules (2 or 6 bytes)
+            self.numberOfRules = try ArchiveCount.read(from: &dataStream)
             return
         }
 
@@ -167,8 +167,8 @@ internal struct RulesHeader {
             self.extraData = nil
         }
 
-        /// Number of Rules (2 bytes)
-        self.numberOfRules = try dataStream.read(endianess: .littleEndian)
+        /// Number of Rules (2 or 6 bytes)
+        self.numberOfRules = try ArchiveCount.read(from: &dataStream)
     }
 
     /// Writes the header in the layout of the specified version.
@@ -228,7 +228,7 @@ internal struct RulesHeader {
             }
         }
 
-        /// Number of Rules (2 bytes)
-        dataStream.write(numberOfRules, endianess: .littleEndian)
+        /// Number of Rules (2 or 6 bytes)
+        ArchiveCount.write(numberOfRules, to: &dataStream)
     }
 }

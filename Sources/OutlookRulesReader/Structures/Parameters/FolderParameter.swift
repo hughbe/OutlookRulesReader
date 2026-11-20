@@ -10,14 +10,32 @@ import MAPI
 
 public struct FolderParameter: RuleParameter {
     public var reserved: UInt32 = 0
-    public var folderEntryId: EntryID
-    public var storeEntryId: EntryID
+    /// The folder's entry ID, exactly as stored. Always written back unchanged.
+    public var folderEntryIdBytes: [UInt8]
+    /// The folder's entry ID, decoded; nil if `MAPI` can't decode it. Setting it replaces `folderEntryIdBytes`.
+    public var folderEntryId: EntryID? {
+        get { RawEntryID.decode(folderEntryIdBytes) }
+        set { folderEntryIdBytes = newValue.map(RawEntryID.encode) ?? [] }
+    }
+    /// The entry ID of the store that holds the folder, exactly as stored. Always written back unchanged.
+    public var storeEntryIdBytes: [UInt8]
+    /// The entry ID of the store that holds the folder, decoded; nil if `MAPI` can't decode it. Setting it replaces `storeEntryIdBytes`.
+    public var storeEntryId: EntryID? {
+        get { RawEntryID.decode(storeEntryIdBytes) }
+        set { storeEntryIdBytes = newValue.map(RawEntryID.encode) ?? [] }
+    }
     public var folderName: String
-    public var secondaryStore: Bool? = false
+    public var secondaryStore: Bool? {
+        get { rawSecondaryStore.map { $0 != 0 } }
+        set { if newValue != secondaryStore { rawSecondaryStore = newValue.map { $0 ? 1 : 0 } } }
+    }
+    /// The stored value of `secondaryStore`, or nil in formats without it. Any non-zero value means true; it is kept so
+    /// that the file round-trips exactly.
+    public var rawSecondaryStore: UInt32? = 0
     
     public init(folderEntryId: FolderEntryID, storeEntryId: StoreEntryID, folderName: String) {
-        self.folderEntryId = folderEntryId
-        self.storeEntryId = storeEntryId
+        self.folderEntryIdBytes = RawEntryID.encode(folderEntryId)
+        self.storeEntryIdBytes = RawEntryID.encode(storeEntryId)
         self.folderName = folderName
     }
     
@@ -26,10 +44,10 @@ public struct FolderParameter: RuleParameter {
         self.reserved = try dataStream.read(endianess: .littleEndian)
 
         /// Folder Entry Id (variable)
-        self.folderEntryId = try FlatEntry(dataStream: &dataStream).entryID
+        self.folderEntryIdBytes = try RawEntryID.read(from: &dataStream)
         
         /// Store Entry Id (variable)
-        self.storeEntryId = try FlatEntry(dataStream: &dataStream).entryID
+        self.storeEntryIdBytes = try RawEntryID.read(from: &dataStream)
 
         /// Folder Name (variable)
         if version >= .outlook2002 {
@@ -40,9 +58,9 @@ public struct FolderParameter: RuleParameter {
         
         if FolderParameter.hasSecondaryStore(version) {
             /// Secondary User Store (4 bytes)
-            self.secondaryStore = (try dataStream.read(endianess: .littleEndian) as UInt32) != 0
+            self.rawSecondaryStore = try dataStream.read(endianess: .littleEndian)
         } else {
-            self.secondaryStore = nil
+            self.rawSecondaryStore = nil
         }
     }
     
@@ -51,10 +69,10 @@ public struct FolderParameter: RuleParameter {
         dataStream.write(reserved, endianess: .littleEndian)
         
         /// Folder Entry Id (Variable)
-        FlatEntry(entryID: folderEntryId).write(to: &dataStream)
+        RawEntryID.write(folderEntryIdBytes, to: &dataStream)
         
-        /// Store Entry Id (4 bytes)
-        FlatEntry(entryID: storeEntryId).write(to: &dataStream)
+        /// Store Entry Id (variable)
+        RawEntryID.write(storeEntryIdBytes, to: &dataStream)
         
         /// Folder Name (variable)
         if version >= .outlook2002 {
@@ -65,7 +83,7 @@ public struct FolderParameter: RuleParameter {
         
         if FolderParameter.hasSecondaryStore(version) {
             /// Secondary User Store (4 bytes)
-            dataStream.write(((secondaryStore ?? false) ? 1 : 0) as UInt32, endianess: .littleEndian)
+            dataStream.write(rawSecondaryStore ?? 0, endianess: .littleEndian)
         }
     }
 

@@ -16,7 +16,14 @@ public struct Rule: CustomDebugStringConvertible {
     /// Outlook 97 stores it after the rule name, separated by a tab (spec §4.3.1); nil if the stored name has no tab.
     public var templateName: String?
 
-    public var enabled: Bool
+    public var enabled: Bool {
+        get { rawEnabled != 0 }
+        set { if newValue != enabled { rawEnabled = newValue ? 1 : 0 } }
+    }
+
+    /// The stored Enabled value. Any non-zero value means enabled; it is kept so that the file round-trips exactly
+    /// (spec §4.3.1).
+    internal var rawEnabled: UInt32 = 1
 
     /// When the rule runs: the parameter of the mandatory 0x0190 element.
     public var eventFlags: RuleEventFlags
@@ -25,7 +32,13 @@ public struct Rule: CustomDebugStringConvertible {
     public var itemTypes: RuleItemTypes = .message
 
     /// Whether the rule has been saved to the Exchange server's rules table (spec §4.3.1).
-    public var isServerRule: Bool = false
+    public var isServerRule: Bool {
+        get { rawServerRule != 0 }
+        set { if newValue != isServerRule { rawServerRule = newValue ? 1 : 0 } }
+    }
+
+    /// The stored ServerRule value. Any non-zero value means true; it is kept so that the file round-trips exactly.
+    internal var rawServerRule: UInt32 = 0
 
     /// Rule flags (spec §4.3.1.1). Empty for rules the user creates; Outlook 2000 uses them to mark the rules
     /// its junk-mail feature creates. Added in version 970812 (Outlook 98), so not stored in Outlook 97 or
@@ -62,7 +75,7 @@ public struct Rule: CustomDebugStringConvertible {
 
     /// The elements of a rule this library couldn't read, kept as they were stored so the rule can be written back.
     internal struct UnparsedElements: Equatable {
-        var numberOfElements: UInt16
+        var numberOfElements: UInt32
         /// Everything after the object tag that precedes the first element, to the end of the rule. The tag itself
         /// is written again on output, since whether it declares the `CRuleElement` class depends on rule order.
         var data: Data
@@ -72,6 +85,10 @@ public struct Rule: CustomDebugStringConvertible {
     }
 
     internal var unparsedElements: UnparsedElements?
+
+    /// `minimumVersion` when the rule was read. A rule read with an older stamp than its elements need keeps that
+    /// stamp unless an element needing a newer version is added.
+    internal var minimumVersionAtRead: OutlookRulesVersion = .outlook97
 
     /// Why the rule's elements couldn't be read, or nil if they were. A rule from an Outlook 2002 or later format
     /// whose elements this library doesn't understand, such as one using an element added by a later version of
@@ -124,18 +141,18 @@ public struct Rule: CustomDebugStringConvertible {
         self.eventFlags = eventFlags
         self.name = name
         self.templateName = templateName
-        self.enabled = enabled
+        self.rawEnabled = enabled ? 1 : 0
         self.itemTypes = itemTypes
         self.elements = conditions + actions + exceptions
     }
 
-    internal init(dataStream: inout DataStream, version: OutlookRulesVersion, classDeclared: inout Bool) throws {
+    internal init(dataStream: inout DataStream, version: OutlookRulesVersion, classDeclared: inout ClassDeclaration) throws {
         /// Header (variable)
         let header = try RuleHeader(dataStream: &dataStream, version: version)
         (self.name, self.templateName) = Rule.splitName(header.name)
-        self.enabled = header.enabled
+        self.rawEnabled = header.rawEnabled
         self.runError = header.runError
-        self.isServerRule = header.serverRule != 0
+        self.rawServerRule = header.serverRule
         self.flags = RuleFlags(rawValue: header.flags ?? 0)
         self.serverRuleId = header.serverRuleId ?? 0
         self.versionStamp = header.versionStamp
@@ -153,7 +170,8 @@ public struct Rule: CustomDebugStringConvertible {
 
         /// Elements (variable)
         var elements: [RuleElement] = []
-        elements.reserveCapacity(Int(header.numberOfElements))
+        /// The count comes from the file, so don't reserve more than it could hold: every element is at least 10 bytes.
+        elements.reserveCapacity(min(Int(header.numberOfElements), dataStream.remainingCount / 10))
         let classDeclaredBefore = classDeclared
         do {
             for _ in 0..<header.numberOfElements {
@@ -205,6 +223,7 @@ public struct Rule: CustomDebugStringConvertible {
 
         self.elements = elements
         self.hasElementList = header.hasElementList
+        self.minimumVersionAtRead = elements.map { $0.identifier.minimumVersion }.max() ?? .outlook97
 
         if !header.hasElementList {
             /// Outlook 2003 stores the Download Options rule without elements (spec §4.3.1).
@@ -266,9 +285,10 @@ public struct Rule: CustomDebugStringConvertible {
 
     /// `versionStamp` is the stream's version stamp, which each rule header repeats in the Outlook 2002 and later
     /// formats unless the rule has its own; nil uses the default stamp for `version`.
-    internal func write(to dataStream: inout OutputDataStream, version: OutlookRulesVersion, versionStamp: UInt32?, classDeclared: inout Bool) {
+    internal func write(to dataStream: inout OutputDataStream, version: OutlookRulesVersion, versionStamp: UInt32?, classDeclared: inout ClassDeclaration) {
         var ruleStamp = (sourceVersion == version ? self.versionStamp : nil) ?? versionStamp ?? RulesHeader.defaultVersionStamp(for: version)
-        if RuleHeader.contentVersion(streamVersion: version, versionStamp: ruleStamp) < minimumVersion {
+        if RuleHeader.contentVersion(streamVersion: version, versionStamp: ruleStamp) < minimumVersion
+            && (sourceVersion != version || minimumVersion > minimumVersionAtRead) {
             /// The rule kept an older stamp but now has an element that needs a newer one. Raise it to the stream's,
             /// as Outlook does when the user accepts its prompt that the rule needs a newer version (spec §4.3.1).
             ruleStamp = versionStamp ?? RulesHeader.defaultVersionStamp(for: version)
@@ -281,10 +301,10 @@ public struct Rule: CustomDebugStringConvertible {
             ObjectTag.write(to: &elementsStream, classDeclared: &classDeclared)
             elementsStream.write(unparsed.data)
 
-            var header = RuleHeader(name: storedName, enabled: enabled, numberOfElements: unparsed.numberOfElements, dataSize: UInt32(2 + elementsStream.data.count))
+            var header = RuleHeader(name: storedName, rawEnabled: rawEnabled, numberOfElements: unparsed.numberOfElements, dataSize: UInt32(2 + elementsStream.data.count))
             header.versionStamp = ruleStamp
             header.runError = runError
-            header.serverRule = isServerRule ? 1 : 0
+            header.serverRule = rawServerRule
             header.flags = flags.rawValue
             header.serverRuleId = serverRuleId
             header.write(to: &dataStream, version: version)
@@ -294,25 +314,38 @@ public struct Rule: CustomDebugStringConvertible {
 
         if !hasElementList && self.elements.isEmpty && contentVersion >= .outlook2002 {
             /// Data Size 0, with no element list (spec §4.3.1)
-            var header = RuleHeader(name: storedName, enabled: enabled, numberOfElements: 0, dataSize: 0)
+            var header = RuleHeader(name: storedName, rawEnabled: rawEnabled, numberOfElements: 0, dataSize: 0)
             header.hasElementList = false
             header.versionStamp = ruleStamp
             header.runError = runError
-            header.serverRule = isServerRule ? 1 : 0
+            header.serverRule = rawServerRule
             header.flags = flags.rawValue
             header.serverRuleId = serverRuleId
             header.write(to: &dataStream, version: version)
             return
         }
 
+        /// The mandatory elements are written from `eventFlags` and `itemTypes`, reusing the parameters they were
+        /// read with (and so their Reserved fields) if there are any.
+        var event = self.elements.first { $0.identifier == .eventFlags }?.parameter as? EventParameter ?? EventParameter(flags: eventFlags)
+        event.flags = eventFlags
+        var itemType = self.elements.first { $0.identifier == .itemType }?.parameter as? ItemTypeParameter ?? ItemTypeParameter(itemTypes: itemTypes)
+        itemType.itemTypes = itemTypes
+        let readItemTypeElement = self.elements.first { $0.identifier == .itemType }
         var elements: [RuleElement] = [
             /// "Apply this rule <after the message arrives>"
-            RuleElement(identifier: .eventFlags, parameter: EventParameter(flags: eventFlags)),
-
-            /// "For each <message>"
-            RuleElement(identifier: .itemType, parameter: ItemTypeParameter(itemTypes: itemTypes))
+            RuleElement(identifier: .eventFlags, parameter: event),
         ]
-        // The mandatory elements above are regenerated, so skip them here. All other elements
+
+        /// "For each <message>". A rule read without one is written without one while its item types are the default.
+        let hadItemType = self.elements.contains { $0.identifier == .itemType }
+        if let read = readItemTypeElement, read.parameters.isEmpty, itemTypes == .message {
+            /// Read with no parameter: write it the same way while the item types are the default.
+            elements.append(read)
+        } else if hadItemType || sourceVersion == nil || itemTypes != .message {
+            elements.append(RuleElement(identifier: .itemType, parameter: itemType))
+        }
+        // The mandatory elements above are written first, so skip them here. All other elements
         // are written in their original order.
         elements.append(contentsOf: self.elements.filter { $0.identifier != .eventFlags && $0.identifier != .itemType })
 
@@ -329,10 +362,10 @@ public struct Rule: CustomDebugStringConvertible {
 
         /// Data Size counts the Number of Elements field (2 bytes) and everything after it.
         let dataSize = UInt32(2 + elementsStream.data.count)
-        var header = RuleHeader(name: storedName, enabled: enabled, numberOfElements: UInt16(elements.count), dataSize: dataSize)
+        var header = RuleHeader(name: storedName, rawEnabled: rawEnabled, numberOfElements: UInt32(elements.count), dataSize: dataSize)
         header.versionStamp = ruleStamp
         header.runError = runError
-        header.serverRule = isServerRule ? 1 : 0
+        header.serverRule = rawServerRule
         header.flags = flags.rawValue
         header.serverRuleId = serverRuleId
         header.write(to: &dataStream, version: version)

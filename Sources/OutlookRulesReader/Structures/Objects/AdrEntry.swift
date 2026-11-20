@@ -63,6 +63,11 @@ internal struct AdrEntry {
     var reserved1: UInt32 = 0
     var propertyValues: [Property]
 
+    /// The property block as read, and the block this library would have written for the properties as read. While
+    /// the properties still produce that block, the original is written back, so padding and the layout Outlook chose
+    /// are kept exactly.
+    private var original: (block: [UInt8], canonicalBlock: [UInt8])?
+
     /// The values of the properties, keyed by property ID.
     var properties: [UInt16: Any] {
         var properties: [UInt16: Any] = [:]
@@ -107,6 +112,7 @@ internal struct AdrEntry {
         }
         
         self.init(propertyValues: propertyValues, reserved1: previous?.reserved1 ?? 0)
+        self.original = previous?.original
     }
     
     init(dataStream: inout DataStream) throws {
@@ -163,6 +169,7 @@ internal struct AdrEntry {
         }
         
         self.propertyValues = propertyValues
+        self.original = (block, canonicalBlock())
     }
 
     /// The bytes of a null-terminated string at `offset` in the property block, without the terminator.
@@ -182,6 +189,25 @@ internal struct AdrEntry {
     }
     
     func write(to dataStream: inout OutputDataStream) {
+        let canonical = canonicalBlock()
+        let block = original.map { $0.canonicalBlock == canonical ? $0.block : canonical } ?? canonical
+
+        /// Reserved1 (4 bytes)
+        dataStream.write(reserved1, endianess: .littleEndian)
+
+        /// Number of Properties (4 bytes)
+        dataStream.write(UInt32(propertyValues.count), endianess: .littleEndian)
+
+        /// Block Size (4 bytes): the size of the SPropValue array and the data it points to (spec §6.4)
+        dataStream.write(UInt32(block.count), endianess: .littleEndian)
+
+        /// Property Block (variable)
+        dataStream.write(block)
+    }
+
+    /// The SPropValue array followed by the data block, laid out as MAPI ScCopyProps does (spec §6.4).
+    private func canonicalBlock() -> [UInt8] {
+        var dataStream = OutputDataStream()
         // Property headers are followed by a data block that holds strings and binary values.
         var dataBlock = OutputDataStream()
         var headers: [(type: PropertyType, id: UInt16, alignPad: UInt32, valueLow: UInt32, valueHigh: UInt32)] = []
@@ -216,15 +242,6 @@ internal struct AdrEntry {
             headers.append((entry.type, entry.id, entry.alignPad, valueLow, valueHigh))
         }
         
-        /// Reserved1 (4 bytes)
-        dataStream.write(reserved1, endianess: .littleEndian)
-        
-        /// Number of Properties (4 bytes)
-        dataStream.write(UInt32(propertyValues.count), endianess: .littleEndian)
-        
-        /// Block Size (4 bytes): the size of the SPropValue array and the data it points to, as produced by MAPI ScCopyProps (spec §6.4)
-        dataStream.write(UInt32(dataBlockOffset + dataBlock.data.count), endianess: .littleEndian)
-        
         /// Property Headers (variable)
         for header in headers {
             dataStream.write(header.type.rawValue, endianess: .littleEndian)
@@ -236,5 +253,6 @@ internal struct AdrEntry {
         
         /// Data Block (variable)
         dataStream.write(dataBlock.data)
+        return [UInt8](dataStream.data)
     }
 }

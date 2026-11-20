@@ -35,12 +35,13 @@ public struct FormParameter: RuleParameter {
         
         self.forms = forms.count == 0 ? [] : forms.components(separatedBy: ";")
         
-        /// Number of Document Properties (2 bytes)
-        let numberOfDocumentProperties: UInt16 = try dataStream.read(endianess: .littleEndian)
+        /// Number of Document Properties (2 or 6 bytes)
+        let numberOfDocumentProperties = try ArchiveCount.read(from: &dataStream)
         
         /// Document Properties (variable)
         var documentProperties: [DocumentProperty] = []
-        documentProperties.reserveCapacity(Int(numberOfDocumentProperties))
+        /// The count comes from the file, so don't reserve more than it could hold.
+        documentProperties.reserveCapacity(min(Int(numberOfDocumentProperties), dataStream.remainingCount))
         for _ in 0..<numberOfDocumentProperties {
             let documentProperty = try DocumentProperty(dataStream: &dataStream, version: version)
             documentProperties.append(documentProperty)
@@ -75,8 +76,8 @@ public struct FormParameter: RuleParameter {
             ASCIIString(value: formsValue).write(to: &dataStream)
         }
         
-        /// Number of Document Properties (2 bytes)
-        dataStream.write(UInt16(documentProperties.count), endianess: .littleEndian)
+        /// Number of Document Properties (2 or 6 bytes)
+        ArchiveCount.write(UInt32(documentProperties.count), to: &dataStream)
         
         /// Document Properties (variable)
         for documentProperty in documentProperties {

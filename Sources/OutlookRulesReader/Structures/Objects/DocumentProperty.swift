@@ -18,7 +18,24 @@ public struct DocumentProperty {
     }
 
     public var field: String
-    public var propTag: PropertyTag
+    /// The MAPI property the condition tests, decoded. Setting it replaces `rawPropTag`.
+    public var propTag: PropertyTag {
+        get {
+            var dataStream = DataStream(withUnsafeBytes(of: rawPropTag.littleEndian) { [UInt8]($0) })
+            /// Reading a tag only fails when fewer than four bytes are left, and there are always four.
+            return try! PropertyTag(dataStream: &dataStream)
+        }
+        set {
+            var dataStream = OutputDataStream()
+            newValue.write(to: &dataStream)
+            var stream = DataStream(dataStream.data)
+            rawPropTag = (try? stream.read(endianess: .littleEndian)) ?? 0
+        }
+    }
+
+    /// The property tag as stored: the property type in the low 16 bits and the ID in the high 16 bits. Kept so that a
+    /// tag `MAPI` doesn't recognise round-trips exactly.
+    public var rawPropTag: UInt32
     public var rawStringMatchType: UInt32
     /// The match type, or nil if `rawStringMatchType` isn't a known value.
     public var stringMatchType: DocumentPropertyStringMatchType? {
@@ -64,7 +81,10 @@ public struct DocumentProperty {
 
     public init(field: String, propTag: PropertyTag, matchType: DocumentPropertyStringMatchType, stringValue: String) {
         self.field = field
-        self.propTag = propTag
+        var tagStream = OutputDataStream()
+        propTag.write(to: &tagStream)
+        var tagInput = DataStream(tagStream.data)
+        self.rawPropTag = (try? tagInput.read(endianess: .littleEndian)) ?? 0
         self.rawStringMatchType = matchType.rawValue
         self.stringValue = stringValue
         
@@ -78,7 +98,10 @@ public struct DocumentProperty {
 
     public init(field: String, propTag: PropertyTag, matchType: DocumentPropertyNumberMatchType, numberValue: Int32) {
         self.field = field
-        self.propTag = propTag
+        var tagStream = OutputDataStream()
+        propTag.write(to: &tagStream)
+        var tagInput = DataStream(tagStream.data)
+        self.rawPropTag = (try? tagInput.read(endianess: .littleEndian)) ?? 0
         self.rawNumberMatchType = matchType.rawValue
         self.numberValue2 = numberValue
         
@@ -93,7 +116,10 @@ public struct DocumentProperty {
     /// Creates a property that matches a yes/no property whose value is `boolValue`.
     public init(field: String, propTag: PropertyTag, boolValue: Bool) {
         self.field = field
-        self.propTag = propTag
+        var tagStream = OutputDataStream()
+        propTag.write(to: &tagStream)
+        var tagInput = DataStream(tagStream.data)
+        self.rawPropTag = (try? tagInput.read(endianess: .littleEndian)) ?? 0
         self.rawBoolMatchType = (boolValue ? DocumentPropertyBoolMatchType.true : .false).rawValue
         
         self.rawStringMatchType = 0
@@ -114,7 +140,7 @@ public struct DocumentProperty {
         }
 
         /// Tag (4 bytes)
-        self.propTag = try PropertyTag(dataStream: &dataStream)
+        self.rawPropTag = try dataStream.read(endianess: .littleEndian)
 
         /// String Match Type (4 bytes)
         self.rawStringMatchType = try dataStream.read(endianess: .littleEndian)
@@ -162,7 +188,7 @@ public struct DocumentProperty {
         }
 
         /// Tag (4 bytes)
-        propTag.write(to: &dataStream)
+        dataStream.write(rawPropTag, endianess: .littleEndian)
 
         /// String Match Type (4 bytes)
         dataStream.write(rawStringMatchType, endianess: .littleEndian)

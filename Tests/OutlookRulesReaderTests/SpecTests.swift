@@ -75,10 +75,10 @@ final class SpecTests: XCTestCase {
         var rules = file.rules
         rules[0].hasRunError = true
         var changed = OutputDataStream()
-        var classDeclared = false
+        var classDeclared = ClassDeclaration()
         rules[0].write(to: &changed, version: .outlook98, versionStamp: nil, classDeclared: &classDeclared)
         var dataStream = DataStream(changed.data)
-        classDeclared = false
+        classDeclared = ClassDeclaration()
         let rule = try Rule(dataStream: &dataStream, version: .outlook98, classDeclared: &classDeclared)
         XCTAssertTrue(rule.hasRunError)
         file = try OutlookRules(data: data)
@@ -370,7 +370,7 @@ final class SpecTests: XCTestCase {
             eventFlags: .afterReceived,
             name: "Rule",
             conditions: [RuleElement(identifier: .throughSpecifiedAccountCondition, parameter: AccountParameter(accountName: "Work", accountStamp: "12345"))],
-            actions: [RuleElement(identifier: .serverReplyAction, parameter: TemplateParameter(messageEntryId: folder.folderEntryId, name: "Reply"))]
+            actions: [RuleElement(identifier: .serverReplyAction, parameter: TemplateParameter(messageEntryId: try XCTUnwrap(folder.folderEntryId), name: "Reply"))]
         )
         let file = OutlookRules(rules: [rule])
 

@@ -46,15 +46,25 @@ public struct AddressParameter: RuleParameter, CustomDebugStringConvertible {
 
     /// How the addresses are combined (spec §6.4): true = "from A or B" (Outlook's choice for conditions and
     /// exceptions), false = "forward to A and B" (its choice for actions).
-    public var matchAny: Bool
+    public var matchAny: Bool {
+        get { rawMatchAny != 0 }
+        set { if newValue != matchAny { rawMatchAny = newValue ? 1 : 0 } }
+    }
+    /// The stored value of `matchAny`. Any non-zero value means true (spec §6.4); it is kept so that the file round-trips exactly.
+    public var rawMatchAny: UInt32
     /// True only for the "Cc the message to" action (spec §6.4).
-    public var isCc: Bool
+    public var isCc: Bool {
+        get { rawIsCc != 0 }
+        set { if newValue != isCc { rawIsCc = newValue ? 1 : 0 } }
+    }
+    /// The stored value of `isCc`. Any non-zero value means true (spec §6.4); it is kept so that the file round-trips exactly.
+    public var rawIsCc: UInt32
 
     /// Creates an address parameter. Outlook uses `matchAny: true` for conditions and exceptions,
     /// `matchAny: false` for actions, and `isCc: true` only for the "Cc the message to" action.
     public init(values: [[UInt16: Any]], matchAny: Bool = true, isCc: Bool = false) {
-        self.matchAny = matchAny
-        self.isCc = isCc
+        self.rawMatchAny = matchAny ? 1 : 0
+        self.rawIsCc = isCc ? 1 : 0
         self.values = values
     }
 
@@ -76,10 +86,10 @@ public struct AddressParameter: RuleParameter, CustomDebugStringConvertible {
         self.lists = lists
         
         /// Match Any (4 bytes)
-        self.matchAny = (try dataStream.read(endianess: .littleEndian) as UInt32) != 0
+        self.rawMatchAny = try dataStream.read(endianess: .littleEndian)
         
         /// Is Cc (4 bytes)
-        self.isCc = (try dataStream.read(endianess: .littleEndian) as UInt32) != 0
+        self.rawIsCc = try dataStream.read(endianess: .littleEndian)
     }
 
     public func write(to dataStream: inout OutputDataStream, version: OutlookRulesVersion) {
@@ -95,10 +105,10 @@ public struct AddressParameter: RuleParameter, CustomDebugStringConvertible {
         }
         
         /// Match Any (4 bytes)
-        dataStream.write((matchAny ? 1 : 0) as UInt32, endianess: .littleEndian)
+        dataStream.write(rawMatchAny, endianess: .littleEndian)
         
         /// Is Cc (4 bytes)
-        dataStream.write((isCc ? 1 : 0) as UInt32, endianess: .littleEndian)
+        dataStream.write(rawIsCc, endianess: .littleEndian)
     }
 }
 

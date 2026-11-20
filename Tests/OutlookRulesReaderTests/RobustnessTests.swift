@@ -46,6 +46,43 @@ final class RobustnessTests: XCTestCase {
         XCTAssertEqual("a?b", try OutlookRules(data: data).rules[0].name)
     }
 
+    // MARK: - Exact round trips
+
+    /// Values Outlook never writes, but that read without error, are written back exactly.
+    func testUnusualValuesRoundTripExactly() throws {
+        let rule = Rule(eventFlags: .afterReceived, name: "R", conditions: [
+            RuleElement(identifier: .fromCondition, parameter: AddressParameter(values: [[PropertyId.tagDisplayName.rawValue: "A"]]))
+        ])
+        var data = OutlookRules(rules: [rule]).getData(version: .outlook2010)
+        // Enabled = 5: the name "R" (length and one UTF-16 unit) is followed by Enabled.
+        data = try replacing([0x01, 0x52, 0x00, 0x01, 0x00, 0x00, 0x00], with: [0x01, 0x52, 0x00, 0x05, 0x00, 0x00, 0x00], in: data)
+        // The CRuleElement class descriptor's schema = 7.
+        data = try replacing([0xFF, 0xFF, 0x00, 0x00, 0x0C, 0x00], with: [0xFF, 0xFF, 0x07, 0x00, 0x0C, 0x00], in: data)
+
+        var file = try OutlookRules(data: data)
+        XCTAssertTrue(file.rules[0].enabled)
+        XCTAssertEqual(data, file.getData())
+
+        // Setting a boolean to the value it already has keeps the stored value.
+        file.rules[0].enabled = true
+        XCTAssertEqual(data, file.getData())
+        file.rules[0].enabled = false
+        XCTAssertFalse(try OutlookRules(data: file.getData()).rules[0].enabled)
+
+        var address = AddressParameter(values: [], matchAny: true)
+        address.rawMatchAny = 0xFF
+        XCTAssertTrue(address.matchAny)
+        address.matchAny = true
+        XCTAssertEqual(0xFF, address.rawMatchAny)
+    }
+
+    /// Outlook 97 exports have no footer, so bytes after the last rule are kept by the file itself.
+    func testOutlook97TrailingDataIsKept() throws {
+        var data = try getData(name: "Outlook97_Delete", fileExtension: "rwz")
+        data.append(contentsOf: [0xAA, 0xBB])
+        XCTAssertEqual(data, try OutlookRules(data: data).getData())
+    }
+
     // MARK: - Malformed input
 
     /// Changing any single byte of a file may make it fail to parse, but must never crash.
@@ -56,7 +93,10 @@ final class RobustnessTests: XCTestCase {
                 for byte: UInt8 in [0x00, 0x7F, 0xFF] {
                     var data = original
                     data[index] = byte
-                    _ = try? OutlookRules(data: data)
+                    // Anything that reads must write back to something that reads the same.
+                    if let file = try? OutlookRules(data: data) {
+                        XCTAssertEqual(file, try OutlookRules(data: file.getData()), "\(name) byte \(index) = \(byte)")
+                    }
                 }
             }
         }
@@ -228,6 +268,28 @@ final class RobustnessTests: XCTestCase {
           Actions:
             deleteAction
         """, rule.debugDescription)
+    }
+
+    // MARK: - Counts
+
+    /// MFC's CArchive::WriteCount: two bytes below 0xFFFF, otherwise 0xFFFF and four bytes (spec §4.3.1).
+    func testArchiveCount() throws {
+        for (count, size) in [(0, 2), (0xFFFE, 2), (0xFFFF, 6), (70_000, 6)] as [(UInt32, Int)] {
+            var output = OutputDataStream()
+            ArchiveCount.write(count, to: &output)
+            XCTAssertEqual(size, output.data.count, "\(count)")
+
+            var input = DataStream(output.data)
+            XCTAssertEqual(count, try ArchiveCount.read(from: &input))
+        }
+    }
+
+    func testMoreThan65535Rules() throws {
+        let rules = (0..<65_536).map { Rule(eventFlags: .afterReceived, name: "\($0)") }
+        let data = OutlookRules(rules: rules).getData(version: .outlook2010)
+        let reread = try OutlookRules(data: data)
+        XCTAssertEqual(65_536, reread.rules.count)
+        XCTAssertEqual("65535", reread.rules.last?.name)
     }
 
     // MARK: - Unknown values

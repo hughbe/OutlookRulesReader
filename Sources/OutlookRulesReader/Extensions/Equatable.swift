@@ -33,10 +33,10 @@ extension Rule: Equatable {
     public static func == (lhs: Rule, rhs: Rule) -> Bool {
         lhs.name == rhs.name
             && lhs.templateName == rhs.templateName
-            && lhs.enabled == rhs.enabled
+            && lhs.rawEnabled == rhs.rawEnabled
             && lhs.eventFlags == rhs.eventFlags
             && lhs.itemTypes == rhs.itemTypes
-            && lhs.isServerRule == rhs.isServerRule
+            && lhs.rawServerRule == rhs.rawServerRule
             && lhs.flags == rhs.flags
             && lhs.runError == rhs.runError
             && lhs.serverRuleId == rhs.serverRuleId

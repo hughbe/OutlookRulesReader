@@ -10,16 +10,26 @@ import Foundation
 
 public struct TimeParameter: RuleParameter {
     public var reserved: UInt32 = 0
-    public var hasAfter: Bool
+    public var hasAfter: Bool {
+        get { rawHasAfter != 0 }
+        set { if newValue != hasAfter { rawHasAfter = newValue ? 1 : 0 } }
+    }
+    /// The stored value of `hasAfter`. Any non-zero value means true (spec §6.11); it is kept so that the file round-trips exactly.
+    public var rawHasAfter: UInt32
     public var after: OleDateTime
-    public var hasBefore: Bool
+    public var hasBefore: Bool {
+        get { rawHasBefore != 0 }
+        set { if newValue != hasBefore { rawHasBefore = newValue ? 1 : 0 } }
+    }
+    /// The stored value of `hasBefore`. Any non-zero value means true (spec §6.11); it is kept so that the file round-trips exactly.
+    public var rawHasBefore: UInt32
     public var before: OleDateTime
 
     /// Creates a date span. A nil date leaves that end of the span open.
     public init(after: Date? = nil, before: Date? = nil) {
-        self.hasAfter = after != nil
+        self.rawHasAfter = after != nil ? 1 : 0
         self.after = after.map { OleDateTime(date: $0) } ?? OleDateTime(timestamp: 0)
-        self.hasBefore = before != nil
+        self.rawHasBefore = before != nil ? 1 : 0
         self.before = before.map { OleDateTime(date: $0) } ?? OleDateTime(timestamp: 0)
     }
 
@@ -28,13 +38,13 @@ public struct TimeParameter: RuleParameter {
         self.reserved = try dataStream.read(endianess: .littleEndian)
         
         /// Include After Date (4 bytes)
-        self.hasAfter = try dataStream.read(endianess: .littleEndian) as UInt32 != 0
+        self.rawHasAfter = try dataStream.read(endianess: .littleEndian)
         
         /// After Date (12 bytes)
         self.after = try OleDateTime(dataStream: &dataStream)
 
         /// Include Before Date (4 bytes)
-        self.hasBefore = try dataStream.read(endianess: .littleEndian) as UInt32 != 0
+        self.rawHasBefore = try dataStream.read(endianess: .littleEndian)
         
         /// Before Date (12 bytes)
         self.before = try OleDateTime(dataStream: &dataStream)
@@ -45,15 +55,13 @@ public struct TimeParameter: RuleParameter {
         dataStream.write(reserved, endianess: .littleEndian)
         
         /// Include After Date (4 bytes)
-        let hasAfterRaw: UInt32 = hasAfter ? 0x00000001 : 0x00000000
-        dataStream.write(hasAfterRaw, endianess: .littleEndian)
+        dataStream.write(rawHasAfter, endianess: .littleEndian)
         
         /// After Date (12 bytes)
         after.write(to: &dataStream)
         
         /// Include Before Date (4 bytes)
-        let hasBeforeRaw: UInt32 = hasBefore ? 0x00000001 : 0x00000000
-        dataStream.write(hasBeforeRaw, endianess: .littleEndian)
+        dataStream.write(rawHasBefore, endianess: .littleEndian)
         
         /// Before Date (12 bytes)
         before.write(to: &dataStream)
