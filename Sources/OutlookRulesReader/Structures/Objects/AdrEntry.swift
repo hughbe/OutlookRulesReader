@@ -118,76 +118,57 @@ internal struct AdrEntry {
         
         /// Block Size (4 bytes): the size of the SPropValue array and the data it points to, as produced by MAPI ScCopyProps (spec §6.4)
         let propertyBlockDataSize: UInt32 = try dataStream.read(endianess: .littleEndian)
+        guard propertyBlockDataSize <= dataStream.remainingCount,
+              UInt64(numberOfProperties) * UInt64(SPropValue.dataSize) <= UInt64(propertyBlockDataSize) else {
+            throw OutlookRulesReadError.corrupted
+        }
 
-        let startPosition = dataStream.position
-        let endPosition = dataStream.position + Int(propertyBlockDataSize)
+        /// Property Block (variable): the SPropValue array, then the data block. Offsets in the array are measured
+        /// from the start of the block, and every value must lie inside it.
+        let block = try dataStream.readBytes(count: Int(propertyBlockDataSize))
+        var headerStream = DataStream(block)
         
         var propertyValues: [Property] = []
         propertyValues.reserveCapacity(Int(numberOfProperties))
         for _ in 0..<numberOfProperties {
-            let header = try SPropValue(dataStream: &dataStream)
-            let position = dataStream.position
+            let header = try SPropValue(dataStream: &headerStream)
 
-            var value: Any
+            let value: Any
             switch header.propTag.type {
-            case PropertyType.integer32:
-                value = UInt32(header.valueLow)
-                break
-            case PropertyType.errorCode:
-                value = UInt32(header.valueLow)
-                break
+            case PropertyType.integer32, PropertyType.errorCode:
+                value = header.valueLow
             case PropertyType.string:
-                // Data stored in data block.
-                let offset = Int(header.valueLow)
-                guard offset >= 0 && offset <= endPosition else {
-                    throw OutlookRulesReadError.corrupted
+                /// A null-terminated UTF-16 string in the data block.
+                let bytes = try AdrEntry.nullTerminatedBytes(in: block, at: Int(header.valueLow), unitSize: 2)
+                let units = stride(from: 0, to: bytes.count, by: 2).map { UInt16(bytes[$0]) | UInt16(bytes[$0 + 1]) << 8 }
+                var string = String.UnicodeScalarView()
+                var iterator = units.makeIterator()
+                var decoder = UTF16()
+                decoding: while true {
+                    switch decoder.decode(&iterator) {
+                    case .scalarValue(let scalar):
+                        string.append(scalar)
+                    case .emptyInput:
+                        break decoding
+                    case .error:
+                        /// An unpaired surrogate.
+                        throw OutlookRulesReadError.corrupted
+                    }
                 }
 
-                dataStream.position = startPosition + offset
-
-                // Continue reading until null terminator.
-                value = try dataStream.readUnicodeString(endianess: .littleEndian)!
-                guard dataStream.position <= endPosition else {
-                    throw OutlookRulesReadError.corrupted
-                }
-                
-                dataStream.position = position
-                break
+                value = String(string)
             case PropertyType.string8:
-                // Data stored in data block.
-                let offset = Int(header.valueLow)
-                guard offset >= 0 && offset <= endPosition else {
-                    throw OutlookRulesReadError.corrupted
-                }
-
-                dataStream.position = startPosition + offset
-
-                // Continue reading until null terminator.
-                value = try dataStream.readAsciiString()!
-                guard dataStream.position <= endPosition else {
-                    throw OutlookRulesReadError.corrupted
-                }
-                
-                dataStream.position = position
-                break
+                /// A null-terminated ANSI string in the data block.
+                value = ANSIEncoding.decode(try AdrEntry.nullTerminatedBytes(in: block, at: Int(header.valueLow), unitSize: 1))
             case PropertyType.binary:
-                // Data stored in data block. Like an SBinary, the value is a length followed by the location of the data.
+                /// Like an SBinary, the value is a length followed by the location of the data.
                 let length = Int(header.valueLow)
                 let offset = Int(header.valueHigh)
-                guard offset >= 0 && offset <= endPosition - startPosition else {
+                guard offset <= block.count, length <= block.count - offset else {
                     throw OutlookRulesReadError.corrupted
                 }
 
-                dataStream.position = startPosition + offset
-                
-                guard length >= 0 && dataStream.position + length <= endPosition else {
-                    throw OutlookRulesReadError.corrupted
-                }
-                
-                value = try dataStream.readBytes(count: length)
-                
-                dataStream.position = position
-                break
+                value = Array(block[offset..<offset + length])
             case PropertyType.boolean:
                 value = UInt16(truncatingIfNeeded: header.valueLow) != 0
             default:
@@ -199,7 +180,22 @@ internal struct AdrEntry {
         }
         
         self.propertyValues = propertyValues
-        dataStream.position = endPosition
+    }
+
+    /// The bytes of a null-terminated string at `offset` in the property block, without the terminator.
+    /// `unitSize` is 1 for ANSI strings and 2 for UTF-16 strings. Throws if the string isn't terminated inside the block.
+    private static func nullTerminatedBytes(in block: [UInt8], at offset: Int, unitSize: Int) throws -> [UInt8] {
+        var end = offset
+        while true {
+            guard end <= block.count - unitSize else {
+                throw OutlookRulesReadError.corrupted
+            }
+            if block[end..<end + unitSize].allSatisfy({ $0 == 0 }) {
+                return Array(block[offset..<end])
+            }
+
+            end += unitSize
+        }
     }
     
     public func write(to dataStream: inout OutputDataStream) {
@@ -223,8 +219,7 @@ internal struct AdrEntry {
                 dataBlock.write(0 as UInt16, endianess: .littleEndian)
             case .string8:
                 valueLow = UInt32(dataBlockOffset + dataBlock.data.count)
-                let bytes = ((entry.value as? String) ?? "").data(using: .isoLatin1, allowLossyConversion: true) ?? Data()
-                dataBlock.write(bytes)
+                dataBlock.write(ANSIEncoding.encode((entry.value as? String) ?? ""))
                 dataBlock.write(0 as UInt8)
             case .binary:
                 let bytes = (entry.value as? [UInt8]) ?? []

@@ -20,14 +20,16 @@ public struct DocumentProperty {
     public var field: String
     public var propTag: PropertyTag
     public var rawStringMatchType: UInt32
-    public var stringMatchType: DocumentPropertyStringMatchType {
-        return DocumentPropertyStringMatchType(rawValue: rawStringMatchType)!
+    /// The match type, or nil if `rawStringMatchType` isn't a known value.
+    public var stringMatchType: DocumentPropertyStringMatchType? {
+        return DocumentPropertyStringMatchType(rawValue: rawStringMatchType)
     }
     public var stringValue: String
 
     public var rawNumberMatchType: UInt32
-    public var numberMatchType: DocumentPropertyNumberMatchType {
-        return DocumentPropertyNumberMatchType(rawValue: rawNumberMatchType)!
+    /// The match type, or nil if `rawNumberMatchType` isn't a known value.
+    public var numberMatchType: DocumentPropertyNumberMatchType? {
+        return DocumentPropertyNumberMatchType(rawValue: rawNumberMatchType)
     }
     /// The value compared with 16-bit (PT_I2) properties (spec §6.9).
     public var numberValue1: Int32
@@ -35,15 +37,17 @@ public struct DocumentProperty {
     public var numberValue2: Int32
 
     public var rawBoolMatchType: UInt32
-    public var boolMatchType: DocumentPropertyBoolMatchType {
-        return DocumentPropertyBoolMatchType(rawValue: rawBoolMatchType)!
+    /// The match type, or nil if `rawBoolMatchType` isn't a known value.
+    public var boolMatchType: DocumentPropertyBoolMatchType? {
+        return DocumentPropertyBoolMatchType(rawValue: rawBoolMatchType)
     }
     
     /// Unknown. Outlook 97 defaults it to 1 and never reads it (spec §6.9).
     public var unknown1: UInt32 = 1
     public var rawDateMatchType: UInt32
-    public var dateMatchType: DocumentPropertyDateMatchType {
-        return DocumentPropertyDateMatchType(rawValue: rawDateMatchType)!
+    /// The match type, or nil if `rawDateMatchType` isn't a known value.
+    public var dateMatchType: DocumentPropertyDateMatchType? {
+        return DocumentPropertyDateMatchType(rawValue: rawDateMatchType)
     }
     public var dateValue: OleDateTime
     /// Whether a message that does not have the property is tested against the next property instead (spec §6.9.1).
@@ -86,10 +90,11 @@ public struct DocumentProperty {
         self.dateValue = OleDateTime()
     }
 
-    public init(field: String, propTag: PropertyTag, matchType: DocumentPropertyNumberMatchType, boolValue: Bool) {
+    /// Creates a property that matches a yes/no property whose value is `boolValue`.
+    public init(field: String, propTag: PropertyTag, boolValue: Bool) {
         self.field = field
         self.propTag = propTag
-        self.rawBoolMatchType = boolValue ? 0 : 1 // Inverted
+        self.rawBoolMatchType = (boolValue ? DocumentPropertyBoolMatchType.true : .false).rawValue
         
         self.rawStringMatchType = 0
         self.stringValue = ""
@@ -100,6 +105,11 @@ public struct DocumentProperty {
         self.dateValue = OleDateTime()
     }
     
+    @available(*, deprecated, message: "matchType was ignored. Use init(field:propTag:boolValue:).")
+    public init(field: String, propTag: PropertyTag, matchType: DocumentPropertyNumberMatchType, boolValue: Bool) {
+        self.init(field: field, propTag: propTag, boolValue: boolValue)
+    }
+
     public init(dataStream: inout DataStream, version: OutlookRulesVersion) throws {
         /// Field (variable)
         if version >= .outlook2002 {

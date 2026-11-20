@@ -53,7 +53,8 @@ public struct FormParameter: RuleParameter {
         
         /// Classes (variable)
         var classes: [String] = []
-        classes.reserveCapacity(Int(numberOfClasses))
+        /// The count comes from the file, so don't reserve more than it could hold: every class is at least 1 byte.
+        classes.reserveCapacity(min(Int(numberOfClasses), dataStream.remainingCount))
         for _ in 0..<numberOfClasses {
             /// Message (variable)
             classes.append(try ASCIIString(dataStream: &dataStream).value)

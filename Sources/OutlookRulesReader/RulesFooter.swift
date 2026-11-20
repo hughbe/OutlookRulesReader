@@ -14,6 +14,8 @@ internal struct RulesFooter {
     /// Probably the time the rules were last saved (spec §4.4). Usually null.
     public var timestamp: OleDateTime = OleDateTime()
     public var unknown: UInt32 = 0
+    /// Any bytes after the footer. Outlook doesn't write any, but they are kept so that the file round-trips.
+    public var trailingData: Data = Data()
     
     public init(templateDirectory: String = "") {
         self.templateDirectory = templateDirectory
@@ -36,11 +38,7 @@ internal struct RulesFooter {
 
             self.templateDirectory = templateDirectory
         } else {
-            guard let templateDirectory = try dataStream.readString(count: Int(templateDirectoryLength), encoding: .ascii) else {
-                throw OutlookRulesReadError.corrupted
-            }
-
-            self.templateDirectory = templateDirectory
+            self.templateDirectory = ANSIEncoding.decode(try dataStream.readBytes(count: Int(templateDirectoryLength)))
         }
         
         /// Timestamp (12 bytes)
@@ -49,7 +47,8 @@ internal struct RulesFooter {
         /// Unknown (4 bytes)
         self.unknown = try dataStream.read(endianess: .littleEndian)
         
-        assert(dataStream.remainingCount == 0)
+        /// Trailing Data (variable)
+        self.trailingData = Data(try dataStream.readBytes(count: dataStream.remainingCount))
     }
     
     public func write(to dataStream: inout OutputDataStream, version: OutlookRulesVersion) {
@@ -60,7 +59,7 @@ internal struct RulesFooter {
             length = templateDirectory.utf16.count
             bytes = templateDirectory.data(using: .utf16LittleEndian) ?? Data()
         } else {
-            bytes = templateDirectory.data(using: .isoLatin1, allowLossyConversion: true) ?? Data()
+            bytes = Data(ANSIEncoding.encode(templateDirectory))
             length = bytes.count
         }
         
@@ -75,5 +74,8 @@ internal struct RulesFooter {
 
         /// Unknown (4 bytes)
         dataStream.write(unknown, endianess: .littleEndian)
+
+        /// Trailing Data (variable)
+        dataStream.write(trailingData)
     }
 }

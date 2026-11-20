@@ -1,0 +1,200 @@
+//
+//  RobustnessTests.swift
+//
+//
+//  Created by Hugh Bellamy on 20/11/2026.
+//
+
+import DataStream
+import Foundation
+import MAPI
+import XCTest
+@testable import OutlookRulesReader
+
+/// Regression tests for malformed input, ANSI strings, dates and writing to older formats.
+final class RobustnessTests: XCTestCase {
+    // MARK: - ANSI strings
+
+    /// ANSI strings are Windows-1252, not ASCII or Latin-1, whatever the platform or deployment target.
+    func testAnsiStringsUseWindows1252() throws {
+        let name = "Café €“x”"
+        for version in [OutlookRulesVersion.outlook98, .outlook2000] {
+            let data = OutlookRules(rules: [Rule(eventFlags: .afterReceived, name: name)]).getData(version: version)
+            XCTAssertNotNil(data.range(of: Data([0x43, 0x61, 0x66, 0xE9, 0x20, 0x80, 0x93, 0x78, 0x94])), "\(version)")
+
+            let reread = try OutlookRules(data: data)
+            XCTAssertEqual(name, reread.rules[0].name, "\(version)")
+            XCTAssertEqual(data, reread.getData(), "\(version)")
+        }
+    }
+
+    /// Every byte, including the five Windows-1252 leaves undefined, reads and writes back unchanged.
+    func testEveryAnsiByteRoundTrips() throws {
+        let placeholder = String(repeating: "a", count: 255)
+        var data = OutlookRules(rules: [Rule(eventFlags: .afterReceived, name: placeholder)]).getData(version: .outlook2000)
+        let range = try XCTUnwrap(data.range(of: Data(repeating: 0x61, count: 255)))
+        data.replaceSubrange(range, with: (1...255).map { UInt8($0) })
+
+        let file = try OutlookRules(data: data)
+        // Byte 0x09 is a tab, which separates the rule name from the template name (spec §4.3.1).
+        XCTAssertEqual(255, file.rules[0].storedName.unicodeScalars.count)
+        XCTAssertEqual(data, file.getData())
+    }
+
+    func testCharactersOutsideWindows1252AreWrittenAsQuestionMarks() throws {
+        let data = OutlookRules(rules: [Rule(eventFlags: .afterReceived, name: "a\u{4E2D}b")]).getData(version: .outlook2000)
+        XCTAssertEqual("a?b", try OutlookRules(data: data).rules[0].name)
+    }
+
+    // MARK: - Malformed input
+
+    /// Changing any single byte of a file may make it fail to parse, but must never crash.
+    func testSingleByteCorruptionNeverCrashes() throws {
+        for name in ["Outlook2007_Forward_Default", "Outlook2000_Print_98", "Outlook98_ReceivedInSpecificDateSpan", "Outlook2003All"] {
+            let original = try getData(name: name, fileExtension: "rwz")
+            for index in original.indices {
+                for byte: UInt8 in [0x00, 0x7F, 0xFF] {
+                    var data = original
+                    data[index] = byte
+                    _ = try? OutlookRules(data: data)
+                }
+            }
+        }
+    }
+
+    func testTruncatedFilesThrow() throws {
+        let original = try getData(name: "Outlook2007_Forward_Default", fileExtension: "rwz")
+        for count in stride(from: 0, to: original.count - 16, by: 7) {
+            XCTAssertThrowsError(try OutlookRules(data: original.prefix(count)), "\(count) bytes")
+        }
+    }
+
+    /// Bytes after the footer are kept, instead of failing an assertion.
+    func testTrailingDataIsKept() throws {
+        var data = try getData(name: "Outlook2007_Forward_Default", fileExtension: "rwz")
+        data.append(contentsOf: [0x01, 0x02, 0x03])
+        XCTAssertEqual(data, try OutlookRules(data: data).getData())
+    }
+
+    /// A rule whose DataSize doesn't match its elements was misread (spec §4.3.1).
+    func testRuleDataSizeMismatchThrows() throws {
+        var data = OutlookRules(rules: [Rule(eventFlags: .afterReceived, name: "R")]).getData(version: .outlook2010)
+        XCTAssertNoThrow(try OutlookRules(data: data))
+
+        // Header (46 bytes), then the rule's VersionStamp (4), Name (3), Enabled, RunError, ServerRule, Flags and
+        // ServerRuleId (20), then DataSize.
+        let dataSizeOffset = 46 + 4 + 3 + 20
+        data[dataSizeOffset] &+= 1
+        XCTAssertThrowsError(try OutlookRules(data: data))
+    }
+
+    // MARK: - Unknown values
+
+    func testUnknownEnumValuesAreNil() throws {
+        var importance = ImportanceParameter(importance: .high)
+        importance.rawImportance = 99
+        XCTAssertNil(importance.importance)
+        importance.importance = nil
+        XCTAssertEqual(99, importance.rawImportance)
+        importance.importance = .low
+        XCTAssertEqual(.low, importance.importance)
+
+        var sensitivity = SensitivityParameter(sensitivity: .personal)
+        sensitivity.rawSensitivity = 99
+        XCTAssertNil(sensitivity.sensitivity)
+
+        var followUp = FlagForFollowUpParameter(action: "Follow up", followUp: .today)
+        followUp.rawFollowUp = 99
+        XCTAssertNil(followUp.followUp)
+
+        var date = OleDateTime()
+        XCTAssertEqual(.null, date.status)
+        date.rawStatus = 1
+        XCTAssertEqual(.invalid, date.status)
+        date.rawStatus = 7
+        XCTAssertNil(date.status)
+
+        var stream = DataStream([0x0B, 0x00, 0x00, 0x80] as [UInt8])
+        var property = DocumentProperty(field: "Field", propTag: try PropertyTag(dataStream: &stream), boolValue: false)
+        XCTAssertEqual(.`false`, property.boolMatchType)
+        property.rawStringMatchType = 99
+        XCTAssertNil(property.stringMatchType)
+    }
+
+    // MARK: - Dates
+
+    func testOleDatesRoundToTheNearestSecond() throws {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(identifier: "UTC")!
+
+        // 17:06 is stored as 44231.712500000001, which used to come out as 17:06:01.
+        let date = OleDateTime(timestamp: 44231.712500000001).date
+        XCTAssertEqual(calendar.date(from: DateComponents(year: 2021, month: 2, day: 4, hour: 17, minute: 6)), date)
+
+        // Before the epoch, the fraction is the time of day: -1.25 is 29 December 1899 at 06:00.
+        XCTAssertEqual(calendar.date(from: DateComponents(year: 1899, month: 12, day: 29, hour: 6)), OleDateTime(timestamp: -1.25).date)
+
+        for timestamp in [0, 1.5, 44231.7125, -1.25, -2.75] {
+            XCTAssertEqual(timestamp, OleDateTime(date: OleDateTime(timestamp: timestamp).date).timestamp, accuracy: 1e-9)
+        }
+    }
+
+    // MARK: - Writing to older formats
+
+    func testElementMinimumVersions() {
+        XCTAssertEqual(.outlook97, RuleElementIdentifier.deleteAction.minimumVersion)
+        XCTAssertEqual(.outlook98, RuleElementIdentifier.junkCondition.minimumVersion)
+        XCTAssertEqual(.outlook2000, RuleElementIdentifier.throughSpecifiedAccountCondition.minimumVersion)
+        XCTAssertEqual(.outlook2002, RuleElementIdentifier.runScriptAction.minimumVersion)
+        XCTAssertEqual(.outlook2007, RuleElementIdentifier.flagForFollowUpAction.minimumVersion)
+        XCTAssertEqual(.outlook2007, RuleElementIdentifier.fromAnyRSSFeedException.minimumVersion)
+        XCTAssertEqual(.outlook2010, RuleElementIdentifier.applyRetentionPolicyAction.minimumVersion)
+
+        XCTAssertFalse(RuleElementIdentifier.junkCondition.isSupported(in: .outlook97))
+        XCTAssertTrue(RuleElementIdentifier.junkCondition.isSupported(in: .signatureZero))
+        XCTAssertFalse(RuleElementIdentifier.relevanceInSpecificRangeCondition.isSupported(in: .signatureZero))
+        XCTAssertTrue(RuleElementIdentifier.hiddenServerReplyAction.isSupported(in: .outlook2007))
+        XCTAssertFalse(RuleElementIdentifier.hiddenServerReplyAction.isSupported(in: .outlook2010))
+    }
+
+    /// Like Outlook's Export Rules, writing to an older format leaves out rules it can't store (spec §5.5).
+    func testWritingToOlderFormatsLeavesOutUnsupportedRules() throws {
+        let file = OutlookRules(rules: [
+            Rule(eventFlags: .afterReceived, name: "Script", actions: [
+                RuleElement(identifier: .runScriptAction, parameter: ScriptParameter(name: "Project1.Module1.Run", function: "Run"))
+            ]),
+            Rule(eventFlags: .afterReceived, name: "Delete", actions: [RuleElement(identifier: .deleteAction)]),
+        ])
+
+        XCTAssertEqual(["Script"], file.unsupportedRules(in: .outlook2000).map { $0.name })
+        XCTAssertEqual(["Delete"], try OutlookRules(data: file.getData(version: .outlook2000)).rules.map { $0.name })
+        XCTAssertEqual([], file.unsupportedRules(in: .outlook2002).map { $0.name })
+        XCTAssertEqual(["Script", "Delete"], try OutlookRules(data: file.getData(version: .outlook2002)).rules.map { $0.name })
+    }
+
+    // MARK: - Editing
+
+    /// Rules can be edited in place, keeping the rest of the file.
+    func testRulesAreMutable() throws {
+        var file = try OutlookRules(data: try getData(name: "Outlook2007_Forward_Default", fileExtension: "rwz"))
+        file.templateDirectory = "C:\\Templates"
+        file.rules.append(Rule(eventFlags: .afterReceived, name: "Added", actions: [RuleElement(identifier: .deleteAction)]))
+
+        let reread = try OutlookRules(data: file.getData())
+        XCTAssertEqual(file.rules.count, reread.rules.count)
+        XCTAssertEqual("Added", reread.rules.last?.name)
+        XCTAssertEqual("C:\\Templates", reread.templateDirectory)
+    }
+
+    func testTimeParameterInitializer() throws {
+        let after = Date(timeIntervalSince1970: 1_600_000_000)
+        let rule = Rule(eventFlags: .afterReceived, name: "Dates", conditions: [
+            RuleElement(identifier: .receivedInSpecificDateSpanCondition, parameter: TimeParameter(after: after))
+        ])
+        let reread = try OutlookRules(data: OutlookRules(rules: [rule]).getData())
+        let parameter = try XCTUnwrap(reread.rules[0].conditions[0].parameter as? TimeParameter)
+        XCTAssertTrue(parameter.hasAfter)
+        XCTAssertEqual(after, parameter.after.date)
+        XCTAssertFalse(parameter.hasBefore)
+    }
+}

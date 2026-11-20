@@ -25,7 +25,7 @@ public struct RuleEventFlags: OptionSet {
 
 public struct EventParameter: RuleParameter {
     public var reserved: UInt32 = 0
-    public let flags: RuleEventFlags
+    public var flags: RuleEventFlags
     
     public init(flags: RuleEventFlags) {
         self.flags = flags

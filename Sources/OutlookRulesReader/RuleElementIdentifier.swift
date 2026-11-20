@@ -231,7 +231,7 @@ public enum RuleElementIdentifier: UInt32 {
     case addToRelevanceAction = 0x00000145
     
     /// “have server reply using <a specific message>”
-    case automaticReply = 0x00000146
+    case serverReplyAction = 0x00000146
     
     /// “forward it to <people or public group> as attachment”
     case forwardAsAttachmentAction = 0x00000147
@@ -289,7 +289,7 @@ public enum RuleElementIdentifier: UInt32 {
     case fromException = 0x000001F7
     
     /// “except if sent to <people or public group>”
-    case toException = 0x000001F8
+    case sentToException = 0x000001F8
     
     /// “except if the subject contains <specific words>”
     case specificWordsInSubjectException = 0x000001F9
@@ -307,7 +307,7 @@ public enum RuleElementIdentifier: UInt32 {
     case importanceException = 0x000001FE
     
     /// “except if it is marked as <sensitivity>”
-    case sensitivityConditionException = 0x000001FF
+    case sensitivityException = 0x000001FF
     
     /// Exception form of `nameInToBoxMeetingCondition`.
     case nameInToBoxMeetingException = 0x00000200
@@ -379,4 +379,56 @@ public enum RuleElementIdentifier: UInt32 {
     
     /// “except from any RSS Feed”
     case fromAnyRSSFeedException = 0x0000021B
+
+    @available(*, deprecated, renamed: "serverReplyAction")
+    public static var automaticReply: RuleElementIdentifier { .serverReplyAction }
+
+    @available(*, deprecated, renamed: "sentToException")
+    public static var toException: RuleElementIdentifier { .sentToException }
+
+    @available(*, deprecated, renamed: "sensitivityException")
+    public static var sensitivityConditionException: RuleElementIdentifier { .sensitivityException }
+
+    /// The oldest format that can store this element: the first version of Outlook that defines it (spec §5.2–§5.4).
+    /// An exception is defined in the same versions as its condition.
+    ///
+    /// Outlook 2003's own export table (spec §5.5) agrees, except that it only exports the account condition and
+    /// exception (`0x00EE`, `0x0214`) for Outlook 2002 and later, although Outlook 2000 defines them.
+    public var minimumVersion: OutlookRulesVersion {
+        switch rawValue {
+        case 0x00E7...0x00E9, 0x00EB, 0x00EC, 0x0141...0x0143, 0x0213:
+            return .outlook98
+        case 0x00ED, 0x00EE, 0x0144...0x014A, 0x0214:
+            return .outlook2000
+        case 0x00EF, 0x00F0, 0x014B, 0x014C, 0x0215:
+            return .outlook2002
+        case 0x00F1, 0x00F3, 0x014D...0x0150, 0x0216:
+            return .outlook2003
+        case 0x00F4...0x00F7, 0x0151, 0x0152, 0x0218...0x021B:
+            return .outlook2007
+        case 0x0153:
+            return .outlook2010
+        default:
+            return .outlook97
+        }
+    }
+
+    /// Whether a file in the format of `version` can store this element, so that the version of Outlook that reads
+    /// it can load it. Outlook fails to load a whole file that contains an element it doesn't define (spec §5.2).
+    public func isSupported(in version: OutlookRulesVersion) -> Bool {
+        switch self {
+        case .hiddenServerReplyAction, .dotNetNotificationAction:
+            /// Outlook 2010 and later no longer define these.
+            if version >= .outlook2010 {
+                return false
+            }
+        default:
+            break
+        }
+
+        /// Version-0 streams are written by Outlook 2003, which keeps the Outlook 98 elements in them but drops
+        /// anything that needs version 980413 or later (spec §3, §5.5).
+        let effectiveVersion: OutlookRulesVersion = version == .signatureZero ? .outlook98 : version
+        return minimumVersion <= effectiveVersion
+    }
 }

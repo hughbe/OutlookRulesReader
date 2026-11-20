@@ -8,7 +8,7 @@
 import DataStream
 import Foundation
 
-/// A length-prefixed string of 8-bit characters (String8 in spec §2.2).
+/// A length-prefixed string of 8-bit characters in the ANSI code page (String8 in spec §2.2). See `ANSIEncoding`.
 internal struct ASCIIString {
     public var dataSize: UInt32 {
         let length = bytes.count
@@ -17,10 +17,9 @@ internal struct ASCIIString {
     
     public var value: String
     
-    /// The bytes of the value. Reading decodes each byte to the matching Latin-1 scalar, so write the inverse;
-    /// characters that cannot be represented are converted lossily.
-    private var bytes: Data {
-        value.data(using: .isoLatin1, allowLossyConversion: true) ?? Data()
+    /// The bytes of the value. Characters that the ANSI code page can't represent are written as "?".
+    private var bytes: [UInt8] {
+        ANSIEncoding.encode(value)
     }
     
     public init(value: String) {
@@ -35,11 +34,7 @@ internal struct ASCIIString {
         }
         
         /// Value (variable)
-        guard let value = try dataStream.readString(count: length, encoding: .ascii) else {
-            throw OutlookRulesReadError.corrupted
-        }
-        
-        self.value = value
+        self.value = ANSIEncoding.decode(try dataStream.readBytes(count: length))
     }
     
     public func write(to dataStream: inout OutputDataStream) {

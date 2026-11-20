@@ -59,6 +59,16 @@ public struct Rule: CustomDebugStringConvertible {
     /// back the same way in the Outlook 2002 and later formats while it still has no elements.
     internal var hasElementList: Bool = true
 
+    /// The oldest format that can store the rule: the newest `minimumVersion` of its elements (spec §5.5).
+    public var minimumVersion: OutlookRulesVersion {
+        elements.map { $0.identifier.minimumVersion }.max() ?? .outlook97
+    }
+
+    /// Whether a file in the format of `version` can store every element of the rule (spec §5.5).
+    public func isSupported(in version: OutlookRulesVersion) -> Bool {
+        elements.allSatisfy { $0.identifier.isSupported(in: version) }
+    }
+
     public var conditions: [RuleElement] {
         elements.filter { $0.identifier.rawValue >= 200 && $0.identifier.rawValue < 300 }
     }
@@ -87,6 +97,9 @@ public struct Rule: CustomDebugStringConvertible {
         self.elements = conditions + actions + exceptions
     }
 
+    /// Reads a single rule. `index` stands in for whether an earlier rule in the stream already declared the
+    /// `CRuleElement` class, which is wrong when an earlier rule had no elements (spec §2.5).
+    @available(*, deprecated, message: "Read the whole stream with OutlookRules(data:), which tracks the class declaration.")
     public init(dataStream: inout DataStream, index: Int, version: OutlookRulesVersion) throws {
         /// The class descriptor for `CRuleElement` precedes the first element of the stream.
         var classDeclared = index != 0
@@ -106,6 +119,15 @@ public struct Rule: CustomDebugStringConvertible {
         self.sourceVersion = version
         let contentVersion = RuleHeader.contentVersion(streamVersion: version, versionStamp: header.versionStamp)
 
+        /// Data Size counts the Number of Elements field (2 bytes), which the header has already read, and everything
+        /// after it (spec §4.3.1). Outlook writes it exactly, so a rule whose elements end anywhere else was misread.
+        let elementsStart = dataStream.position
+        if let dataSize = header.dataSize, header.hasElementList {
+            guard dataSize >= 2, Int(dataSize - 2) <= dataStream.remainingCount else {
+                throw OutlookRulesReadError.corrupted
+            }
+        }
+
         /// Elements (variable)
         var elements: [RuleElement] = []
         elements.reserveCapacity(Int(header.numberOfElements))
@@ -115,6 +137,12 @@ public struct Rule: CustomDebugStringConvertible {
 
             /// Element (variable)
             elements.append(try RuleElement(dataStream: &dataStream, version: contentVersion))
+        }
+
+        if let dataSize = header.dataSize, header.hasElementList {
+            guard dataStream.position - elementsStart == Int(dataSize - 2) else {
+                throw OutlookRulesReadError.corrupted
+            }
         }
 
         self.elements = elements
@@ -165,6 +193,8 @@ public struct Rule: CustomDebugStringConvertible {
         return s
     }
 
+    /// Writes a single rule. See `init(dataStream:index:version:)` for why `index` can be wrong.
+    @available(*, deprecated, message: "Write the whole stream with OutlookRules.getData(version:), which tracks the class declaration.")
     public func write(to dataStream: inout OutputDataStream, index: Int, version: OutlookRulesVersion) {
         /// The class descriptor for `CRuleElement` precedes the first element of the stream.
         var classDeclared = index != 0
@@ -174,7 +204,12 @@ public struct Rule: CustomDebugStringConvertible {
     /// `versionStamp` is the stream's version stamp, which each rule header repeats in the Outlook 2002 and later
     /// formats unless the rule has its own; nil uses the default stamp for `version`.
     internal func write(to dataStream: inout OutputDataStream, version: OutlookRulesVersion, versionStamp: UInt32?, classDeclared: inout Bool) {
-        let ruleStamp = (sourceVersion == version ? self.versionStamp : nil) ?? versionStamp ?? RulesHeader.defaultVersionStamp(for: version)
+        var ruleStamp = (sourceVersion == version ? self.versionStamp : nil) ?? versionStamp ?? RulesHeader.defaultVersionStamp(for: version)
+        if RuleHeader.contentVersion(streamVersion: version, versionStamp: ruleStamp) < minimumVersion {
+            /// The rule kept an older stamp but now has an element that needs a newer one. Raise it to the stream's,
+            /// as Outlook does when the user accepts its prompt that the rule needs a newer version (spec §4.3.1).
+            ruleStamp = versionStamp ?? RulesHeader.defaultVersionStamp(for: version)
+        }
         let contentVersion = RuleHeader.contentVersion(streamVersion: version, versionStamp: ruleStamp)
 
         if !hasElementList && self.elements.isEmpty && contentVersion >= .outlook2002 {

@@ -49,7 +49,8 @@ public struct AddressParameter: RuleParameter {
         
         /// Values (variable)
         var lists: [AdrEntry] = []
-        lists.reserveCapacity(Int(numberOfValues))
+        /// The count comes from the file, so don't reserve more than it could hold: every entry is at least 12 bytes.
+        lists.reserveCapacity(min(Int(numberOfValues), dataStream.remainingCount / 12))
         for _ in 0..<numberOfValues {
             lists.append(try AdrEntry(dataStream: &dataStream))
         }

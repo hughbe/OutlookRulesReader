@@ -11,7 +11,7 @@ import MAPI
 /// A serialized MAPI `SPropValue` (spec §6.4): the property propTag, `dwAlignPad` (`alignPad`, uninitialised memory)
 /// and the 8-byte value union (`valueLow` and `valueHigh`).
 internal struct SPropValue {
-    public static var dataSize: UInt32 = 16
+    public static let dataSize: UInt32 = 16
     
     public var propTag: PropertyTag
     public var alignPad: UInt32

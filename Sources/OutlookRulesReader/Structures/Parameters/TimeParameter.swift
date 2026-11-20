@@ -15,6 +15,14 @@ public struct TimeParameter: RuleParameter {
     public var hasBefore: Bool
     public var before: OleDateTime
 
+    /// Creates a date span. A nil date leaves that end of the span open.
+    public init(after: Date? = nil, before: Date? = nil) {
+        self.hasAfter = after != nil
+        self.after = after.map { OleDateTime(date: $0) } ?? OleDateTime(timestamp: 0)
+        self.hasBefore = before != nil
+        self.before = before.map { OleDateTime(date: $0) } ?? OleDateTime(timestamp: 0)
+    }
+
     public init(dataStream: inout DataStream, version: OutlookRulesVersion) throws {
         /// Reserved (4 bytes)
         self.reserved = try dataStream.read(endianess: .littleEndian)

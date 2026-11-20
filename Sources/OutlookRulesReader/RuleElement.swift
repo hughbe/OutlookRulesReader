@@ -8,8 +8,15 @@
 import DataStream
 
 public struct RuleElement {
+    /// The number of bytes the element occupies when written in the Unicode (Outlook 2002 and later) format.
+    /// Use `dataSize(version:)` for other formats.
     public var dataSize: UInt32 {
-        8 + parameters.reduce(0, { $0 + $1.dataSize })
+        dataSize(version: .outlook2010)
+    }
+
+    /// The number of bytes the element occupies when written in the format of the given version.
+    public func dataSize(version: OutlookRulesVersion) -> UInt32 {
+        8 + parameters.reduce(0, { $0 + $1.dataSize(version: version) })
     }
     
     public var identifier: RuleElementIdentifier
@@ -45,7 +52,8 @@ public struct RuleElement {
         
         /// Parameters (variable)
         var parameters: [RuleParameter] = []
-        parameters.reserveCapacity(Int(numberOfParameters))
+        /// The count comes from the file, so don't reserve more than it could hold: every parameter is at least 4 bytes.
+        parameters.reserveCapacity(min(Int(numberOfParameters), dataStream.remainingCount / 4))
         for _ in 0..<numberOfParameters {
             let parameter: RuleParameter
             switch identifier {
@@ -189,7 +197,7 @@ public struct RuleElement {
                     parameter = try AddressParameter(dataStream: &dataStream, version: version)
                 case .addToRelevanceAction: // 0x0145
                     parameter = try RelevanceParameter(dataStream: &dataStream, version: version)
-                case .automaticReply: // 0x0146
+                case .serverReplyAction: // 0x0146
                     parameter = try TemplateParameter(dataStream: &dataStream, version: version)
                 case .forwardAsAttachmentAction: // 0x0147
                     parameter = try AddressParameter(dataStream: &dataStream, version: version)
@@ -227,7 +235,7 @@ public struct RuleElement {
                     throw OutlookRulesReadError.corrupted
                 case .fromException: // 0x01F7
                     parameter = try AddressParameter(dataStream: &dataStream, version: version)
-                case .toException: // 0x01F8
+                case .sentToException: // 0x01F8
                     parameter = try AddressParameter(dataStream: &dataStream, version: version)
                 case .specificWordsInSubjectException: // 0x01F9
                     parameter = try StringParameter(dataStream: &dataStream, version: version)
@@ -239,7 +247,7 @@ public struct RuleElement {
                     parameter = try FlaggedForActionParameter(dataStream: &dataStream, version: version)
                 case .importanceException: // 0x01FE
                     parameter = try ImportanceParameter(dataStream: &dataStream, version: version)
-                case .sensitivityConditionException: // 0x01FF
+                case .sensitivityException: // 0x01FF
                     parameter = try SensitivityParameter(dataStream: &dataStream, version: version)
                 case .nameInToBoxMeetingException: // 0x0200
                     throw OutlookRulesReadError.corrupted

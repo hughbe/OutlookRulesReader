@@ -25,7 +25,9 @@ public struct ServerUpdateMode: RawRepresentable, Equatable {
 }
 
 public struct OutlookRules: CustomDebugStringConvertible {
-    public let rules: [Rule]
+    /// The rules, in the order Outlook runs them. Edit them and call `getData()` to write them back with the rest of
+    /// the file (template directory, server settings and header) unchanged.
+    public var rules: [Rule]
     private var header: RulesHeader
     private var footer: RulesFooter?
     public var templateDirectory: String {
@@ -99,8 +101,17 @@ public struct OutlookRules: CustomDebugStringConvertible {
         }
     }
     
+    /// The rules that `getData(version:)` leaves out because the format can't store one of their elements (spec §5.5).
+    public func unsupportedRules(in version: OutlookRulesVersion) -> [Rule] {
+        rules.filter { !$0.isSupported(in: version) }
+    }
+
+    /// Writes the rules in the format of `version`, or the format they were read from.
+    /// Like Outlook's Export Rules, this leaves out every rule containing an element the format can't store, since
+    /// that version of Outlook would fail to load the whole file (spec §5.5). See `unsupportedRules(in:)`.
     public func getData(version: OutlookRulesVersion? = nil) -> Data {
         let version = version ?? self.header.version
+        let rules = self.rules.filter { $0.isSupported(in: version) }
         
         var dataStream = OutputDataStream()
         

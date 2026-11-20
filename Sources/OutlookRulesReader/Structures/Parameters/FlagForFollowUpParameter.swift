@@ -25,11 +25,14 @@ public enum FollowUp: UInt32 {
 public struct FlagForFollowUpParameter: RuleParameter {
     public var reserved: UInt32 = 0
     public var rawFollowUp: UInt32
-    public var followUp: FollowUp {
+    /// The value of `rawFollowUp`, or nil if it isn't a known value. Setting nil leaves `rawFollowUp` unchanged.
+    public var followUp: FollowUp? {
         get {
-            return FollowUp(rawValue: rawFollowUp)!
+            return FollowUp(rawValue: rawFollowUp)
         } set {
-            rawFollowUp = newValue.rawValue
+            if let newValue = newValue {
+                rawFollowUp = newValue.rawValue
+            }
         }
     }
     public var action: String

@@ -19,7 +19,7 @@ OutlookRulesReader is a Swift package. You can't import it from a single `.swift
 2. Add OutlookRulesReader as a dependency in `Package.swift`:
 
    ```swift
-   // swift-tools-version:5.3
+   // swift-tools-version:5.5
    import PackageDescription
 
    let package = Package(
@@ -102,7 +102,9 @@ Rules can also be written back to a file:
 let newData = rules.getData()
 ```
 
-`getData(version:)` writes the file in the format of a specific Outlook version, such as `.outlook2007`.
+`getData(version:)` writes the file in the format of a specific Outlook version, such as `.outlook2007`. `rules` can be edited in place before writing; the rest of the file (template directory, server settings) is kept.
+
+Like Outlook's own Export Rules, writing to an older format leaves out every rule that contains a condition, action or exception that format can't store, since that version of Outlook would fail to load the file. `unsupportedRules(in:)` lists the rules that would be left out.
 
 ## Contributing
 All contributions to the specification and the implementation library are welcome and encouraged!
