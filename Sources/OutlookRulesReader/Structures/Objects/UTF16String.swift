@@ -10,18 +10,18 @@ import DataStream
 /// A length-prefixed UTF-16 little-endian string (StringW in spec §2.2).
 /// The length is measured in UTF-16 code units.
 internal struct UTF16String {
-    public var dataSize: UInt32 {
+    var dataSize: UInt32 {
         let length = value.utf16.count
         return StringLength.size(of: length) + UInt32(length) * 2
     }
     
-    public var value: String
+    var value: String
     
-    public init(value: String) {
+    init(value: String) {
         self.value = value
     }
     
-    public init(dataStream: inout DataStream) throws {
+    init(dataStream: inout DataStream) throws {
         /// Length (1, 3 or 7 bytes)
         let length = try StringLength.read(from: &dataStream)
         guard length <= dataStream.remainingCount / 2 else {
@@ -32,7 +32,7 @@ internal struct UTF16String {
         self.value = try UTF16Decoding.decode(try dataStream.readBytes(count: length * 2))
     }
     
-    public func write(to dataStream: inout OutputDataStream) {
+    func write(to dataStream: inout OutputDataStream) {
         /// The length is measured in UTF-16 code units, not in Characters (e.g. "\r\n" is one Character
         /// but two code units).
         /// Length (1, 3 or 7 bytes)

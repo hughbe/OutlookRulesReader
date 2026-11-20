@@ -10,18 +10,18 @@ import Foundation
 import WindowsDataTypes
 
 internal struct RulesFooter {
-    public var templateDirectory: String = ""
+    var templateDirectory: String = ""
     /// Probably the time the rules were last saved (spec §4.4). Usually null.
-    public var timestamp: OleDateTime = OleDateTime()
-    public var unknown: UInt32 = 0
+    var timestamp: OleDateTime = OleDateTime()
+    var unknown: UInt32 = 0
     /// Any bytes after the footer. Outlook doesn't write any, but they are kept so that the file round-trips.
-    public var trailingData: Data = Data()
+    var trailingData: Data = Data()
     
-    public init(templateDirectory: String = "") {
+    init(templateDirectory: String = "") {
         self.templateDirectory = templateDirectory
     }
     
-    public init(dataStream: inout DataStream, version: OutlookRulesVersion) throws {
+    init(dataStream: inout DataStream, version: OutlookRulesVersion) throws {
         /// Template Directory Length (4 bytes)
         /// Outlook keeps this at most MAX_PATH (260), but read whatever length is declared so that the
         /// fields that follow stay aligned.
@@ -47,7 +47,7 @@ internal struct RulesFooter {
         self.trailingData = Data(try dataStream.readBytes(count: dataStream.remainingCount))
     }
     
-    public func write(to dataStream: inout OutputDataStream, version: OutlookRulesVersion) {
+    func write(to dataStream: inout OutputDataStream, version: OutlookRulesVersion) {
         /// The length is measured in UTF-16 code units (Outlook 2002 and above) or bytes (earlier versions).
         let length: Int
         let bytes: Data

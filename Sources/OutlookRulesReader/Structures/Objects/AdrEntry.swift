@@ -12,15 +12,15 @@ import MAPI
 /// A serialized MAPI `ADRENTRY` whose `SPropValue` array has its pointers replaced by offsets (spec §6.4).
 internal struct AdrEntry {
     /// A single property, retaining everything needed to write it back byte-for-byte.
-    public struct Property {
-        public var type: PropertyType
-        public var id: UInt16
-        public var alignPad: UInt32
-        public var valueHigh: UInt32
-        public var value: Any
+    struct Property {
+        var type: PropertyType
+        var id: UInt16
+        var alignPad: UInt32
+        var valueHigh: UInt32
+        var value: Any
         
         /// Whether the value is of the Swift type that is used to represent the property type.
-        public func accepts(_ value: Any) -> Bool {
+        func accepts(_ value: Any) -> Bool {
             switch type {
             case .integer32, .errorCode:
                 return value is UInt32
@@ -36,7 +36,7 @@ internal struct AdrEntry {
         }
         
         /// Infers the property type to use for a value that has no recorded type.
-        public static func inferredType(for value: Any) -> PropertyType? {
+        static func inferredType(for value: Any) -> PropertyType? {
             switch value {
             case let value as UInt32:
                 // Error codes (e.g. MAPI_E_NOT_FOUND) have the high bit set.
@@ -53,18 +53,18 @@ internal struct AdrEntry {
         }
     }
     
-    public var dataSize: UInt32 {
+    var dataSize: UInt32 {
         var stream = OutputDataStream()
         write(to: &stream)
         return UInt32(stream.data.count)
     }
     
     /// `ADRENTRY.ulReserved1`. Often uninitialised memory; preserved when round-tripping.
-    public var reserved1: UInt32 = 0
-    public var propertyValues: [Property]
+    var reserved1: UInt32 = 0
+    var propertyValues: [Property]
 
     /// The values of the properties, keyed by property ID.
-    public var properties: [UInt16: Any] {
+    var properties: [UInt16: Any] {
         var properties: [UInt16: Any] = [:]
         properties.reserveCapacity(propertyValues.count)
         for entry in propertyValues {
@@ -74,14 +74,14 @@ internal struct AdrEntry {
         return properties
     }
     
-    public init(propertyValues: [Property], reserved1: UInt32 = 0) {
+    init(propertyValues: [Property], reserved1: UInt32 = 0) {
         self.propertyValues = propertyValues
         self.reserved1 = reserved1
     }
     
     /// Creates a list from property values, reusing the types, order and flags of the properties
     /// in a previous list, if there is one, so that unmodified properties are written back unchanged.
-    public init(properties: [UInt16: Any], reusing previous: AdrEntry? = nil) {
+    init(properties: [UInt16: Any], reusing previous: AdrEntry? = nil) {
         var remaining = properties
         var propertyValues: [Property] = []
         propertyValues.reserveCapacity(properties.count)
@@ -109,7 +109,7 @@ internal struct AdrEntry {
         self.init(propertyValues: propertyValues, reserved1: previous?.reserved1 ?? 0)
     }
     
-    public init(dataStream: inout DataStream) throws {
+    init(dataStream: inout DataStream) throws {
         /// Reserved1 (4 bytes)
         self.reserved1 = try dataStream.read(endianess: .littleEndian)
         
@@ -181,7 +181,7 @@ internal struct AdrEntry {
         }
     }
     
-    public func write(to dataStream: inout OutputDataStream) {
+    func write(to dataStream: inout OutputDataStream) {
         // Property headers are followed by a data block that holds strings and binary values.
         var dataBlock = OutputDataStream()
         var headers: [(type: PropertyType, id: UInt16, alignPad: UInt32, valueLow: UInt32, valueHigh: UInt32)] = []

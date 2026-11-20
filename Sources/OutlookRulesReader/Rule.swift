@@ -6,6 +6,7 @@
 //
 
 import DataStream
+import Foundation
 
 public struct Rule: CustomDebugStringConvertible {
     /// The rule's name, without the template name.
@@ -59,14 +60,45 @@ public struct Rule: CustomDebugStringConvertible {
     /// back the same way in the Outlook 2002 and later formats while it still has no elements.
     internal var hasElementList: Bool = true
 
+    /// The elements of a rule this library couldn't read, kept as they were stored so the rule can be written back.
+    internal struct UnparsedElements: Equatable {
+        var numberOfElements: UInt16
+        /// Everything after the object tag that precedes the first element, to the end of the rule. The tag itself
+        /// is written again on output, since whether it declares the `CRuleElement` class depends on rule order.
+        var data: Data
+        var reason: OutlookRulesReadError
+        /// The layout of `data`: the rule's own version, which may be older than the stream's (spec §4.3.1).
+        var contentVersion: OutlookRulesVersion
+    }
+
+    internal var unparsedElements: UnparsedElements?
+
+    /// Why the rule's elements couldn't be read, or nil if they were. A rule from an Outlook 2002 or later format
+    /// whose elements this library doesn't understand, such as one using an element added by a later version of
+    /// Outlook, is kept rather than failing the whole file: it is skipped using its DataSize, as Outlook 2002 does
+    /// with rules from newer versions (spec §4.3.1). Its `elements` are empty and its elements are written back
+    /// unchanged, in the same format only. Setting `elements` discards the stored elements.
+    public var unparsedReason: OutlookRulesReadError? {
+        unparsedElements?.reason
+    }
+
     /// The oldest format that can store the rule: the newest `minimumVersion` of its elements (spec §5.5).
     public var minimumVersion: OutlookRulesVersion {
-        elements.map { $0.identifier.minimumVersion }.max() ?? .outlook97
+        if let unparsed = unparsedElements, elements.isEmpty {
+            return unparsed.contentVersion
+        }
+
+        return elements.map { $0.identifier.minimumVersion }.max() ?? .outlook97
     }
 
     /// Whether a file in the format of `version` can store every element of the rule (spec §5.5).
+    /// A rule whose elements couldn't be read can only be written in the format it was read from.
     public func isSupported(in version: OutlookRulesVersion) -> Bool {
-        elements.allSatisfy { $0.identifier.isSupported(in: version) }
+        if unparsedElements != nil && elements.isEmpty {
+            return version == sourceVersion
+        }
+
+        return elements.allSatisfy { $0.identifier.isSupported(in: version) }
     }
 
     public var conditions: [RuleElement] {
@@ -122,12 +154,47 @@ public struct Rule: CustomDebugStringConvertible {
         /// Elements (variable)
         var elements: [RuleElement] = []
         elements.reserveCapacity(Int(header.numberOfElements))
-        for _ in 0..<header.numberOfElements {
-            /// Object Tag (2 bytes, or more for the first element of the stream)
-            try ObjectTag.read(from: &dataStream, classDeclared: &classDeclared)
+        let classDeclaredBefore = classDeclared
+        do {
+            for _ in 0..<header.numberOfElements {
+                /// Object Tag (2 bytes, or more for the first element of the stream)
+                try ObjectTag.read(from: &dataStream, classDeclared: &classDeclared)
 
-            /// Element (variable)
-            elements.append(try RuleElement(dataStream: &dataStream, version: contentVersion))
+                /// Element (variable)
+                elements.append(try RuleElement(dataStream: &dataStream, version: contentVersion))
+            }
+        } catch let error as OutlookRulesReadError {
+            /// Keep a rule whose elements are newer than this library, if DataSize says where it ends.
+            guard let dataSize = header.dataSize, header.hasElementList, header.numberOfElements > 0 else {
+                throw error
+            }
+            switch error {
+            case .unknownElement, .unexpectedParameter, .unsupportedPropertyType:
+                break
+            default:
+                throw error
+            }
+
+            dataStream.position = elementsStart
+            classDeclared = classDeclaredBefore
+            try ObjectTag.read(from: &dataStream, classDeclared: &classDeclared)
+            let remaining = elementsStart + Int(dataSize - 2) - dataStream.position
+            guard remaining >= 0 else {
+                throw OutlookRulesReadError.lengthOutOfRange
+            }
+
+            self.unparsedElements = UnparsedElements(
+                numberOfElements: header.numberOfElements,
+                data: Data(try dataStream.readBytes(count: remaining)),
+                reason: error,
+                contentVersion: contentVersion
+            )
+            self.elements = []
+            self.eventFlags = (elements.first { $0.identifier == .eventFlags }?.parameter as? EventParameter)?.flags ?? []
+            if let itemTypes = (elements.first { $0.identifier == .itemType }?.parameter as? ItemTypeParameter)?.itemTypes {
+                self.itemTypes = itemTypes
+            }
+            return
         }
 
         if let dataSize = header.dataSize, header.hasElementList {
@@ -185,6 +252,9 @@ public struct Rule: CustomDebugStringConvertible {
         if hasRunError {
             s += ", run error"
         }
+        if let reason = unparsedReason {
+            s += ", elements not read (\(reason))"
+        }
         for (title, elements) in [("Conditions", conditions), ("Actions", actions), ("Exceptions", exceptions)] where !elements.isEmpty {
             s += "\n  \(title):"
             for element in elements {
@@ -204,6 +274,23 @@ public struct Rule: CustomDebugStringConvertible {
             ruleStamp = versionStamp ?? RulesHeader.defaultVersionStamp(for: version)
         }
         let contentVersion = RuleHeader.contentVersion(streamVersion: version, versionStamp: ruleStamp)
+
+        if let unparsed = unparsedElements, elements.isEmpty, sourceVersion == version {
+            /// Elements this library couldn't read, written back as they were (spec §4.3.1).
+            var elementsStream = OutputDataStream()
+            ObjectTag.write(to: &elementsStream, classDeclared: &classDeclared)
+            elementsStream.write(unparsed.data)
+
+            var header = RuleHeader(name: storedName, enabled: enabled, numberOfElements: unparsed.numberOfElements, dataSize: UInt32(2 + elementsStream.data.count))
+            header.versionStamp = ruleStamp
+            header.runError = runError
+            header.serverRule = isServerRule ? 1 : 0
+            header.flags = flags.rawValue
+            header.serverRuleId = serverRuleId
+            header.write(to: &dataStream, version: version)
+            dataStream.write(elementsStream.data)
+            return
+        }
 
         if !hasElementList && self.elements.isEmpty && contentVersion >= .outlook2002 {
             /// Data Size 0, with no element list (spec §4.3.1)

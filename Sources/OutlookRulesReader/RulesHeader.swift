@@ -10,36 +10,36 @@ import Foundation
 
 /// The header at the start of a rules stream. See spec §4.2.
 internal struct RulesHeader {
-    public let version: OutlookRulesVersion
+    let version: OutlookRulesVersion
 
     /// The version stamp of the stream's format (spec §4.1), called the versionStamp in older notes.
     /// Absent in Outlook 97 exports; 0 in versionStamp-0 streams.
-    public var versionStamp: UInt32?
+    var versionStamp: UInt32?
 
     /// Present from Outlook 2002. Bits 0-23 are the version stamp of the writing application; bits 24-31 are an
     /// index into the table of version stamps (spec §4.1).
-    public var writerVersion: UInt32?
-    public var unknown1: UInt32? = 0
-    public var unknown2: UInt32? = 0
-    public var unknown3: UInt32? = 0
+    var writerVersion: UInt32?
+    var unknown1: UInt32? = 0
+    var unknown2: UInt32? = 0
+    var unknown3: UInt32? = 0
     /// Flags; bit 0x1 records that Outlook 2007 has created its "Clear categories on mail (recommended)" rule, so it
     /// isn't created again (spec §4.2). Formerly `unknown4`.
-    public var clearCategoriesRuleCreated: UInt32? = 0
+    var clearCategoriesRuleCreated: UInt32? = 0
 
     /// 1 when the copy of the rules on the Exchange server is out of date (spec §4.2).
-    public var serverRulesOutOfDate: UInt32? = 0
+    var serverRulesOutOfDate: UInt32? = 0
     /// how the server copy is updated: 0 = not set, 1 = manually, 2 = automatically (spec §4.2).
-    public var serverUpdateMode: UInt32? = 0
+    var serverUpdateMode: UInt32? = 0
     /// 1 to prompt to convert Exchange Inbox Assistant rules (spec §4.2).
-    public var promptToConvertInboxAssistantRules: UInt32? = 1
+    var promptToConvertInboxAssistantRules: UInt32? = 1
     /// the last answer to that prompt: 1 = convert (spec §4.2).
-    public var convertInboxAssistantRules: UInt32? = 1
+    var convertInboxAssistantRules: UInt32? = 1
     /// Outlook 2002 and later: a byte count (the field once called Unknown9) followed by that many bytes, which
     /// Outlook 2002 only loads and saves (spec §4.2). Always empty in the samples. nil before Outlook 2002.
-    public var extraData: Data? = Data()
-    public var numberOfRules: UInt16
+    var extraData: Data? = Data()
+    var numberOfRules: UInt16
 
-    public init(numberOfRules: UInt16, version: OutlookRulesVersion = .outlook2010) {
+    init(numberOfRules: UInt16, version: OutlookRulesVersion = .outlook2010) {
         self.version = version
         self.versionStamp = RulesHeader.defaultVersionStamp(for: version)
         self.writerVersion = RulesHeader.defaultWriterVersion(for: version)
@@ -96,7 +96,7 @@ internal struct RulesHeader {
         }
     }
 
-    public init(dataStream: inout DataStream, version: OutlookRulesVersion? = nil) throws {
+    init(dataStream: inout DataStream, version: OutlookRulesVersion? = nil) throws {
         let version = try version ?? RulesHeader.detectVersion(versionStamp: dataStream.peek(endianess: .littleEndian))
         self.version = version
 
@@ -174,7 +174,7 @@ internal struct RulesHeader {
     /// Writes the header in the layout of the specified version.
     /// Fields that were read from a file of the same version are preserved; fields that are
     /// not present in this header (e.g. when converting between versions) use sensible defaults.
-    public func write(to dataStream: inout OutputDataStream, version: OutlookRulesVersion) {
+    func write(to dataStream: inout OutputDataStream, version: OutlookRulesVersion) {
         var source = version == self.version ? self : RulesHeader(numberOfRules: numberOfRules, version: version)
         if version != self.version {
             /// These settings mean the same in every version that has a header, so keep them when converting.

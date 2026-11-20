@@ -76,6 +76,8 @@ for (index, rule) in rules.rules.enumerated() {
                 line += ": \(folder.folderName)"
             } else if let categories = element.parameter as? CategoryParameter {
                 line += ": \(categories.categories.joined(separator: ", "))"
+            } else if let addresses = element.parameter as? AddressParameter {
+                line += ": \(addresses.recipients.compactMap { $0.displayName }.joined(separator: ", "))"
             }
             print(line)
         }
@@ -94,17 +96,32 @@ Rule 2: RULE1 (enabled)
     automaticReplyCondition
 ```
 
-Each rule has a `name`, an `enabled` flag, and `conditions`, `actions` and `exceptions`. Rules made with the Outlook 97 Rules Wizard also record the wizard template they came from in `templateName`. Each of those is a `RuleElement` with an `identifier` (what the element is) and `parameters` (its details). Cast `element.parameter` to the matching type, such as `StringParameter`, `FolderParameter` or `AddressParameter`, to read them. See the [tests](Tests/OutlookRulesReaderTests) for an example of every kind of condition, action and exception.
+Each rule has a `name`, an `enabled` flag, and `conditions`, `actions` and `exceptions`. Rules made with the Outlook 97 Rules Wizard also record the wizard template they came from in `templateName`. Each of those is a `RuleElement` with an `identifier` (what the element is) and `parameters` (its details). Cast `element.parameter` to the matching type, such as `StringParameter`, `FolderParameter` or `AddressParameter`, to read them. See the [tests](Tests/OutlookRulesReaderTests) for an example of every kind of condition, action and exception. `identifier.parameterType` says which parameter type an element takes, and `print(rules)` prints every rule with its elements and parameters.
 
-Rules can also be written back to a file:
+People and public groups (`AddressParameter`) are lists of MAPI properties. `recipients` decodes the common ones: `displayName`, `addressType`, `emailAddress`, `smtpAddress`, `entryId` and `recipientType`.
+
+Rules can be edited and written back to a file. The rest of the file (template directory, server settings) is kept:
 
 ```swift
+var rules = try OutlookRules(data: data)
+rules.rules[0].enabled = false
+rules.rules.append(Rule(eventFlags: .afterReceived, name: "Tidy invoices", conditions: [
+    RuleElement(identifier: .specificWordsInSubjectCondition, parameter: StringParameter(value: "invoice"))
+], actions: [
+    RuleElement(identifier: .deleteAction)
+]))
 let newData = rules.getData()
 ```
 
-`getData(version:)` writes the file in the format of a specific Outlook version, such as `.outlook2007`. `rules` can be edited in place before writing; the rest of the file (template directory, server settings) is kept.
+`getData(version:)` writes the file in the format of a specific Outlook version, such as `.outlook2007`.
 
 Like Outlook's own Export Rules, writing to an older format leaves out every rule that contains a condition, action or exception that format can't store, since that version of Outlook would fail to load the file. `unsupportedRules(in:)` lists the rules that would be left out.
+
+### Errors
+
+A file that can't be read throws an `OutlookRulesReadError` saying why, such as `unknownElement(identifier:)` or `dataSizeMismatch(dataSize:actualSize:)`, or `DataStreamError.noSpace` if it ends early. Malformed input throws; it never crashes.
+
+In the Outlook 2002 and later formats, each rule records its size, so a rule whose elements this library can't read (for example, one using an element from a later version of Outlook) is kept rather than failing the whole file. Its `unparsedReason` says why, and it is written back unchanged.
 
 ## Contributing
 All contributions to the specification and the implementation library are welcome and encouraged!

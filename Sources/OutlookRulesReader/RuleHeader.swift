@@ -11,25 +11,25 @@ import DataStream
 internal struct RuleHeader {
     /// The rule's own version stamp (Outlook 2002 and later formats only). Normally the stream's stamp; a rule with
     /// an older stamp keeps that older layout inside a newer stream (spec §4.3.1).
-    public var versionStamp: UInt32?
-    public var name: String
-    public var enabled: Bool
+    var versionStamp: UInt32?
+    var name: String
+    var enabled: Bool
     /// 1 after the rule failed while running on the client (Outlook 2000; spec §4.3.1).
-    public var runError: UInt32 = 0
+    var runError: UInt32 = 0
     /// 1 once the rule has been saved to the Exchange server's rules table (spec §4.3.1).
-    public var serverRule: UInt32 = 0
+    var serverRule: UInt32 = 0
     /// Rule flags (Outlook 98 and later). See `RuleFlags` and spec §4.3.1.1.
-    public var flags: UInt32? = 0
+    var flags: UInt32? = 0
     /// The ID of the rule's copy on the Exchange server (Outlook 2002 and later; spec §4.3.1).
-    public var serverRuleId: UInt32? = 0
+    var serverRuleId: UInt32? = 0
     /// The number of bytes from the end of this field to the end of the rule (Outlook 2002 and later only).
-    public var dataSize: UInt32?
+    var dataSize: UInt32?
     /// Whether NumberOfElements and the elements follow. In the Outlook 2002 and later formats, a DataSize of 0 means
     /// the rule stores no element list at all, not even its count (Outlook 2003; spec §4.3.1).
-    public var hasElementList: Bool = true
-    public var numberOfElements: UInt16
+    var hasElementList: Bool = true
+    var numberOfElements: UInt16
 
-    public init(name: String, enabled: Bool = false, numberOfElements: UInt16, dataSize: UInt32) {
+    init(name: String, enabled: Bool = false, numberOfElements: UInt16, dataSize: UInt32) {
         self.name = name
         self.enabled = enabled
         self.dataSize = dataSize
@@ -46,7 +46,7 @@ internal struct RuleHeader {
     }
 
     /// Reads a rule header. `version` is the stream's version; the rule's contents use `contentVersion`.
-    public init(dataStream: inout DataStream, version: OutlookRulesVersion) throws {
+    init(dataStream: inout DataStream, version: OutlookRulesVersion) throws {
         if version >= .outlook2002 {
             /// Version Stamp (4 bytes)
             self.versionStamp = try dataStream.read(endianess: .littleEndian)
@@ -97,7 +97,7 @@ internal struct RuleHeader {
     }
 
     /// Writes the header. `version` is the stream's version; the rule's contents use `contentVersion`.
-    public func write(to dataStream: inout OutputDataStream, version streamVersion: OutlookRulesVersion) {
+    func write(to dataStream: inout OutputDataStream, version streamVersion: OutlookRulesVersion) {
         let stamp = versionStamp ?? RulesHeader.defaultVersionStamp(for: streamVersion) ?? 0
         if streamVersion >= .outlook2002 {
             /// Version Stamp (4 bytes)

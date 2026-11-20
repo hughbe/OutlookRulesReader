@@ -41,6 +41,7 @@ extension Rule: Equatable {
             && lhs.runError == rhs.runError
             && lhs.serverRuleId == rhs.serverRuleId
             && lhs.elements == rhs.elements
+            && lhs.unparsedElements == rhs.unparsedElements
     }
 }
 

@@ -110,17 +110,22 @@ final class RobustnessTests: XCTestCase {
     }
 
     func testSpecificErrors() throws {
+        // Outlook 2000 rules have no DataSize, so a rule that can't be read can't be skipped.
+        let delete2000 = OutlookRules(rules: [
+            Rule(eventFlags: .afterReceived, name: "R", actions: [RuleElement(identifier: .deleteAction)])
+        ]).getData(version: .outlook2000)
+        XCTAssertNil(readError(delete2000))
+
+        // The delete action (0x012D, no parameters) after its object tag.
+        let unknown = try replacing([0x01, 0x80, 0x2D, 0x01, 0x00, 0x00], with: [0x01, 0x80, 0xFF, 0x0F, 0x00, 0x00], in: delete2000)
+        XCTAssertEqual(.unknownElement(identifier: 0x0FFF), readError(unknown))
+
+        let parameter = try replacing([0x2D, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00], with: [0x2D, 0x01, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00], in: delete2000)
+        XCTAssertEqual(.unexpectedParameter(element: .deleteAction), readError(parameter))
+
         let delete = OutlookRules(rules: [
             Rule(eventFlags: .afterReceived, name: "R", actions: [RuleElement(identifier: .deleteAction)])
         ]).getData(version: .outlook2010)
-        XCTAssertNil(readError(delete))
-
-        // The delete action (0x012D, no parameters) after its object tag.
-        let unknown = try replacing([0x01, 0x80, 0x2D, 0x01, 0x00, 0x00], with: [0x01, 0x80, 0xFF, 0x0F, 0x00, 0x00], in: delete)
-        XCTAssertEqual(.unknownElement(identifier: 0x0FFF), readError(unknown))
-
-        let parameter = try replacing([0x2D, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00], with: [0x2D, 0x01, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00], in: delete)
-        XCTAssertEqual(.unexpectedParameter(element: .deleteAction), readError(parameter))
 
         // The name "R" with its length, then an unpaired high surrogate in place of the "R".
         let surrogate = try replacing([0x01, 0x52, 0x00], with: [0x01, 0x00, 0xD8], in: delete)
@@ -133,6 +138,43 @@ final class RobustnessTests: XCTestCase {
         let declaration: [UInt8] = [0xFF, 0xFF, 0x00, 0x00, 0x0C, 0x00] + Array("CRuleElement".utf8)
         let redeclared = try replacing([0x01, 0x80], with: declaration, in: twice)
         XCTAssertEqual(.invalidClassDeclaration, readError(redeclared))
+    }
+
+    /// In Outlook 2002 and later formats, a rule with elements this library can't read is kept, using its DataSize,
+    /// instead of failing the whole file (spec §4.3.1).
+    func testRuleWithUnknownElementIsKept() throws {
+        let original = OutlookRules(rules: [
+            Rule(eventFlags: .afterReceived, name: "Future", actions: [RuleElement(identifier: .deleteAction)]),
+            Rule(eventFlags: .afterSent, name: "Known", actions: [RuleElement(identifier: .markAsReadAction)]),
+        ]).getData(version: .outlook2010)
+        let data = try replacing([0x01, 0x80, 0x2D, 0x01, 0x00, 0x00], with: [0x01, 0x80, 0xFF, 0x0F, 0x00, 0x00], in: original)
+
+        var file = try OutlookRules(data: data)
+        XCTAssertEqual(2, file.rules.count)
+        XCTAssertEqual("Future", file.rules[0].name)
+        XCTAssertEqual(.unknownElement(identifier: 0x0FFF), file.rules[0].unparsedReason)
+        XCTAssertTrue(file.rules[0].elements.isEmpty)
+        XCTAssertEqual(.afterReceived, file.rules[0].eventFlags)
+        XCTAssertNil(file.rules[1].unparsedReason)
+        XCTAssertEqual([.markAsReadAction], file.rules[1].actions.map { $0.identifier })
+        XCTAssertEqual(data, file.getData())
+
+        // The first rule declared the CRuleElement class. Moving it second must move the declaration too.
+        file.rules.reverse()
+        let reordered = try OutlookRules(data: file.getData())
+        XCTAssertEqual(["Known", "Future"], reordered.rules.map { $0.name })
+        XCTAssertEqual(.unknownElement(identifier: 0x0FFF), reordered.rules[1].unparsedReason)
+        XCTAssertEqual(file.getData(), reordered.getData())
+
+        // Its elements are in the Outlook 2010 layout, so it can't be written in any other format.
+        XCTAssertEqual(["Future"], file.unsupportedRules(in: .outlook2007).map { $0.name })
+        XCTAssertEqual(["Known"], try OutlookRules(data: file.getData(version: .outlook2007)).rules.map { $0.name })
+
+        // Giving it elements replaces the ones that couldn't be read.
+        file.rules[1].elements = [RuleElement(identifier: .deleteAction)]
+        let replaced = try OutlookRules(data: file.getData())
+        XCTAssertNil(replaced.rules[1].unparsedReason)
+        XCTAssertEqual([.deleteAction], replaced.rules[1].actions.map { $0.identifier })
     }
 
     /// Every identifier says whether it takes a parameter, and reads the parameters Outlook writes for it.
