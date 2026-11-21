@@ -57,7 +57,7 @@ How the user interface changed, version by version. Dialog numbers are resource 
 
 **Outlook 98.** The Options dialog (2322) has Outlook 97's "Update server" section, Export Rules and Import Rules, and "Prompt to convert Inbox Assistant rules". The Inbox Assistant conversion is dialog 2323 ([Server rules §7](ServerRules.md#7-inbox-assistant-and-out-of-office-rules)), and the client/server conflict dialog is 234 ([Server rules §6](ServerRules.md#6-client-and-server-rules-conflict)).
 
-**Outlook 2000.** The UI strings and dialogs move into a separate resource DLL, `OUTLLIBR.DLL`, with the same IDs. The Options dialog (2322) no longer has the Inbox Assistant option, but the prompt (2323) is unchanged. The Download Options dialog (1129) builds the rule with Flags `0x40` ([Rules §5.2](Rules.md#52-rule-flags-and-outlooks-own-rules)).
+**Outlook 2000.** The UI strings and dialogs move into a separate resource DLL, `OUTLLIBR.DLL`, with the same IDs. The Options dialog (2322) no longer has the Inbox Assistant option, but the prompt (2323) is unchanged. The Download Options dialog (1129) builds the rule with Flags `0x40` ([Rules §5.2](Rules.md#52-rule-flags)).
 
 **Outlook 2002.**
 

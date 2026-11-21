@@ -27,7 +27,7 @@ Otherwise Outlook 97 warns that the rule "is a client-only rule, and will proces
 
 ## 2. Uploading rules
 
-Outlook writes each rule to the Inbox's server rules table as a MAPI rule ([MS-OXORULE]) with these properties (Outlook 98):
+Outlook writes each rule to the Inbox's server rules table as a MAPI rule ([MS-OXORULE](https://learn.microsoft.com/en-us/openspecs/exchange_server_protocols/ms-oxorule)) with these properties (Outlook 98):
 
 * `PR_RULE_SEQUENCE`, from a running counter;
 * `PR_RULE_STATE`, with `ST_EXIT_LEVEL` added when the rule stops processing;
@@ -120,6 +120,15 @@ These have no server form: the conditions `0x00D1`, `0x00D7` (category), `0x00DA
 
 **By version.** Outlook 98 already has the same conditions without a server form as Outlook 2002, and sends only move (`0x012C`), delete (`0x012D`), forward (`0x012E`), copy (`0x0139`) and stop processing (`0x0142`) as actions. Outlook 2000 and 2002 add redirect, server reply and forward as attachment. Outlook 2003 adds the meeting and Alert E-mail conditions, Outlook 2007 the category and RSS conditions and "clear message's categories", and Outlook 2010 the retention policy. The server-rule code also accepts identifiers that no definition table has ([Rules §7.6](Rules.md#76-identifiers-outside-the-tables)).
 
+**Identifiers outside the definition tables.** The code that builds server rules and runs rules also has cases for identifiers that no definition table has ([Rules §7.6](Rules.md#76-identifiers-outside-the-tables)):
+
+* the conditions `0x00D1`, `0x00D6`, `0x00D8`, `0x00D9` and `0x00DD`. Outlook 98, 2000 and 2003 send `0x00D6` and `0x00D8` to the server as "from", and Outlook 98 and 2003 send `0x00D9` as "words in the body" (Outlook 2000 has a separate case for it). Outlook 98, 2002 and 2003 have no client test for any of the five ([Running §3](Running.md#3-condition-tests));
+* the exceptions `0x0202`, `0x0204` and `0x0205` (Outlook 2003's server-rule code);
+* the actions `0x0134`, which the server-rule code of Outlook 98–2013 treats as move, and `0x0135`, treated as forward. Neither has a client handler;
+* the action `0x013D`, which Outlook 98 makes when it converts an Inbox Assistant rule whose action it can't express ([§7](#7-inbox-assistant-and-out-of-office-rules)). It has no handler either.
+
+Rebuilding a rule from a server rule can also ask for `0x00DD` ([§5](#5-reading-server-rules-back)), which then fails.
+
 ## 4. Client-only parts and deferred actions
 
 A rule with client-only parts still goes to the server, which hands each message it matches back to Outlook:
@@ -170,7 +179,7 @@ When Outlook reads the server's rules, it turns them back into its own rules:
   | `PR_MESSAGE_FLAGS` & `MSGFLAG_HASATTACH` | `0x00DE` has an attachment; a test that the flag is clear becomes the opposite (`0x020A` as a condition) |
 
   `PR_SENDER_NAME`, `PR_DISPLAY_NAME` and `PR_RECIPIENT_TYPE` restrictions are skipped. Other `PR_MESSAGE_FLAGS` tests ask for `0x00DD`, which isn't in the definition tables. Any other property fails with `MAPI_E_NO_SUPPORT` (`0x80040102`). Outlook 2003 reads no `0x00F1` or `0x00F3` back, and nothing produces `0x00E5` or `0x00CF` here.
-* **Outlook 2010 and 2013** still turn an `OP_TAG` on `PR_SENSITIVITY` into `0x0138`, and the Keywords tag into `0x0152`, raising the rule to 1200000. An `OP_TAG` on `PR_POLICY_TAG` now becomes `0x0153`, with the rule raised to `0x140000`. In one case they also take Flags from offset `0x18` of the provider data ([Rules §5.2](Rules.md#52-rule-flags-and-outlooks-own-rules)). When they read the server's rules, they remove every server rule whose `PR_RULE_NAME` starts with `#NET`, the server copies of the old Net Folders rule. The same pass resets the ServerRuleId counter ([Rules §5.1](Rules.md#51-ruleheader)) and finds the newest provider-data timestamp ([§6](#6-client-and-server-rules-conflict)).
+* **Outlook 2010 and 2013** still turn an `OP_TAG` on `PR_SENSITIVITY` into `0x0138`, and the Keywords tag into `0x0152`, raising the rule to 1200000. An `OP_TAG` on `PR_POLICY_TAG` now becomes `0x0153`, with the rule raised to `0x140000`. In one case they also take Flags from offset `0x18` of the provider data ([Rules §5.2](Rules.md#52-rule-flags)). When they read the server's rules, they remove every server rule whose `PR_RULE_NAME` starts with `#NET`, the server copies of the old Net Folders rule. The same pass resets the ServerRuleId counter ([Rules §5.1](Rules.md#51-ruleheader)) and finds the newest provider-data timestamp ([§6](#6-client-and-server-rules-conflict)).
 
 ## 6. Client and server rules conflict
 

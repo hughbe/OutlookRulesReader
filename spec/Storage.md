@@ -35,7 +35,7 @@ It loads what it found in import mode, which clears every ServerRuleId, and Outl
 
 ## 2. Rules Outlook creates itself
 
-Outlook marks most of the rules it creates with bits of the rule's Flags field ([Rules §5.2](Rules.md#52-rule-flags-and-outlooks-own-rules)).
+Outlook marks most of the rules it creates with bits of the rule's Flags field ([Rules §5.2](Rules.md#52-rule-flags)).
 
 ### 2.1 By version
 
