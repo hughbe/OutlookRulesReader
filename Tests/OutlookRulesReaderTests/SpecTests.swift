@@ -13,7 +13,14 @@ import XCTest
 /// Tests for the behaviour described in spec/Rules.md.
 final class SpecTests: XCTestCase {
     private func sampleFiles() -> [URL] {
-        return (Bundle.module.urls(forResourcesWithExtension: "rwz", subdirectory: nil) ?? [])
+        // Enumerated rather than using Bundle.urls(forResourcesWithExtension:), which returns [NSURL] on Linux.
+        guard let resources = Bundle.module.resourceURL,
+              let enumerator = FileManager.default.enumerator(at: resources, includingPropertiesForKeys: nil) else {
+            return []
+        }
+
+        return enumerator.compactMap { $0 as? URL }
+            .filter { $0.pathExtension == "rwz" }
             .sorted { $0.lastPathComponent < $1.lastPathComponent }
     }
 
