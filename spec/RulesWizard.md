@@ -7,10 +7,16 @@ As in the format specification, a statement about an Outlook version was read fr
 ## Contents
 
 * [1. Element definitions](#1-element-definitions)
+  * [1.1 What a definition holds](#11-what-a-definition-holds)
+  * [1.2 The masks](#12-the-masks)
+  * [1.3 Hidden and refused elements](#13-hidden-and-refused-elements)
+  * [1.4 The rule-set mask](#14-the-rule-set-mask)
 * [2. Filling in parameters](#2-filling-in-parameters)
 * [3. Dialogs by version](#3-dialogs-by-version)
 
 ## 1. Element definitions
+
+### 1.1 What a definition holds
 
 Outlook keeps a *definition* for each element. Definitions aren't written to the file, but they decide which elements the Rules Wizard offers, which rules can run on the server, and which elements a version keeps when it loads a file. A definition holds:
 
@@ -20,16 +26,22 @@ Outlook keeps a *definition* for each element. Definitions aren't written to the
 * a **client-only** flag, which matches the client-only column of `docs/Rules Sever Side.xlsx` for every Outlook 97 element ([Server rules §1](ServerRules.md#1-which-rules-run-on-the-server));
 * the string ID of its UI text, for example "with %s in the subject". Two more strings come from it: text + 1000 is the placeholder shown underlined until a value is chosen ("specific words"), and text + 2000 is the prompt in the edit dialog ("Specify a word or phrase to search for in the subject:"). For `0x0064` ("for each *message*") the placeholder is "message" and the prompt is "Select a message type:".
 
-**The masks.** The wizard offers an element, and a rule is consistent, only if both of the element's masks overlap the rule's. The rule's masks are built from its `0x0064` ("for each *message*") item types ([Rules §8.2](Rules.md#82-itemtypeparameter)) and its `0x0190` ("apply this rule *after the message arrives*") events ([Rules §8.1](Rules.md#81-eventparameter)): `0x1` = arrives, `0x4` = sent. For example, "notify me when it is read" and "Cc the message to" have events `4`, so they're only offered for rules on sent messages. Outlook 97 never sets bit `0x2` of either rule mask. In the item-type mask it would be an item type Outlook 97 never defines. In the event mask, the rule's events are copied as `0x1` → `0x1` and `0x4` → `0x4`, and the third event, "after the server receives the message" (`0x8`), is never mapped. **[Inferred]** Bit `0x2` was meant for that third event. Outlook 2010 clears event bit `0x2` in every definition, and Outlook 98–2002 reserve item-type bits `0x2` and `0x4` that no item type uses ([Rules §8.2](Rules.md#82-itemtypeparameter)).
+### 1.2 The masks
 
-**Which elements the wizard offers.** Later versions add tests that hide or refuse elements:
+The wizard offers an element, and a rule is consistent, only if both of the element's masks overlap the rule's. The rule's masks are built from its `0x0064` ("for each *message*") item types ([Rules §8.2](Rules.md#82-itemtypeparameter)) and its `0x0190` ("apply this rule *after the message arrives*") events ([Rules §8.1](Rules.md#81-eventparameter)): `0x1` = arrives, `0x4` = sent. For example, "notify me when it is read" and "Cc the message to" have events `4`, so they're only offered for rules on sent messages. Outlook 97 never sets bit `0x2` of either rule mask. In the item-type mask it would be an item type Outlook 97 never defines. In the event mask, the rule's events are copied as `0x1` → `0x1` and `0x4` → `0x4`, and the third event, "after the server receives the message" (`0x8`), is never mapped. **[Inferred]** Bit `0x2` was meant for that third event. Outlook 2010 clears event bit `0x2` in every definition, and Outlook 98–2002 reserve item-type bits `0x2` and `0x4` that no item type uses ([Rules §8.2](Rules.md#82-itemtypeparameter)).
+
+### 1.3 Hidden and refused elements
+
+Later versions add tests that hide or refuse elements:
 
 * **Hidden elements.** In Outlook 2010 and 2013, the wizard leaves out an element it may not offer, unless the rule already contains it. An element may not be offered when a flag of its definition is clear (only Alert E-mail, `0x00F3`, which only alerts create), and the InfoPath elements (`0x00F4`, `0x0218`) when InfoPath isn't available. Outlook 2013 also hides "perform a custom action" (`0x013F`).
 * **Refused elements.** Outlook 2010 RTM won't let the wizard use the relevance elements (`0x00ED`, `0x0145`). Its later updates also refuse the custom action, "start application" and "run a script" unless unsafe actions are allowed ([Running §6](Running.md#6-unsafe-actions)). Outlook 2013 refuses only the custom action.
 * **Server-only actions.** Outlook 2002 added a field to its definitions that is set only for redirect (`0x0144`) and server reply (`0x0146`). Outlook 2002 and 2003 never use it. Outlook 2010 and 2013 hide these two actions when the store has no Exchange server rules, such as a PST. **[Inferred]** The field therefore marks the actions that only the Exchange server can carry out.
-* **Availability.** Outlook 2010 and 2013 offer the retention policy action (`0x0153`) only when retention policies are available. Outlook 2013 also checks "mark it as *importance*" (`0x0137`, [Rules §8.6](Rules.md#86-importanceparameter)).
+* **Availability.** Outlook 2010 and 2013 offer the retention policy action (`0x0153`) only when retention policies are available. Outlook 2013 also checks "mark it as *importance*" (`0x0137`, [Rules §8.6](Rules.md#86-importanceparameter)). It offers that action only when the store doesn't support the interface `{1291AD20-0F92-4833-BF72-A0F763DDB434}`. The interface is undocumented. **[Inferred]** Only Exchange ActiveSync stores support it, such as an Outlook.com account added in Outlook 2013, so Outlook 2013 doesn't offer "mark it as importance" for them. The evidence is in [Decompilation §10.2](Decompilation.md#102-definitions-and-parameters).
 
-**The rule-set mask (Outlook 2003 and 2007).** Each of Outlook 2003's element definitions has a mask of the kinds of rule set the element belongs to, and Outlook's own rules always use kind `2`. The mask isn't written to the file, but it decides which elements survive loading:
+### 1.4 The rule-set mask
+
+The rule-set mask exists in Outlook 2003 and 2007. Each of Outlook 2003's element definitions has a mask of the kinds of rule set the element belongs to, and Outlook's own rules always use kind `2`. The mask isn't written to the file, but it decides which elements survive loading:
 
 * After reading an element whose mask lacks bit `0x2`, Outlook discards it and doesn't add it to the rule. Only the hidden actions `0x014D` ("have server reply using *a specific message*") and `0x014E` ("notify me using a .NET notification") have such a mask (`1`). Nothing in Outlook 2003 creates either of them: they appear only in the definition table, so Outlook 2003 can neither make nor keep them.
 * The mask also decides one more thing. The Rules Wizard offers only elements whose mask overlaps the rule's. In a rule set without bit `0x1`, Outlook treats `0x0136` (play a sound), `0x0149` (start application), `0x014B` (run a script), `0x00EE`/`0x0214` (account), `0x00F0`/`0x0215` (address book), and moving or copying to some folders, as tied to this computer, and links them to the condition "on this computer only" (`0x00EF`).
@@ -38,13 +50,12 @@ Outlook keeps a *definition* for each element. Definitions aren't written to the
 
 Outlook 2010 removes the rule-set mask. Its definitions still have the field, but it is `0` in every one and is no longer used: no element is dropped when loading, and the two elements with mask `1`, `0x014D` ("have server reply using *a specific message*") and `0x014E` ("notify me using a .NET notification"), are gone. So the whole mechanism, and with it any use of bit `0x1`, is gone. Outlook 2013 is the same.
 
-**Mark it as importance.** Outlook 2013 offers the action only when the store doesn't support the interface `{1291AD20-0F92-4833-BF72-A0F763DDB434}`. The interface is undocumented. **[Inferred]** Only Exchange ActiveSync stores support it, such as an Outlook.com account added in Outlook 2013, so Outlook 2013 doesn't offer "mark it as importance" for them. The evidence is in [Decompilation §10.2](Decompilation.md#102-definitions-and-parameters).
 
 ## 2. Filling in parameters
 
 **Document properties** ([Rules §8.9.1](Rules.md#891-matchifmissing)). How the Document or Form Properties dialog sets MatchIfMissing:
 
-* **Outlook 2000** never sets it either. Its Document Properties dialog keeps a non-zero value when it saves the list again, and adds a copy of that property with the tag of the property's other name (for example `Subject` and `Document Subject`) and MatchIfMissing `0`.
+* **Outlook 2000** never sets it. Its Document Properties dialog keeps a non-zero value when it saves the list again, and adds a copy of that property with the tag of the property's other name (for example `Subject` and `Document Subject`) and MatchIfMissing `0`.
 * **Outlook 2003–2013** do set it. When the user picks one of the Office document properties from the dialog's menu ([Rules §8.9.2](Rules.md#892-office-document-properties)), the new property gets MatchIfMissing `1`. Saving the list adds a copy under the property's other name with MatchIfMissing `0`. Fields of a form get `0`. Outlook 2007–2013 also record the property's place in the table. In Outlook 2010 and 2013, names the user types in get `0`, and the dialog gets IDs for all 52 names (26 properties under both names) with `GetIDsFromNames` and `MAPI_CREATE`.
 
 **Scripts** ([Rules §8.26](Rules.md#826-scriptparameter)). The "select script" dialog lists the procedures from a list Outlook reads from its VBA project. Each entry has two strings of up to 255 characters, and choosing one copies the first into Name and the second into Function. The current choice is found by comparing Name. With no procedures, both strings are cleared. (Outlook 2003.)

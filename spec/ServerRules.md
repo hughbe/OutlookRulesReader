@@ -8,6 +8,10 @@ As in the format specification, a statement about an Outlook version was read fr
 
 * [1. Which rules run on the server](#1-which-rules-run-on-the-server)
 * [2. Uploading rules](#2-uploading-rules)
+  * [2.1 Provider data](#21-provider-data)
+  * [2.2 Provider name](#22-provider-name)
+  * [2.3 Recording the upload](#23-recording-the-upload)
+  * [2.4 Keeping the server up to date](#24-keeping-the-server-up-to-date)
 * [3. Server forms of elements](#3-server-forms-of-elements)
 * [4. Client-only parts and deferred actions](#4-client-only-parts-and-deferred-actions)
 * [5. Reading server rules back](#5-reading-server-rules-back)
@@ -33,7 +37,9 @@ Outlook writes each rule to the Inbox's server rules table as a MAPI rule ([MS-O
 * `PR_RULE_STATE`, with `ST_EXIT_LEVEL` added when the rule stops processing;
 * `PR_RULE_CONDITION` and `PR_RULE_ACTIONS` ([§3](#3-server-forms-of-elements));
 * `PR_RULE_PROVIDER`, `PR_RULE_LEVEL` and `PR_RULE_NAME`;
-* `PR_RULE_PROVIDER_DATA`, laid out as follows.
+* `PR_RULE_PROVIDER_DATA`, laid out as in [§2.1](#21-provider-data).
+
+### 2.1 Provider data
 
 | Offset | Size | Field |
 |---|---|---|
@@ -45,15 +51,22 @@ Outlook writes each rule to the Inbox's server rules table as a MAPI rule ([MS-O
 
 From Outlook 2002 the provider data embeds the rule, Flags included, and offset 0 holds the embedded rule's own version stamp. Outlook 2002 sends `PR_RULE_ID` when it knows it.
 
+### 2.2 Provider name
+
 **Provider name.** `PR_RULE_PROVIDER` is `RuleOrganizer`, followed by `2` when the rule's version is 1000000 or later (Outlook 2002–2013). For "on this computer only" (`0x00EF`), the GUID of that condition follows as 32 uppercase hex digits ([Rules §8.16](Rules.md#816-profilestampparameter)). When reading the server's rules, Outlook treats any provider that starts with `RuleOrganizer` as its own and compares the machine ID. The Inbox Assistant's rules use the provider `MSFT:TDX Rules`, and the Out of Office Assistant's `MSFT:TDX OOF Rules` ([§7](#7-inbox-assistant-and-out-of-office-rules)).
 
-**Timestamp.** Each upload sets the provider-data timestamp to the current local time and then stores that same value as the footer Timestamp ([Rules §6](Rules.md#6-rulesfooter)) (Outlook 2002).
+A rule with "on this computer only" ([Rules §8.16](Rules.md#816-profilestampparameter)) carries the computer's ID to the server:
 
-**Bookkeeping.** After writing a rule, Outlook sets its ServerRule field, and its ServerRuleId when it is new ([Rules §5.1](Rules.md#51-ruleheader)). A rule whose version is newer than Outlook's own isn't uploaded. When the server has no room, Outlook 98 deactivates the rules that failed to upload (and Outlook 97 sets ServerRulesOutOfDate, [Rules §4.4](Rules.md#44-server-settings)).
+* **Outlook 2002**: when it uploads such a rule to Exchange, it appends this GUID to the rule's `PR_RULE_PROVIDER` as 32 uppercase hex digits. A deferred action from that rule is then handled only on the machine whose ID matches ([§4](#4-client-only-parts-and-deferred-actions)).
+* **Outlook 2003**: the Exchange store provider uses this computer's ID to pick out its rules in Cached Exchange Mode ([Running §1.1](Running.md#11-cached-exchange-mode)).
+* **Outlook 2007–2013** build the provider name in the same way: `RuleOrganizer`, then `2` if the rule's version is 1000000 or later, then the GUID as 32 hex digits. Outlook 2010's rules list marks a rule whose GUID isn't this computer's.
+* Outlook 2007 still exports `HrGetRulesMachineID`, which gives this computer's ID to other components. Outlook 2010 no longer does (its only rules export is `HrImportRules`), and Outlook 2013 exports no rules functions at all.
 
-**Recording the upload.**
+### 2.3 Recording the upload
 
-**ServerRule** ([Rules §5.1](Rules.md#51-ruleheader)). Outlook 97 serializes the rule and writes `PR_RULE_PROVIDER_DATA`, `PR_RULE_STATE` and the other server-rule properties through MAPI, then sets this field to `1` ([§2](#2-uploading-rules)). It is cleared again if saving fails or the server rules are reset. Every later version, up to Outlook 2013, reads and writes the field in the same place, and changes it only in the code for server rules:
+After writing a rule, Outlook sets its ServerRule field, and its ServerRuleId when it is new ([Rules §5.1](Rules.md#51-ruleheader)). A rule whose version is newer than Outlook's own isn't uploaded. When the server has no room, Outlook 98 deactivates the rules that failed to upload (and Outlook 97 sets ServerRulesOutOfDate, [Rules §4.4](Rules.md#44-server-settings)).
+
+**ServerRule** ([Rules §5.1](Rules.md#51-ruleheader)). Outlook 97 serializes the rule and writes `PR_RULE_PROVIDER_DATA`, `PR_RULE_STATE` and the other server-rule properties through MAPI, then sets this field to `1`. It is cleared again if saving fails or the server rules are reset. Every later version, up to Outlook 2013, reads and writes the field in the same place, and changes it only in the code for server rules:
 
 * it sets `1` once a rule's server copy has been written;
 * it sets `0` when that fails, or when the rule isn't uploaded, for example because its version is newer than Outlook's own;
@@ -64,14 +77,11 @@ Outlook 2003 also reads the field in one other place. When the junk-mail options
 
 **ServerRuleId** ([Rules §5.1](Rules.md#51-ruleheader)). When Outlook 2002 first saves a rule to the server, it gives it the next number from a counter. The counter isn't stored anywhere: when Outlook reads the server's rules, it sets the counter to the highest ID found at offset 4 of their provider data ([§2](#2-uploading-rules)). Outlook stores the number at that offset of the rule's own `PR_RULE_PROVIDER_DATA` too, and uses it to match local rules with server rules. Importing a rules file clears it. Outlook 2003–2013 work the same way: a rule with ServerRuleId `0` gets the next number when its server rule is built, importing clears the field, and reading the server's rules resets the counter to `0` and raises it to the highest ID. Outlook 2010 and 2013 also use ServerRuleId to match a deferred action message to its rule ([§4](#4-client-only-parts-and-deferred-actions)).
 
-**This computer's ID.** A rule with "on this computer only" ([Rules §8.16](Rules.md#816-profilestampparameter)) carries the computer's ID to the server:
+**Timestamp.** Each upload sets the provider-data timestamp to the current local time and then stores that same value as the footer Timestamp ([Rules §6](Rules.md#6-rulesfooter)) (Outlook 2002).
 
-* **Outlook 2002**: when it uploads such a rule to Exchange, it appends this GUID to the rule's `PR_RULE_PROVIDER` as 32 uppercase hex digits. A deferred action from that rule is then handled only on the machine whose ID matches ([§4](#4-client-only-parts-and-deferred-actions)).
-* **Outlook 2003**: the Exchange store provider uses this computer's ID to pick out its rules in Cached Exchange Mode ([Storage §1](Storage.md#1-the-rules-message)).
-* **Outlook 2007–2013** build the provider name in the same way: `RuleOrganizer`, then `2` if the rule's version is 1000000 or later, then the GUID as 32 hex digits. Outlook 2010's rules list marks a rule whose GUID isn't this computer's.
-* Outlook 2007 still exports `HrGetRulesMachineID`, which gives this computer's ID to other components. Outlook 2010 no longer does (its only rules export is `HrImportRules`), and Outlook 2013 exports no rules functions at all.
+### 2.4 Keeping the server up to date
 
-**Server settings.** The rules header records how Outlook 97–2000 keep the server up to date ([Rules §4.4](Rules.md#44-server-settings)):
+The rules header records how Outlook 97–2000 keep the server up to date ([Rules §4.4](Rules.md#44-server-settings)):
 
 * **ServerRulesOutOfDate** is set when the rules or options change, or when an upload fails for lack of server space, and cleared after a successful upload. When updates are automatic, Outlook uploads at startup if it is set (Outlook 97).
 * **ServerUpdateMode** is the "Update server" setting of the Options dialog in Outlook 97, 98 and 2000, which also has an Update Now button: `1` = Manually (only when the user clicks "Update Now"), `2` = Automatically. Switching from Manually to Automatically triggers an immediate upload. `0` means not set, as written by Outlook 2002 and later.
@@ -195,12 +205,11 @@ From Outlook 98, Outlook compares the rules it has with the rules on the server,
 * **Outlook 2003 and 2007** keep that prompt. Outlook counts the local rules that can go to the server and compares the footer Timestamp with the newest server timestamp. Any difference counts, whichever side is newer. If neither side has anything, nothing happens. If the two differ, Outlook shows the prompt, but only on its main thread; elsewhere it gives up. The prompt's buttons are Client (keep the local rules and this timestamp), Server (take the server's rules and timestamp) and Cancel (give up). The comparison takes flags from its caller. One skips the check, one marks a call from saving, and one makes Outlook prompt when only the local side has rules. No caller sets that last flag, so in practice the prompt appears only when the server has rules and its newest timestamp differs from the footer's. Outlook 2007 rewords the prompt: "The rules on this computer do not match the rules on Microsoft Exchange. …".
 * **Outlook 2010 and 2013** keep the reworded prompt and the same logic. A further flag, also tested by Outlook 2007, makes the comparison give up instead of asking. If the first load of the rules fails, they load them again with the flag that skips the comparison cleared. Outlook 2013 also skips the comparison in a store without Exchange server rules, such as a PST.
 
-**The footer Timestamp** ([Rules §6](Rules.md#6-rulesfooter)) over time:
+**How Outlook keeps the footer Timestamp** ([Rules §6](Rules.md#6-rulesfooter)):
 
 * **Outlook 97**: when the Rules Wizard window saves, it supplies this timestamp; other saves write the stored value again. `RULESWIZ.DLL` has the message "Your client rules have been modified more recently than your Exchange Server rules", but no code uses it, so Outlook 97 never compares this timestamp.
-* **Outlook 98** is the first version to compare it with the server's rules, and asks the user which set to keep when they disagree ([§6](#6-client-and-server-rules-conflict)).
 * **Outlook 2002** keeps it in memory as minutes since 1601-01-01 (OLE days × 1440 + 157255200). It uses `0x5AE980E0` for "none", and writes that value as a null OleDateTime. Each upload to the server sets the provider-data timestamp to the current local time and then stores that same value here ([§2](#2-uploading-rules)).
-* **Outlook 2003–2013** keep the "none" value `0x5AE980E0`, and compare as Outlook 2002 does.
+* **Outlook 2003–2013** keep the "none" value `0x5AE980E0`.
 
 ## 7. Inbox Assistant and Out of Office rules
 

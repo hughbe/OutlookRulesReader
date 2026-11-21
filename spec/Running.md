@@ -7,6 +7,7 @@ As in the format specification, a statement about an Outlook version was read fr
 ## Contents
 
 * [1. When rules run](#1-when-rules-run)
+  * [1.1 Cached Exchange Mode](#11-cached-exchange-mode)
 * [2. Processing the rules](#2-processing-the-rules)
 * [3. Condition tests](#3-condition-tests)
   * [3.1 Words](#31-words)
@@ -36,9 +37,15 @@ Every trigger first sets a **run mode**, which says what kind of message is bein
 
 The event test matches a rule whose `0x0190` ("apply this rule *after the message arrives*") flags have "arrives" (`0x1`) only in modes `0` and `4`, and "sent" (`0x4`) only in modes `2` and `4` ([Rules §8.1](Rules.md#81-eventparameter)). The move and copy actions also check the message's store, but only in modes `0` and `4`.
 
-* **Outlook 2003**'s Cached Exchange Mode trigger passes `4` ([Storage §1](Storage.md#1-the-rules-message)), one trigger passes `2`, and the others `0`.
+* **Outlook 2003**'s Cached Exchange Mode trigger passes `4` ([§1.1](#11-cached-exchange-mode)), one trigger passes `2`, and the others `0`.
 * **Outlook 2007, 2010 and 2013** have four triggers: new mail (mode `0`, **[Inferred]** in Outlook 2007), a sent message (`2`), deferred action messages (`0`, or `4` when the cleanup routine has marked them, [Server rules §4](ServerRules.md#4-client-only-parts-and-deferred-actions)), and messages already in a folder (`4`). The folder run goes through a folder and its subfolders, 500 messages at a time. **[Inferred]** It is used by Run Rules Now and by "Run this rule now on messages already in the current folder" on the wizard's last page.
 * Outlook 97–2002 weren't traced.
+
+### 1.1 Cached Exchange Mode
+
+* **Outlook 2003** exports a function, `HrTriggerCachedExchangeRules`, that Office 2003's Exchange store provider (`EMSMDB32.DLL`) calls to run the client rules on newly arrived items in the default store's Inbox. Outlook runs the job on its main thread. The store provider also gets this computer's 33-character ID from Outlook's `HrGetRulesMachineID`, and uses it to restrict the server's rules table to three providers: Outlook's own rules (`RuleOrganizer`), the Out of Office Assistant's (`MSFT:TDX OOF Rules`) and the Inbox Assistant's (`MSFT:TDX Rules`). For each provider it matches the plain name as a prefix, or the name (`RuleOrganizer2` for Outlook's rules) followed by the computer ID exactly. The rules themselves are stored and read exactly as in online mode.
+* **Outlook 2007** no longer exports the trigger, but still exports `HrGetRulesMachineID`. It already handles cached mode as Outlook 2010 does.
+* **Outlook 2010 and 2013** export neither function and have no separate trigger for Cached Exchange Mode. Their cached-mode work is in their handling of deferred action messages ([Server rules §4](ServerRules.md#4-client-only-parts-and-deferred-actions)).
 
 ## 2. Processing the rules
 
@@ -112,7 +119,7 @@ A document property condition ([Rules §8.9](Rules.md#89-formparameter)) compare
 * Booleans: BoolMatch `0` matches a non-zero value and `1` matches zero.
 * Dates (`PT_SYSTIME`): DateMatch `0` matches dates before DateValue and `1` dates after it.
 
-The property type in PropTag selects which match and value pair applies: strings use StringMatch, integers NumberMatch, booleans BoolMatch and `PT_SYSTIME` DateMatch. The unused fields are written as zero or null.
+Which match field applies to each type is in [Rules §8.9](Rules.md#89-formparameter).
 
 Outlook 2007 and 2010 compare the same way. Both handle `PT_I2`, `PT_LONG`, `PT_ERROR`, `PT_BOOLEAN`, `PT_UNICODE`, `PT_SYSTIME` and `PT_MV_UNICODE`. A `PT_ERROR` value, which is what Outlook gets for a property the message doesn't have, records that the property is missing, for MatchIfMissing (Outlook 2010). Outlook 2007's branches were checked only for "contains", "is exactly" and integers. Outlook 2013's matcher reads MatchIfMissing in the same way; its branches weren't compared one by one.
 
@@ -126,7 +133,7 @@ Accounts are matched by ID, not by name. Outlook 2003 reads the message's accoun
 
 ### 3.5 This computer
 
-The condition matches when Stamp equals this computer's ID (Outlook 2003–2013). The ID is a GUID ([Rules §8.16](Rules.md#816-profilestampparameter)).
+"On this computer only" (`0x00EF`) matches when the parameter's Stamp, a GUID ([Rules §8.16](Rules.md#816-profilestampparameter)), equals this computer's ID (Outlook 2003–2013).
 
 ### 3.6 Address books
 
@@ -134,7 +141,7 @@ Outlook 2003 tests the condition by taking the sender's address (`PR_SENDER_EMAI
 
 ### 3.7 Alert E-mail
 
-Outlook splits Name at the last U+0001. It shows the part before it as the alert's name, and looks for the part after it in the message's transport headers (`PR_TRANSPORT_MESSAGE_HEADERS`) (Outlook 2003–2013). On the client, Outlook 2010 and 2013 use `wcsstr`, which is case-sensitive; on the server, Outlook 2003 uses a substring test that ignores case ([Server rules §3](ServerRules.md#3-server-forms-of-elements)).
+For "which is an *Alert E-mail*" (`0x00F3`), Outlook splits the parameter's Name ([Rules §8.18](Rules.md#818-alertparameter)) at the last U+0001. It shows the part before it as the alert's name, and looks for the part after it in the message's transport headers (`PR_TRANSPORT_MESSAGE_HEADERS`) (Outlook 2003–2013). On the client, Outlook 2010 and 2013 use `wcsstr`, which is case-sensitive; on the server, Outlook 2003 uses a substring test that ignores case ([Server rules §3](ServerRules.md#3-server-forms-of-elements)).
 
 ## 4. Actions
 
@@ -199,15 +206,15 @@ What "flag message for follow up" (`0x0151`, [Rules §8.27](Rules.md#827-flagfor
 
 ### 4.2 Retention policies
 
-The action sets the message's `PR_POLICY_TAG` (`0x30190102`) to PolicyId and `PR_RETENTION_PERIOD` (`0x301A0003`) to that period. On the server it is two `OP_TAG` actions for the same two properties ([Server rules §3](ServerRules.md#3-server-forms-of-elements)). (Outlook 2010 and 2013, [Rules §8.28](Rules.md#828-retentionpolicyparameter).)
+"Apply retention policy" (`0x0153`) sets the message's `PR_POLICY_TAG` (`0x30190102`) to the parameter's PolicyId, and `PR_RETENTION_PERIOD` (`0x301A0003`) to the policy's retention period. On the server it is two `OP_TAG` actions for the same two properties ([Server rules §3](ServerRules.md#3-server-forms-of-elements)). (Outlook 2010 and 2013, [Rules §8.28](Rules.md#828-retentionpolicyparameter).)
 
 ### 4.3 Scripts
 
-The script action opens the message as an Outlook item, passes it to the procedure as its single argument, and calls the VBA procedure that Name names. If that fails, Outlook reports an error quoting Name. The name is not split between the two strings. (Outlook 2002–2013, [Rules §8.26](Rules.md#826-scriptparameter).)
+"Run a script" (`0x014B`) opens the message as an Outlook item, passes it to the procedure as its single argument, and calls the VBA procedure that the parameter's Name names. If that fails, Outlook reports an error quoting Name. Outlook uses Name whole, and never the parameter's second string, Function. (Outlook 2002–2013, [Rules §8.26](Rules.md#826-scriptparameter).)
 
 ### 4.4 Server reply
 
-When Outlook runs it itself, it uses its "reply using a template" handler: Outlook 2000, 2002, 2003, 2010 and 2013 (not traced in Outlook 2007).
+When Outlook runs "have server reply using *a specific message*" (`0x0146`) itself, rather than leaving it to the server, it uses its "reply using a template" handler: Outlook 2000, 2002, 2003, 2010 and 2013 (not traced in Outlook 2007).
 
 ## 5. Errors
 
@@ -224,6 +231,6 @@ How RunError ([Rules §5.1](Rules.md#51-ruleheader)) is set has changed over tim
 
 ## 6. Unsafe actions
 
-Updates to Outlook 2010 (the ISO's update carries 14.0.7261.5000) added a registry value, `EnableUnsafeClientMailRules`, under Outlook's `Security` key. Outlook reads it once. Unless it is non-zero, Outlook refuses "perform a custom action" (`0x013F`), "start application" (`0x0149`) and "run a script" (`0x014B`), as well as relevance (`0x00ED`, `0x0145`), which Outlook 2010 RTM already refuses. The wizard won't use a refused element. A rule that contains one is saved with RunError `1`, and gets the RunError bit when it is loaded ([Rules §5.1](Rules.md#51-ruleheader)). The fields written are unchanged.
+Later updates to Outlook 2010 (14.0.7261.5000 was studied) added a registry value, `EnableUnsafeClientMailRules`, under Outlook's `Security` key. Outlook reads it once. Unless it is non-zero, Outlook refuses "perform a custom action" (`0x013F`), "start application" (`0x0149`) and "run a script" (`0x014B`), as well as relevance (`0x00ED`, `0x0145`), which Outlook 2010 RTM already refuses. The wizard won't use a refused element. A rule that contains one is saved with RunError `1`, and gets the RunError bit when it is loaded ([Rules §5.1](Rules.md#51-ruleheader)). The fields written are unchanged.
 
 Outlook 2013 RTM and its update 15.0.4517.1509 don't have the value. It came with later updates, as in Outlook 2010.
