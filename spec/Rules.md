@@ -151,7 +151,16 @@ except if it is marked as High importance
 
 Each line is an **element**: a condition, an action or an exception, identified by a number ([§7](#7-elements)). Most elements have **parameters**, the underlined values in Outlook's dialogs, such as the people, the words or the folder ([§8](#8-parameters)). A rules file holds any number of rules:
 
-![Rules Structure](assets/RulesStructure.png)
+```
+Rules file (.rwz)
+├── Rule 1
+│   ├── Conditions
+│   ├── Actions
+│   └── Exceptions
+├── Rule 2
+│   └── …
+└── Rule N
+```
 
 Rules began in Outlook 97 as the *Rules Wizard* add-in (`RULESWIZ.DLL`)<sup>[2]</sup>, and were built into Outlook from Outlook 98 onwards<sup>[3]</sup>. Outlook 2003 renamed the Rules Wizard **Rules and Alerts**. The format has kept the same shape since Outlook 97. Later versions added fields and elements, and Outlook 2002 switched strings to UTF-16.
 
