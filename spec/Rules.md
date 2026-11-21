@@ -2,7 +2,7 @@
 
 This document specifies the binary format Microsoft Outlook uses to store its rules: the `.rwz` files that Outlook's Export Rules writes, and the copy of the rules Outlook keeps in the mailbox. It is written for anyone who wants to read or write these files, and it records which version of Outlook introduced each part of the format. Microsoft doesn't publish the format. It was worked out from 330 sample files written by Outlook and from Outlook's own code.
 
-**How to read it.** [§1](#1-introduction) introduces rules, shows where Outlook stores them, and decodes a complete example file byte by byte. [§2](#2-common-data-types) defines the small building blocks used throughout, and [§3](#3-format-versions) shows how to tell the versions of the format apart. [§4](#4-rulesheader)–[§8](#8-parameters) then define every structure, in the order they appear in a file. [§9](#9-versions-and-compatibility) explains how versions of Outlook read and write each other's rules, and [§10](#10-reading-and-writing) sums up what readers and writers must do. [Appendix A](#appendix-a-version-history) lists what each version of Outlook changed.
+**How to read it.** [§1](#1-introduction) introduces rules, shows where Outlook stores them, and decodes a complete example file byte by byte. [§2](#2-common-data-types) defines the small building blocks used throughout, and [§3](#3-format-versions) shows how to tell the versions of the format apart. [§4](#4-rulesheader)–[§8](#8-parameters) then define every structure, in the order they appear in a file. [§9](#9-versions-and-compatibility) explains how versions of Outlook read and write each other's rules, and [§10](#10-reading-and-writing) sums up what readers and writers must do. [§1.4](#14-outlook-versions-at-a-glance) summarises what each version of Outlook changed.
 
 #### Companion documents
 
@@ -95,22 +95,11 @@ This document covers what is needed to read and write rules files. What Outlook 
   * [9.3 Upgrading rules](#93-upgrading-rules)
   * [9.4 Exporting to older formats](#94-exporting-to-older-formats)
   * [9.5 How Outlook 2000 chooses the stamp](#95-how-outlook-2000-chooses-the-stamp)
-  * [9.6 Reading other versions' streams](#96-reading-other-versions-streams)
 * [10. Reading and writing](#10-reading-and-writing)
   * [10.1 Reading](#101-reading)
   * [10.2 Writing](#102-writing)
-* [Appendix A. Version history](#appendix-a-version-history)
-  * [Outlook 97](#outlook-97)
-  * [Outlook 98](#outlook-98)
-  * [Outlook 2000](#outlook-2000)
-  * [Outlook 2002](#outlook-2002)
-  * [Outlook 2003](#outlook-2003)
-  * [Outlook 2007](#outlook-2007)
-  * [Outlook 2010](#outlook-2010)
-  * [Outlook 2013](#outlook-2013)
-  * [Outlook 2016 and later](#outlook-2016-and-later)
-* [Appendix B. Open questions](#appendix-b-open-questions)
-* [Appendix C. Corrections to earlier notes](#appendix-c-corrections-to-earlier-notes)
+* [Appendix A. Open questions](#appendix-a-open-questions)
+* [Appendix B. Corrections to earlier notes](#appendix-b-corrections-to-earlier-notes)
 
 ## 1. Introduction
 
@@ -218,19 +207,19 @@ Parameter objects all derive from one base class, whose `Serialize` writes a Res
 
 ### 1.4 Outlook versions at a glance
 
-| Version | Version stamp written | Main changes to the format |
+| Version | Version stamp written | Changes to the format |
 |---|---|---|
-| Outlook 97 | `970102` for its own copy; exports have none | The first version. Its exports use the bare G0 layout. |
-| Outlook 98 | `970812` | Adds the rule Flags field and the folder's SecondaryStore, and elements for the message header, junk mail, Net Folders and "stop processing more rules". |
-| Outlook 2000 | `970812`, or `980413` once a rule needs it | Several words per word condition. Adds the account, relevance, redirect, server reply, forward as attachment, print, start application and permanently delete elements. |
-| Outlook 2002 | `1000000` | UTF-16 strings; a version word and extra data in the header; a version, server ID and size in each rule. Adds "on this computer only", the address book, scripts and "mark it as read". |
-| Outlook 2003 | `1100000` | Adds meeting invitations, Alert E-mail, Desktop Alerts and coloured flags. |
-| Outlook 2007 | `1200000` | Adds InfoPath forms, RSS feeds, "any category", follow-up flags and "clear message's categories". |
-| Outlook 2010 | `0x140000` (1310720) | Adds the retention policy action, and drops two hidden actions. |
-| Outlook 2013 | `0x140000` (1310720) | No new stamp. Reads the relevance elements' parameters differently. |
+| Outlook 97 | `970102` for its own copy; exports have none | The first version. Its own copy uses the G1 layout and its exports the bare G0 layout ([§3.1](#31-generations)). One word or phrase per word condition ([§5.3](#53-element)), and rule names carry the wizard template ([§5.1](#51-ruleheader)). |
+| Outlook 98 | `970812` | Adds the rule Flags field and the folder's SecondaryStore ([§3.4](#34-version-dependent-fields)), and elements for the message header, junk mail, Net Folders and "stop processing more rules" ([§7.1](#71-identifiers)). Drops the template from rule names, and stores a failed action's HRESULT in RunError ([§5.1](#51-ruleheader)). |
+| Outlook 2000 | `970812`, or `980413` once a rule needs it | Writes 980413 only once a rule needs it ([§9.5](#95-how-outlook-2000-chooses-the-stamp)). Several words per word condition ([§5.3](#53-element)). Adds the account, relevance, redirect, server reply, forward as attachment, print, start application and permanently delete elements ([§7.1](#71-identifiers)). Marks the rules it creates itself with Flags ([§5.2](#52-rule-flags)). |
+| Outlook 2002 | `1000000` | The G2 layout: UTF-16 strings, a version word and extra data in the header, and a version, server ID and size in each rule ([§3.1](#31-generations)). Keeps rules from newer versions unparsed ([§5.5](#55-rules-from-newer-versions)). Adds "on this computer only", the address book, scripts and "mark it as read" ([§7.1](#71-identifiers)). Adds rules upgrades and three export file types ([§9.3](#93-upgrading-rules), [§9.4](#94-exporting-to-older-formats)). |
+| Outlook 2003 | `1100000` | Adds meeting invitations, Alert E-mail, Desktop Alerts and coloured flags ([§7.1](#71-identifiers)). Reads and writes each rule at its own version ([§9.2](#92-a-rules-own-version)). Four export file types, one of which can write a version-0 stream by accident ([§3.5](#35-version-0-streams-g0s)). Writes MatchIfMissing pairs ([§8.9.1](#891-matchifmissing)). |
+| Outlook 2007 | `1200000` | Adds InfoPath forms, RSS feeds, "any category", follow-up flags and "clear message's categories" ([§7.1](#71-identifiers)). Sets ClearCategoriesRuleCreated ([§4.3](#43-clearcategoriesrulecreated)). Starts new rules at 1000000 ([§9.2](#92-a-rules-own-version)). |
+| Outlook 2010 | `0x140000` (1310720) | Adds the retention policy action and drops two hidden actions ([§7.1](#71-identifiers)). Writes RunError as `0` or `1` ([§5.1](#51-ruleheader)). Caps the default export at `0x140000` ([§9.4](#94-exporting-to-older-formats)). |
+| Outlook 2013 | `0x140000` (1310720) | No new stamp. Reads the relevance elements' parameters as plain Strings ([§8.14](#814-relevancerangeparameter)). |
 | Outlook 2016 and later | `0x140000` (1310720) | Not disassembled. Still the Outlook 2010 format (Outlook 2019 samples). |
 
-A version stamp is a 24-bit number that identifies the format version. Up to Outlook 2000 it is a build date (`970812` is 12 August 1997), and Outlook 2002–2007 use the major version × 100000 (`1000000` is version 10). Outlook 2010 switched to the major version written as hex digits, so its stamp is `0x140000` for version 14 ([§3.3](#33-version-stamps)). [Appendix A](#appendix-a-version-history) lists every change by version.
+A version stamp is a 24-bit number that identifies the format version. Up to Outlook 2000 it is a build date (`970812` is 12 August 1997), and Outlook 2002–2007 use the major version × 100000 (`1000000` is version 10). Outlook 2010 switched to the major version written as hex digits, so its stamp is `0x140000` for version 14 ([§3.3](#33-version-stamps)).
 
 ### 1.5 Conventions
 
@@ -401,20 +390,20 @@ Outlook identifies format versions with 24-bit *version stamps*. Up to Outlook 2
 
 | Index | Stamp (decimal) | Stamp (hex) | Meaning |
 |---|---|---|---|
-| — | 960706 | `0x0EA8C2` | The oldest version Outlook 97 accepts in its profile copy of the rules; anything older is rejected. |
+| — | 960706 | `0x0EA8C2` | The oldest version Outlook 97 accepts ([§3.2](#32-identifying-the-format)). |
 | — | 960723 | `0x0EA8D3` | Footer TemplateDirectory added. |
 | — | 960820 | `0x0EA934` | Footer Timestamp added. |
 | — | 960918 | `0x0EA996` | "Version 960918" appears in `RULESWIZ.DLL`'s About text. Never written to files. |
 | — | 960925 | `0x0EA99D` | Footer Unknown added. |
-| 0 | 970102 | `0x0ECD76` | **Outlook 97.** The stamp `RULESWIZ.DLL` writes to its profile copy of the rules (the G1 layout), and the newest version it accepts. DocumentProperty MatchIfMissing ([§8.9](#89-formparameter)) was added in this version. Its exports (G0) have no stamp; Outlook 98 imports them as version 970102. Never observed in a sample. |
+| 0 | 970102 | `0x0ECD76` | **Outlook 97.** The stamp of Outlook 97's own copy of the rules (G1); its exports (G0) have none. Adds DocumentProperty MatchIfMissing ([§3.4](#34-version-dependent-fields)). Never observed in a sample. |
 | — | 970718 | `0x0ECFDE` | Folder parameter SecondaryStore added. |
-| 1 | 970812 | `0x0ED03C` | **Outlook 98.** Adds the rule Flags field ([§5.1](#51-ruleheader)). Outlook 98 accepts 960706–970812 and doesn't know 980413. |
-| 2 | 980413 | `0x0EF5BD` | **Outlook 2000.** Adds no fields: the layout is the same as 970812, but Outlook 2000 reads NumberOfParameters as a count ([§5.3](#53-element)) and defines more elements ([§7](#7-elements)). It refuses stamps of 1000000 or more and warns about stamps newer than its own. Outlook 2000 only writes this stamp once the rules need it; otherwise it writes 970812 ([§9.5](#95-how-outlook-2000-chooses-the-stamp)). |
+| 1 | 970812 | `0x0ED03C` | **Outlook 98.** Adds the rule Flags field ([§3.4](#34-version-dependent-fields)). |
+| 2 | 980413 | `0x0EF5BD` | **Outlook 2000.** Adds no fields: the layout is the same as 970812, but Outlook 2000 reads NumberOfParameters as a count ([§5.3](#53-element)) and defines more elements ([§7](#7-elements)). Outlook 2000 only writes this stamp once the rules need it; otherwise it writes 970812 ([§9.5](#95-how-outlook-2000-chooses-the-stamp)). |
 | 3 | 1000000 | `0x0F4240` | **Outlook 2002** (v10). Adds WriterVersion, the header's extra data, and the rule header's VersionStamp, ServerRuleId and DataSize, and switches strings to UTF-16. Outlook 2002 writes at most this stamp, and doesn't move older rules to it by itself ([§9.3](#93-upgrading-rules)). |
-| 4 | 1100000 | `0x10C8E0` | **Outlook 2003** (v11). Adds no fields: the layout is the same as 1000000. Outlook 2003 writes at most this stamp, and new profiles start with it. It adds elements that need it ([§9.4](#94-exporting-to-older-formats)) and the rule without an element list ([§5.5](#55-rules-from-newer-versions)). |
-| 5 | 1200000 | `0x124F80` | **Outlook 2007** (v12). Adds no fields. Outlook 2007 writes at most this stamp, and new profiles start with it. It adds elements that need it. |
-| 6 | 1310720 | `0x140000` | **Outlook 2010** (v14) and later. Adds no fields: the layout is the same as 1000000. Outlook 2010 writes at most this stamp, and new profiles start with it. It adds the element that needs it, `0x0153` ("apply retention policy: *retention policy*"). Outlook 2013 writes at most this stamp too, and new profiles start with it. Outlook 2019 still writes this stamp. |
-| 7 | 1376256 | `0x150000` | v15 (Outlook 2013). Never written and never observed in a file. Outlook 2010's and 2013's tables of stamps have it, but Outlook 2013 still writes `0x140000`. It keeps a rule stamped `0x150000` unparsed, and reads a stream stamped `0x150000` with the Outlook 2002 layout. |
+| 4 | 1100000 | `0x10C8E0` | **Outlook 2003** (v11). Adds no fields: the layout is the same as 1000000. Outlook 2003 writes at most this stamp. It adds elements that need it ([§9.4](#94-exporting-to-older-formats)) and the rule without an element list ([§5.5](#55-rules-from-newer-versions)). |
+| 5 | 1200000 | `0x124F80` | **Outlook 2007** (v12). Adds no fields. Outlook 2007 writes at most this stamp, and adds elements that need it. |
+| 6 | 1310720 | `0x140000` | **Outlook 2010** (v14) and later. Adds no fields: the layout is the same as 1000000. Outlook 2010 and 2013 write at most this stamp, and Outlook 2010 adds the element that needs it, `0x0153` ("apply retention policy: *retention policy*"). Outlook 2019 still writes it. |
+| 7 | 1376256 | `0x150000` | v15 (Outlook 2013). Never written and never observed in a file. Outlook 2010's and 2013's tables of stamps have it, but Outlook 2013 still writes `0x140000`, and reads this stamp with the Outlook 2002 layout ([§3.2](#32-identifying-the-format), [§5.5](#55-rules-from-newer-versions)). |
 
 **Outlook's table of stamps.** From Outlook 2002 on, Outlook keeps a table of the stamps it knows, and records a stamp's position in that table next to the stamp in its version words ([§9.1](#91-version-words)). The Index column is that position. Indices 0–7 match the order of a table found in a disassembly of a modern 64-bit Outlook build (`docs/Internals/RWZ Decompilation Notes.docx`). The tables differ by version:
 
@@ -488,7 +477,7 @@ Always `0` in the samples, but values of `1` have been seen in the copy of the r
 * **Outlook 2002–2013** discard Unknown1 when loading and always write `0`. They still load and save Unknown2 and Unknown3 unchanged.
 * **Outlook 2007, 2010 and 2013** use Unknown2 and Unknown3 only in the loader, the saver, the code for new profiles (which leaves them `0`) and the routine that copies the rules. So they only preserve them. **[Inferred]** The search looked for code near the other header fields, so a use in an unrelated routine could still be missed.
 
-What wrote the `1`s in the mailbox is still unknown; a version after Outlook 2013 is the most likely source ([Appendix B](#appendix-b-open-questions)).
+What wrote the `1`s in the mailbox is still unknown; a version after Outlook 2013 is the most likely source ([Appendix A](#appendix-a-open-questions)).
 
 ### 4.3 ClearCategoriesRuleCreated
 
@@ -588,7 +577,7 @@ Outlook 2000 and 2002 create some rules themselves and set their Flags: three ju
 
 The sample `ExceptionList/Outlook2000_ExceptionList_*.rwz` holds the `0x20` rule as Outlook 2000 creates it.
 
-**Bits `0x01` and `0x02`.** No version up to Outlook 2013 sets them. Outlook 98 and 2000 only clear all the flags when the user edits a rule with either bit set, and carry the bits unchanged to and from the server copy of the rule. So another writer sets them, probably a later Outlook or an Exchange client ([Appendix B](#appendix-b-open-questions)). Outlook 2003–2013 tolerate bad rules that have them: if reading the elements of a rule with either bit set fails, Outlook moves back to where the elements began and carries on instead of failing the load. It doesn't then skip DataSize bytes, so this only works when the rule is the last thing in the stream, as when Outlook reads one rule from a server rule's provider data. In a rules stream, the next rule would be read from the wrong place. Outlook 2010 and 2013 can also take Flags from a server rule, in one case of rebuilding a rule from it: they copy `PR_RULE_PROVIDER_DATA` from offset `0x18` on into the Flags value, `cb` − `0x18` bytes into 4 bytes. Offset `0x18` is where Outlook 98 and 2000 keep Flags in a server rule, so bits written there by those versions can come back. Provider data longer than `0x1C` bytes would overrun the 4-byte value.
+**Bits `0x01` and `0x02`.** No version up to Outlook 2013 sets them. Outlook 98 and 2000 only clear all the flags when the user edits a rule with either bit set, and carry the bits unchanged to and from the server copy of the rule. So another writer sets them, probably a later Outlook or an Exchange client ([Appendix A](#appendix-a-open-questions)). Outlook 2003–2013 tolerate bad rules that have them: if reading the elements of a rule with either bit set fails, Outlook moves back to where the elements began and carries on instead of failing the load. It doesn't then skip DataSize bytes, so this only works when the rule is the last thing in the stream, as when Outlook reads one rule from a server rule's provider data. In a rules stream, the next rule would be read from the wrong place. Outlook 2010 and 2013 can also take Flags from a server rule, in one case of rebuilding a rule from it: they copy `PR_RULE_PROVIDER_DATA` from offset `0x18` on into the Flags value, `cb` − `0x18` bytes into 4 bytes. Offset `0x18` is where Outlook 98 and 2000 keep Flags in a server rule, so bits written there by those versions can come back. Provider data longer than `0x1C` bytes would overrun the 4-byte value.
 
 Which of these rules each version creates, keeps or deletes is described in [Storage §2](Storage.md#2-rules-outlook-creates-itself).
 
@@ -738,20 +727,20 @@ Every version from Outlook 97 to 2013 defines both, and every rule it writes sta
 | `0x00E5` | with *specific words* in the recipient's address | [§8.3](#83-wordparameter) | ✓ | | 97–2013 |
 | `0x00E6` | with *specific words* in the sender's address | [§8.3](#83-wordparameter) | | | 97–2013 |
 | `0x00E7` | *none* (Net Folders) | — | | Hidden. Only in Outlook 98's and 2000's Net Folders rule. See the notes below the table. | 98–2013 |
-| `0x00E8` | with *specific words* in the message header | [§8.3](#83-wordparameter) | | Added in Outlook 98. | 98–2013 |
+| `0x00E8` | with *specific words* in the message header | [§8.3](#83-wordparameter) | | | 98–2013 |
 | `0x00E9` | from senders on my *Exception List* | [§8.13](#813-senderslistparameter) | ✓ | Junk-mail feature of Outlook 98 and 2000. Never matches. See the notes below the table. | 98–2013 |
 | `0x00EA` | *older form of `0x00EB` ("suspected to be junk e-mail or from *Junk Senders*")* | [§8.13](#813-senderslistparameter) | ✓ | Not in Outlook 98's or 2000's tables, but Outlook 2000–2013 read it as `0x00EB`. Probably from pre-release Outlook 98 builds. | — |
 | `0x00EB` | suspected to be junk e-mail or from *Junk Senders* | [§8.13](#813-senderslistparameter) | ✓ | Added in Outlook 98, removed in 2003, as `0x00E9` ("from senders on my *Exception List*"). | 98–2013 |
 | `0x00EC` | containing adult content or from *Adult Content Senders* | [§8.13](#813-senderslistparameter) | ✓ | Added in Outlook 98, removed in 2003, as `0x00E9` ("from senders on my *Exception List*"). | 98–2013 |
 | `0x00ED` | with a relevance *in a specific range* | [§8.14](#814-relevancerangeparameter) | ✓ | Hidden. Switched off in Outlook 2013. See the notes below the table. | 2000–2013 |
-| `0x00EE` | through the *specified* account | [§8.15](#815-accountparameter) | ✓ | Added in Outlook 2000. Offered only for incoming mail until Outlook 2002 allowed it on sent mail too. | 2000–2013 |
-| `0x00EF` | on this computer only ("on this machine only" in Outlook 2002–2007) | [§8.16](#816-profilestampparameter) | ✓ | Added in Outlook 2002. | 2002–2013 |
-| `0x00F0` | sender is in *specified* Address Book | [§8.17](#817-addressbookparameter) | ✓ | Added in Outlook 2002. Requires `0x00EF` ("on this computer only"). | 2002–2013 |
-| `0x00F1` | which is a meeting invitation or update | — | | Added in Outlook 2003. | 2003–2013 |
-| `0x00F3` | which is an *Alert E-mail* | [§8.18](#818-alertparameter) | | Added in Outlook 2003. Created only from an Office alert source ([Rules Wizard §3](RulesWizard.md#3-dialogs-by-version)). | 2003–2013 |
-| `0x00F4` | of the *specific* form type (InfoPath) | [§8.12](#812-formtypeparameter) | ✓ | Requires InfoPath. Added in Outlook 2007. | 2007–2013 |
-| `0x00F5` | from RSS feeds with *specified text* in the title | [§8.3](#83-wordparameter) | | Added in Outlook 2007. Matches the feed's name exactly, ignoring case, not words in the item's title ([Running §3](Running.md#3-condition-tests)). | 2007–2013 |
-| `0x00F6` | assigned to any category | — | | Added in Outlook 2007. | 2007–2013 |
+| `0x00EE` | through the *specified* account | [§8.15](#815-accountparameter) | ✓ | Offered only for incoming mail until Outlook 2002 allowed it on sent mail too. | 2000–2013 |
+| `0x00EF` | on this computer only ("on this machine only" in Outlook 2002–2007) | [§8.16](#816-profilestampparameter) | ✓ | | 2002–2013 |
+| `0x00F0` | sender is in *specified* Address Book | [§8.17](#817-addressbookparameter) | ✓ | Requires `0x00EF` ("on this computer only"). | 2002–2013 |
+| `0x00F1` | which is a meeting invitation or update | — | | | 2003–2013 |
+| `0x00F3` | which is an *Alert E-mail* | [§8.18](#818-alertparameter) | | Created only from an Office alert source ([Rules Wizard §3](RulesWizard.md#3-dialogs-by-version)). | 2003–2013 |
+| `0x00F4` | of the *specific* form type (InfoPath) | [§8.12](#812-formtypeparameter) | ✓ | Requires InfoPath. | 2007–2013 |
+| `0x00F5` | from RSS feeds with *specified text* in the title | [§8.3](#83-wordparameter) | | Matches the feed's name exactly, ignoring case, not words in the item's title ([Running §3](Running.md#3-condition-tests)). | 2007–2013 |
+| `0x00F6` | assigned to any category | — | | | 2007–2013 |
 | `0x00F7` | from any RSS feed | — | | Written with no parameter. Readers SHOULD accept zero or one. See the notes below the table. | 2007–2013 |
 
 Notes on the table:
@@ -785,23 +774,23 @@ Notes on the table:
 | `0x013F` | perform *a custom action* | [§8.23](#823-customactionparameter) | ✓ | Runs an action implemented by a DLL. Outlook 2013 no longer runs it. See the notes below the table. | 97–2013 |
 | `0x0140` | *none* | — | | Defined by Outlook 97 with no UI text, no parameter and every flag clear: a hidden or retired action. No version runs it. | 97–2013 |
 | `0x0141` | *none* (Net Folders) | — | ✓ | Hidden. Only in the Net Folders rule. See the notes below the table. | 98–2013 |
-| `0x0142` | stop processing more rules | — | | Added in Outlook 98. On the server it is the rule state `ST_EXIT_LEVEL` ([Server rules §3](ServerRules.md#3-server-forms-of-elements)). | 98–2013 |
+| `0x0142` | stop processing more rules | — | | On the server it is the rule state `ST_EXIT_LEVEL` ([Server rules §3](ServerRules.md#3-server-forms-of-elements)). | 98–2013 |
 | `0x0143` | do not search message for commercial or adult content | — | ✓ | Hidden. Does nothing from Outlook 2003. See the notes below the table. | 98–2013 |
-| `0x0144` | redirect it to *people or public group* | [§8.4](#84-addressparameter) | | Added in Outlook 2000. | 2000–2013 |
+| `0x0144` | redirect it to *people or public group* | [§8.4](#84-addressparameter) | | | 2000–2013 |
 | `0x0145` | add *number* to relevance | [§8.24](#824-relevanceparameter) | ✓ | Hidden. Switched off in Outlook 2013. See the notes below the table. | 2000–2013 |
-| `0x0146` | have server reply using *a specific message* | [§8.25](#825-serverreplyparameter) | | Added in Outlook 2000. | 2000–2013 |
-| `0x0147` | forward it to *people or public group* as an attachment | [§8.4](#84-addressparameter) | | Added in Outlook 2000. | 2000–2013 |
-| `0x0148` | print it | — | ✓ | Added in Outlook 2000. | 2000–2013 |
-| `0x0149` | start *application* | [§8.20](#820-pathparameter--messageparameter) | ✓ | Added in Outlook 2000. Refused by Outlook 2010's later updates unless unsafe actions are allowed ([Running §6](Running.md#6-unsafe-actions)). Hidden in Outlook 2016 and later. | 2000–2013 |
-| `0x014A` | permanently delete it | — | ✓ | Added in Outlook 2000. Outlook also requires `0x0142` ("stop processing more rules"). | 2000–2013 |
-| `0x014B` | run *a script* | [§8.26](#826-scriptparameter) | ✓ | Added in Outlook 2002. Refused by Outlook 2010's later updates unless unsafe actions are allowed ([Running §6](Running.md#6-unsafe-actions)). Hidden in Outlook 2016 and later. | 2002–2013 |
-| `0x014C` | mark it as read | — | ✓ | Added in Outlook 2002. | 2002–2013 |
+| `0x0146` | have server reply using *a specific message* | [§8.25](#825-serverreplyparameter) | | | 2000–2013 |
+| `0x0147` | forward it to *people or public group* as an attachment | [§8.4](#84-addressparameter) | | | 2000–2013 |
+| `0x0148` | print it | — | ✓ | | 2000–2013 |
+| `0x0149` | start *application* | [§8.20](#820-pathparameter--messageparameter) | ✓ | Refused by Outlook 2010's later updates unless unsafe actions are allowed ([Running §6](Running.md#6-unsafe-actions)). Hidden in Outlook 2016 and later. | 2000–2013 |
+| `0x014A` | permanently delete it | — | ✓ | Outlook also requires `0x0142` ("stop processing more rules"). | 2000–2013 |
+| `0x014B` | run *a script* | [§8.26](#826-scriptparameter) | ✓ | Refused by Outlook 2010's later updates unless unsafe actions are allowed ([Running §6](Running.md#6-unsafe-actions)). Hidden in Outlook 2016 and later. | 2002–2013 |
+| `0x014C` | mark it as read | — | ✓ | | 2002–2013 |
 | `0x014D` | have server reply using *a specific message* | [§8.20](#820-pathparameter--messageparameter) | | Hidden twin of `0x0146`. Never saved. See the notes below the table. | 2003–2007 |
 | `0x014E` | notify me using a .NET notification | — | | Hidden. Never saved. See the notes below the table. | 2003–2007 |
-| `0x014F` | display a Desktop Alert | — | ✓ | Added in Outlook 2003. | 2003–2013 |
-| `0x0150` | flag message with *a colored flag* (`RuleElementFlagColorAction`) | [§8.29](#829-flagcolorparameter) | ✓ | Added in Outlook 2003. Never observed in a file. Outlook 2007–2013 still read and run it but hide it: its event mask is empty, so the wizard no longer offers it. | 2003–2013 |
-| `0x0151` | flag message for *follow up at this time* | [§8.27](#827-flagforfollowupparameter) | ✓ | Added in Outlook 2007. | 2007–2013 |
-| `0x0152` | clear message's categories | — | | Added in Outlook 2007. | 2007–2013 |
+| `0x014F` | display a Desktop Alert | — | ✓ | | 2003–2013 |
+| `0x0150` | flag message with *a colored flag* (`RuleElementFlagColorAction`) | [§8.29](#829-flagcolorparameter) | ✓ | Never observed in a file. Outlook 2007–2013 still read and run it but hide it: its event mask is empty, so the wizard no longer offers it. | 2003–2013 |
+| `0x0151` | flag message for *follow up at this time* | [§8.27](#827-flagforfollowupparameter) | ✓ | | 2007–2013 |
+| `0x0152` | clear message's categories | — | | | 2007–2013 |
 | `0x0153` | apply retention policy: *retention policy* | [§8.28](#828-retentionpolicyparameter) | | Needs version `0x140000`. See the notes below the table. | 2010–2013 |
 
 Notes on the table:
@@ -885,7 +874,7 @@ The rest is described in [Rules Wizard §1](RulesWizard.md#1-element-definitions
 
 An element's parameters follow its NumberOfParameters ([§5.3](#53-element)). The element's identifier alone decides their layout: Outlook looks up the element's definition and creates the matching parameter class, so no class tag is written ([§1.3](#13-the-format-at-a-glance)). Class names in the headings below come from strings in Outlook's binaries, matched to parameters by name only **[Inferred]**.
 
-**Reserved.** Every parameter starts with a 4-byte **Reserved** field. It MUST be `0` (all 791 parameters observed). It is a field of the common parameter base class: the constructor sets it to `0`, and the base `Serialize` writes it first. In Outlook 97–2002 the class also has a virtual getter and setter for it, but nothing in Outlook 97 calls them, and no parameter class reads or writes the field directly. Outlook 2003–2013 drop the getter and setter, and nothing else reads the field. It is reserved ([Appendix B](#appendix-b-open-questions)).
+**Reserved.** Every parameter starts with a 4-byte **Reserved** field. It MUST be `0` (all 791 parameters observed). It is a field of the common parameter base class: the constructor sets it to `0`, and the base `Serialize` writes it first. In Outlook 97–2002 the class also has a virtual getter and setter for it, but nothing in Outlook 97 calls them, and no parameter class reads or writes the field directly. Outlook 2003–2013 drop the getter and setter, and nothing else reads the field. It is reserved ([Appendix A](#appendix-a-open-questions)).
 
 **Strings.** A String parameter is UTF-16 from version 1000000 and ANSI below it, whatever the element (Outlook 2002–2013). String8 parameters are ANSI in every generation.
 
@@ -1047,7 +1036,7 @@ Outlook 2013 doesn't offer the action for some stores ([Rules Wizard §1](RulesW
 | NumberValue1 | 4 | `i32`. Compared with 16-bit (`PT_I2`) properties. |
 | NumberValue2 | 4 | `i32`. Compared with 32-bit (`PT_LONG`) properties. |
 | BoolMatch | 4 | `0` = yes / true, `1` = no / false. |
-| Unknown1 | 4 | **[Unknown]** Always `1`. Every constructor in Outlook 97–2013 sets it to `1`, and in every version checked nothing but serializing and copying uses it: the matching code never reads it, and the Document or Form Properties dialog never changes it ([Appendix B](#appendix-b-open-questions)). |
+| Unknown1 | 4 | **[Unknown]** Always `1`. Every constructor in Outlook 97–2013 sets it to `1`, and in every version checked nothing but serializing and copying uses it: the matching code never reads it, and the Document or Form Properties dialog never changes it ([Appendix A](#appendix-a-open-questions)). |
 | DateMatch | 4 | `0` = before, `1` = after. |
 | DateValue | 12 | OleDateTime. Defaults to the current time. |
 | MatchIfMissing | 4 | `1`: if the message lacks this property, test the next property instead; any other value: a missing property fails the condition ([§8.9.1](#891-matchifmissing)). Only present when the stream's version is 970102 or later: every format except G0s, which is version 0. G0 streams count as 970102. Always `0` in the samples, none of which uses a document property. |
@@ -1324,7 +1313,7 @@ In G2, each rule carries its own version, and the rest of the rule is laid out f
 **Which version a rule is read and written at.**
 
 * **Outlook 2002** uses the rule's stamp as it is when reading. When writing, it uses the older of the stream's version and the rule's.
-* **Outlook 2003–2013** use the rule's stamp for both reading and writing, except when exporting, which uses the target version. They keep rules newer than their own version (1100000, 1200000, `0x140000`, and `0x140000` again for Outlook 2013) unparsed ([§5.5](#55-rules-from-newer-versions)).
+* **Outlook 2003–2013** use the rule's stamp for both reading and writing, except when exporting, which uses the target version. Rules newer than their own version stay unparsed ([§5.5](#55-rules-from-newer-versions)).
 
 **Which version a rule starts at.**
 
@@ -1392,14 +1381,6 @@ Outlook 2002 and later replace the save version with WriterVersion ([§9.1](#91-
 
 Outlook 2007 doesn't follow these rules when exporting: its exports "for Outlook 98" keep every word of a word condition as a separate parameter. Writers that target Outlook 97 or 98 SHOULD write at most one parameter per element, because those versions read only one ([§5.3](#53-element)).
 
-### 9.6 Reading other versions' streams
-
-What happens when a version of Outlook meets a stream from another version:
-
-* **An older stream.** Every version reads the older layouts ([§3.2](#32-identifying-the-format)). Outlook 2002 and later keep each rule at its own version ([§9.2](#92-a-rules-own-version)), and ask before raising rules below 1000000 (Outlook 2007–2013, [§9.3](#93-upgrading-rules)).
-* **A newer stream.** Outlook 97 rejects it, and Outlook 2000 refuses Outlook 2002's format and warns about other newer stamps. Outlook 2002 and later read the header with their own layout, keep newer rules unparsed ([§5.5](#55-rules-from-newer-versions)), and fail on an element they don't know in a rule they do parse ([§5.3](#53-element)).
-* **An element a version dropped.** Outlook 2010 and 2013 fail to load a stream containing `0x014D` ("have server reply using *a specific message*") or `0x014E` ("notify me using a .NET notification"). Neither element is ever saved by Outlook 2003 or 2007 ([Rules Wizard §1](RulesWizard.md#1-element-definitions)).
-
 ---
 
 ## 10. Reading and writing
@@ -1430,78 +1411,7 @@ To produce a stream that Outlook accepts:
 
 ---
 
-## Appendix A. Version history
-
-What changed in the file format in each version of Outlook. How Outlook's behaviour changed is described, version by version, in each of the [companion documents](#companion-documents).
-
-### Outlook 97
-
-* Keeps its own copy of the rules at version 970102 in the G1 layout, and accepts copies from 960706 to 970102. **Export Rules** writes the bare G0 layout: the rule count and the rules, with no header or footer ([§3.1](#31-generations)).
-* Elements `0x00C8`–`0x00E6`, `0x012C`–`0x0140` and `0x01F4`–`0x0212`, plus `0x0064` ("for each *message*") and `0x0190` ([§7.1](#71-identifiers)).
-* One word or phrase per word condition; NumberOfParameters is a has-parameter flag ([§5.3](#53-element)).
-* The rule name carries the wizard template after a tab ([§5.1](#51-ruleheader)).
-
-### Outlook 98
-
-* Writes version 970812, which adds the rule **Flags** field; version 970718 added the folder's SecondaryStore ([§3.4](#34-version-dependent-fields)). Accepts 960706–970812, and imports G0 files as 970102 ([§3.2](#32-identifying-the-format)).
-* New elements: `0x00E7` (Net Folders), `0x00E8` ("with *specific words* in the message header"), `0x00E9` ("from senders on my *Exception List*"), `0x00EB` ("suspected to be junk e-mail or from *Junk Senders*"), `0x00EC` ("containing adult content or from *Adult Content Senders*"), `0x0141` (Net Folders), `0x0142` ("stop processing more rules"), `0x0143` ("do not search message for commercial or adult content") and `0x0213` ([§7](#7-elements)).
-* Drops the template from rule names when loading ([§5.1](#51-ruleheader)).
-* RunError stores the failing action's HRESULT ([§5.1](#51-ruleheader)).
-
-### Outlook 2000
-
-* Writes 970812, or 980413 once a rule needs it ([§9.5](#95-how-outlook-2000-chooses-the-stamp)). Refuses Outlook 2002's format and warns about newer stamps.
-* Reads NumberOfParameters as a count, so a word condition can hold several words ([§5.3](#53-element)).
-* New elements: `0x00ED` ("with a relevance *in a specific range*"), `0x00EE` ("through the *specified* account"), `0x0214` ("except through the *specified* account") and `0x0144`–`0x014A` ([§7](#7-elements)).
-* Sets RunError to `1` for a failed rule ([§5.1](#51-ruleheader)). Creates rules of its own, marked by Flags ([§5.2](#52-rule-flags)).
-* Reads object tags more loosely than MFC ([§2.5](#25-object-tag)).
-
-### Outlook 2002
-
-* Writes **1000000**, the G2 layout: UTF-16 strings, WriterVersion and ExtraData in the header, and a version, server ID and size in each rule ([§3.1](#31-generations)). Rules from newer versions are kept unparsed ([§5.5](#55-rules-from-newer-versions)).
-* Discards Unknown1 and the server settings, and writes `0` for them ([§4](#4-rulesheader)).
-* New elements: `0x00EF` ("on this computer only"), `0x00F0` ("sender is in *specified* Address Book"), `0x0215` ("except if sender is in *specified* Address Book"), `0x014B` ("run *a script*") and `0x014C` ([§7](#7-elements)).
-* The "Rules upgrade" option ([§9.3](#93-upgrading-rules)), and three export file types ([§9.4](#94-exporting-to-older-formats)).
-
-### Outlook 2003
-
-* Writes **1100000**.
-* New elements: `0x00F1` ("which is a meeting invitation or update"), `0x0216` ("except if it is a meeting invitation or update"), `0x00F3` ("which is an *Alert E-mail*"), `0x014D` ("have server reply using *a specific message*"), `0x014E` ("notify me using a .NET notification"), `0x014F` ("display a Desktop Alert") and `0x0150` ([§7](#7-elements)). Drops `0x014D` and `0x014E` when loading ([§5.3](#53-element)).
-* Deletes the old junk-mail rules on every save, and writes the Download Options rule without an element list ([§5.5](#55-rules-from-newer-versions)).
-* Reads and writes each rule at its own version, and starts new rules at 970812 ([§9.2](#92-a-rules-own-version)). Tolerates errors in rules with Flags `0x1` or `0x2` ([§5.2](#52-rule-flags)).
-* Four export file types, and an accidental version-0 export when WriterVersion holds a newer stamp ([§3.5](#35-version-0-streams-g0s)).
-* Writes MatchIfMissing pairs for Office document properties ([§8.9.1](#891-matchifmissing)).
-
-### Outlook 2007
-
-* Writes **1200000**. Its table of stamps already has Outlook 2010's `0x140000` ([§3.3](#33-version-stamps)).
-* New elements: `0x00F4`–`0x00F7`, `0x0218`–`0x021B`, `0x0151` ("flag message for *follow up at this time*") and `0x0152` ([§7](#7-elements)).
-* Sets bit `0x1` of ClearCategoriesRuleCreated ([§4.3](#43-clearcategoriesrulecreated)).
-* Starts new rules at 1000000, and asks before raising rules below 1000000 ([§9.2](#92-a-rules-own-version), [§9.3](#93-upgrading-rules)).
-* Its exports "for Outlook 98" keep every word as a separate parameter ([§9.5](#95-how-outlook-2000-chooses-the-stamp)).
-
-### Outlook 2010
-
-* Writes **`0x140000`**, the major version as hex digits. Its table of stamps adds `0x150000` ([§3.3](#33-version-stamps)).
-* New element: `0x0153` ("apply retention policy: *retention policy*"). Drops `0x014D` ("have server reply using *a specific message*") and `0x014E` ("notify me using a .NET notification"), so a stream holding them fails to load ([§5.3](#53-element)).
-* Writes RunError as `0` or `1` ([§5.1](#51-ruleheader)).
-* Deletes the `#NET FOLDERS#` rule on every save ([§5.2](#52-rule-flags)).
-* Caps the default export at `0x140000` ([§9.4](#94-exporting-to-older-formats)).
-* Reads the junk-mail parameters as plain Strings ([§8.13](#813-senderslistparameter)).
-
-### Outlook 2013
-
-* Still writes **`0x140000`**. Nothing in Outlook 2013 writes `0x150000` ([§3.3](#33-version-stamps)).
-* Reads the relevance parameters (`0x00ED`, `0x0145`) as plain Strings ([§8.14](#814-relevancerangeparameter), [§8.24](#824-relevanceparameter)).
-* No longer sets ClearCategoriesRuleCreated ([§4.3](#43-clearcategoriesrulecreated)).
-
-### Outlook 2016 and later
-
-Not disassembled. The Outlook 2019 samples still use stamp `0x140000` and the Outlook 2010 layout.
-
----
-
-## Appendix B. Open questions
+## Appendix A. Open questions
 
 The details of each search are in [Decompilation notes](Decompilation.md#appendix-open-questions).
 
@@ -1516,7 +1426,7 @@ The details of each search are in [Decompilation notes](Decompilation.md#appendi
 9. **The field Outlook 2002 added to its definitions.** Answered for Outlook 2010 and 2013: it marks redirect and server reply, which the wizard hides when the store has no Exchange server rules ([Rules Wizard §1](RulesWizard.md#1-element-definitions)). Outlook 2002 and 2003 never use it.
 10. **Bit `0x1` of the rule-set mask** that Outlook 2003 added ([Rules Wizard §1](RulesWizard.md#1-element-definitions)). Outlook 2003 and 2007 never use it, and the Out of Office rules don't explain it ([Server rules §7](ServerRules.md#7-inbox-assistant-and-out-of-office-rules)). Only `0x014D` ("have server reply using *a specific message*") and `0x014E` ("notify me using a .NET notification") have it, and nothing creates them. Outlook 2010 removes the mask, `0x014D` and `0x014E` altogether, so it can't answer the question either. Neither can Outlook 2013.
 
-## Appendix C. Corrections to earlier notes
+## Appendix B. Corrections to earlier notes
 
 `docs/RWZ Format.docx` contains earlier experimental notes on the format. Where they disagree with this document, this document has been checked against the samples and takes precedence.
 
