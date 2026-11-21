@@ -872,7 +872,7 @@ The rest is described in [Rules Wizard §1](RulesWizard.md#1-element-definitions
 
 ## 8. Parameters
 
-An element's parameters follow its NumberOfParameters ([§5.3](#53-element)). The element's identifier alone decides their layout: Outlook looks up the element's definition and creates the matching parameter class, so no class tag is written ([§1.3](#13-the-format-at-a-glance)). Class names in the headings below come from strings in Outlook's binaries, matched to parameters by name only **[Inferred]**.
+An element's parameters follow its NumberOfParameters ([§5.3](#53-element)). The element's identifier alone decides their layout: Outlook looks up the element's definition and creates the matching parameter class, so no class tag is written ([§1.3](#13-the-format-at-a-glance)). The class names in the table below come from strings in Outlook's binaries, matched to parameters by name only **[Inferred]**; the parameter names are this document's.
 
 **Reserved.** Every parameter starts with a 4-byte **Reserved** field. It MUST be `0` (all 791 parameters observed). It is a field of the common parameter base class: the constructor sets it to `0`, and the base `Serialize` writes it first. In Outlook 97–2002 the class also has a virtual getter and setter for it, but nothing in Outlook 97 calls them, and no parameter class reads or writes the field directly. Outlook 2003–2013 drop the getter and setter, and nothing else reads the field. It is reserved ([Appendix A](#appendix-a-open-questions)).
 
@@ -880,7 +880,41 @@ An element's parameters follow its NumberOfParameters ([§5.3](#53-element)). Th
 
 **Checked versions.** Every parameter of Outlook 2000 and 2002 reads and writes these layouts. Outlook 2010's and 2013's serializers were checked field by field against them. Where a version changed which class an element uses, the section says so.
 
-The tables below list the fields after Reserved.
+**At a glance.** Each element's row in [§7](#7-elements) names its parameter. The class or dialog names come from Outlook's binaries.
+
+| § | Parameter | Fields after Reserved | Used by | Outlook's class |
+|---|---|---|---|---|
+| [8.1](#81-eventparameter) | EventParameter | Flags | "apply this rule *after the message arrives*" | |
+| [8.2](#82-itemtypeparameter) | ItemTypeParameter | ItemTypes | "for each *message*" | |
+| [8.3](#83-wordparameter) | WordParameter | String | the word conditions and exceptions | `CWordParameter` |
+| [8.4](#84-addressparameter) | AddressParameter | address list, MatchAny, IsCc | "from", "sent to", forward, Cc and redirect | |
+| [8.5](#85-flaggedforactionparameter) | FlaggedForActionParameter | Days, String, IsCondition | "flagged for *action*" | |
+| [8.6](#86-importanceparameter) | ImportanceParameter | `u32` | importance | `CImportanceDialog` |
+| [8.7](#87-sensitivityparameter) | SensitivityParameter | `u32` | sensitivity | `CSensitivityDialog` |
+| [8.8](#88-categoryparameter) | CategoryParameter | String | categories | `CCategoryParameter` |
+| [8.9](#89-formparameter) | FormParameter | String, document properties, message classes | "with *selected properties* of documents or forms" | `CFormParameter` |
+| [8.10](#810-sizeparameter) | SizeParameter | two `u32` | size | `CSizeParameter` |
+| [8.11](#811-timeparameter) | TimeParameter | two flags and dates | date span | `CTimeParameter` |
+| [8.12](#812-formtypeparameter) | FormTypeParameter | String, String8 | form, InfoPath form type | `CInfoPathFormTypeParameter` (InfoPath) |
+| [8.13](#813-senderslistparameter) | SendersListParameter | String8 | the junk-mail lists | |
+| [8.14](#814-relevancerangeparameter) | RelevanceRangeParameter | two `u32` | relevance range | |
+| [8.15](#815-accountparameter) | AccountParameter | String, String8 | account | `CAccountParameter` |
+| [8.16](#816-profilestampparameter) | ProfileStampParameter | GUID | "on this computer only" | |
+| [8.17](#817-addressbookparameter) | AddressBookParameter | entry ID, String | address book | `CABContListDialog` |
+| [8.18](#818-alertparameter) | AlertParameter | String | Alert E-mail | |
+| [8.19](#819-folderparameter) | FolderParameter | two entry IDs, String, `u32` | move or copy to a folder | `CFolderParameter` |
+| [8.20](#820-pathparameter--messageparameter) | PathParameter / MessageParameter | String | template, alert message, sound, application | `CLaunchFileParameter`, `CMessageParameter`, `CTemplateParameter` |
+| [8.21](#821-flagparameter) | FlagParameter | Days, String, IsCondition | "flag message for *action in a number of days*" | |
+| [8.22](#822-deferparameter) | DeferParameter | `u32` | defer delivery | `CDeferDialog` |
+| [8.23](#823-customactionparameter) | CustomActionParameter | four Strings | custom action | |
+| [8.24](#824-relevanceparameter) | RelevanceParameter | `u32` | add to relevance | `CRelevanceParameter` |
+| [8.25](#825-serverreplyparameter) | ServerReplyParameter | entry ID, String | server reply | `CReplyServerParameter` |
+| [8.26](#826-scriptparameter) | ScriptParameter | two Strings | run a script | |
+| [8.27](#827-flagforfollowupparameter) | FlagForFollowUpParameter | `u32`, StringW | follow-up flag | `ToDoActionDlg` |
+| [8.28](#828-retentionpolicyparameter) | RetentionPolicyParameter | GUID, StringW | retention policy | |
+| [8.29](#829-flagcolorparameter) | FlagColorParameter | `u32` | coloured flag | |
+
+The sections below list the fields after Reserved.
 
 ### 8.1 EventParameter
 Used by `0x0190` ("apply this rule *after the message arrives*").
@@ -894,7 +928,7 @@ Observed values: `0x01` (272 rules) and `0x04` (6 rules).
 Outlook 98–2013 read and write this parameter the same way. What each bit means was traced only in Outlook 97. Outlook 98's resources still offer all three choices, including "after the server receives the message". Outlook 2003–2013 offer only "after the message arrives" and "after I send the message" (Outlook 2010 and 2013 name their blank-rule templates "Apply rule on messages I receive" and "Apply rule on messages I send"). When Outlook 2003–2013 run rules, `0x01` matches received messages and `0x04` sent ones ([Running §1](Running.md#1-when-rules-run)).
 
 ### 8.2 ItemTypeParameter
-Used by `0x0064` ("For each %s").
+Used by `0x0064` ("for each *message*").
 
 | Field | Size | Description |
 |---|---|---|
@@ -903,7 +937,7 @@ Used by `0x0064` ("For each %s").
 Outlook 98–2013 read and write this parameter the same way, and every sample uses `1`. In Outlook 98–2002 the element definitions' item-type masks are `7`, `5` or `1`, reserving bits `0x2` and `0x4` that no item type ever uses. From Outlook 2003 every mask is `1` (or `0`), so "message" is the only item type left.
 
 ### 8.3 WordParameter
-`CWordParameter`. Used by `0x00CD`–`0x00CF`, `0x00E5` ("with *specific words* in the recipient's address"), `0x00E6` ("with *specific words* in the sender's address"), `0x00E8` ("with *specific words* in the message header"), `0x00F5` ("from RSS feeds with *specified text* in the title") and their exceptions.
+Used by `0x00CD`–`0x00CF`, `0x00E5` ("with *specific words* in the recipient's address"), `0x00E6` ("with *specific words* in the sender's address"), `0x00E8` ("with *specific words* in the message header"), `0x00F5` ("from RSS feeds with *specified text* in the title") and their exceptions.
 
 | Field | Size | Description |
 |---|---|---|
@@ -989,7 +1023,7 @@ Used by `0x00D0` ("flagged for *action*") and `0x01FC` ("except if it is flagged
 Outlook 98–2013 read and write this layout the same way, and every version sets IsCondition to `1` for these conditions and leaves it `0` for the action `0x0131` ("flag message for *action in a number of days*").
 
 ### 8.6 ImportanceParameter
-`CImportanceDialog`. Used by `0x00D2` ("marked as *importance*"), `0x0137` ("mark it as *importance*") and `0x01FE` ("except if it is marked as *importance*").
+Used by `0x00D2` ("marked as *importance*"), `0x0137` ("mark it as *importance*") and `0x01FE` ("except if it is marked as *importance*").
 
 | Field | Size | Description |
 |---|---|---|
@@ -1000,21 +1034,21 @@ From Outlook 2003 the action `0x0137` ("mark it as *importance*") has a paramete
 Outlook 2013 doesn't offer the action for some stores ([Rules Wizard §1](RulesWizard.md#1-element-definitions)).
 
 ### 8.7 SensitivityParameter
-`CSensitivityDialog`. Used by `0x00D3` ("marked as *sensitivity*"), `0x0138` ("mark it as *sensitivity*") and `0x01FF` ("except if it is marked as *sensitivity*").
+Used by `0x00D3` ("marked as *sensitivity*"), `0x0138` ("mark it as *sensitivity*") and `0x01FF` ("except if it is marked as *sensitivity*").
 
 | Field | Size | Description |
 |---|---|---|
 | Sensitivity | 4 | PR_SENSITIVITY value: `0` = normal, `1` = personal, `2` = private, `3` = confidential. |
 
 ### 8.8 CategoryParameter
-`CCategoryParameter`. Used by `0x00D7` ("assigned to *category* category"), `0x0133` ("assign it to the *category* category") and `0x0203` ("except if it is assigned to *category* category").
+Used by `0x00D7` ("assigned to *category* category"), `0x0133` ("assign it to the *category* category") and `0x0203` ("except if it is assigned to *category* category").
 
 | Field | Size | Description |
 |---|---|---|
 | Categories | variable | String. Category names separated by `;`. |
 
 ### 8.9 FormParameter
-`CFormParameter`. Used by `0x00DF` ("with *selected properties* of documents or forms") and `0x020B` ("except if it has *selected properties* of documents or forms").
+Used by `0x00DF` ("with *selected properties* of documents or forms") and `0x020B` ("except if it has *selected properties* of documents or forms").
 
 | Field | Size | Description |
 |---|---|---|
@@ -1040,6 +1074,8 @@ Outlook 2013 doesn't offer the action for some stores ([Rules Wizard §1](RulesW
 | DateMatch | 4 | `0` = before, `1` = after. |
 | DateValue | 12 | OleDateTime. Defaults to the current time. |
 | MatchIfMissing | 4 | `1`: if the message lacks this property, test the next property instead; any other value: a missing property fails the condition ([§8.9.1](#891-matchifmissing)). Only present when the stream's version is 970102 or later: every format except G0s, which is version 0. G0 streams count as 970102. Always `0` in the samples, none of which uses a document property. |
+
+**Which match field applies.** StringMatch, NumberMatch, BoolMatch and DateMatch apply by the type in PropTag: strings use StringMatch, integers NumberMatch (NumberValue1 for `PT_I2`, NumberValue2 for `PT_LONG`), booleans BoolMatch, and `PT_SYSTIME` DateMatch. The unused fields are written as zero or null. How Outlook compares the values is in [Running §3.2](Running.md#32-document-properties).
 
 **Property IDs are remapped when loading.** When writing a format older than 1000000, Outlook 2002–2013 change a `PT_UNICODE` type in PropTag to `PT_STRING8`. When loading, Outlook 2002 maps Field back to a property ID in the current store by name, so the stored ID only matters if the name isn't found. Outlook 2003–2013 look Field up, ignoring case, in a table of the 26 Office document properties' menu texts ([§8.9.2](#892-office-document-properties)). On a match they use the property's internal name, and otherwise Field itself. They then call `GetIDsFromNames` with `MAPI_CREATE` on the default store's Inbox for that name in `PS_PUBLIC_STRINGS`, and replace PropTag's ID with the result, keeping its type. With `MAPI_CREATE` the name always gets an ID, so the stored ID is always replaced when the lookup succeeds.
 
@@ -1084,12 +1120,8 @@ The document properties Outlook 2003 and later offer are named properties in `PS
 
 The first property of a pair has the internal name's tag, and Field holds the menu text. The menu texts differ slightly from the display names, for example `Creation Time` and `Last Author`. Outlook 2007's, 2010's and 2013's tables are identical to Outlook 2003's.
 
-#### 8.9.3 Comparisons
-
-StringMatch, NumberMatch, BoolMatch and DateMatch apply by the type in PropTag: strings use StringMatch, integers NumberMatch (NumberValue1 for `PT_I2`, NumberValue2 for `PT_LONG`), booleans BoolMatch, and `PT_SYSTIME` DateMatch. The unused fields are written as zero or null. How Outlook compares the values is in [Running §3.2](Running.md#32-document-properties).
-
 ### 8.10 SizeParameter
-`CSizeParameter`. Used by `0x00E0` ("with a size *in a specific range*") and `0x020C` ("except if it has a size *in a specific range*").
+Used by `0x00E0` ("with a size *in a specific range*") and `0x020C` ("except if it has a size *in a specific range*").
 
 | Field | Size | Description |
 |---|---|---|
@@ -1097,7 +1129,7 @@ StringMatch, NumberMatch, BoolMatch and DateMatch apply by the type in PropTag: 
 | Maximum | 4 | Maximum size in KB. |
 
 ### 8.11 TimeParameter
-`CTimeParameter`. Used by `0x00E1` ("received *in a specific date span*") and `0x020D` ("except if it was received *in a specific date span*").
+Used by `0x00E1` ("received *in a specific date span*") and `0x020D` ("except if it was received *in a specific date span*").
 
 | Field | Size | Description |
 |---|---|---|
@@ -1107,7 +1139,7 @@ StringMatch, NumberMatch, BoolMatch and DateMatch apply by the type in PropTag: 
 | Before | 12 | OleDateTime. |
 
 ### 8.12 FormTypeParameter
-Used by `0x00E4` ("uses the *form name* form"), `0x0210` ("except if it uses the *form name* form"), `0x00F4` (`CInfoPathFormTypeParameter`) and `0x0218` ("except if it is of the *specific* form type (InfoPath)").
+Used by `0x00E4` ("uses the *form name* form"), `0x0210` ("except if it uses the *form name* form"), `0x00F4` ("of the *specific* form type (InfoPath)") and `0x0218` ("except if it is of the *specific* form type (InfoPath)").
 
 | Field | Size | Description |
 |---|---|---|
@@ -1136,11 +1168,11 @@ Used by `0x00ED` ("with a relevance *in a specific range*").
 Outlook 2013's definition of `0x00ED` ("with a relevance *in a specific range*") no longer names this class, so Outlook 2013 reads and writes a `0x00ED` parameter as Reserved and one String, not this layout. The class still exists in Outlook 2013, but nothing uses it.
 
 ### 8.15 AccountParameter
-`CAccountParameter`. Used by `0x00EE` ("through the *specified* account") and `0x0214` ("except through the *specified* account"), from Outlook 2000.
+Used by `0x00EE` ("through the *specified* account") and `0x0214` ("except through the *specified* account"), from Outlook 2000.
 
 | Field | Size | Description |
 |---|---|---|
-| AccountName | variable | String: ANSI in the Outlook 2000 format, UTF-16 in G2. Outlook 2002–2007 write it as a String like any other: UTF-16 from version 1000000, ANSI below. |
+| AccountName | variable | String. The account's name. |
 | AccountStamp | variable | String8. **[Inferred]** An account identifier formatted as a signed decimal `i32`, for example `1285009305` or `-458008816`. |
 
 Outlook matches accounts by this number, not by name ([Running §3.4](Running.md#34-accounts)).
@@ -1155,12 +1187,12 @@ Used by `0x00EF` ("on this computer only").
 Outlook 2003 and later match the condition when Stamp equals this computer's ID ([Running §3.5](Running.md#35-this-computer)). The ID also follows the rule to the Exchange server, in the server rule's provider name ([Server rules §2](ServerRules.md#2-uploading-rules)).
 
 ### 8.17 AddressBookParameter
-`CABContListDialog`. Used by `0x00F0` ("sender is in *specified* Address Book") and `0x0215` ("except if sender is in *specified* Address Book").
+Used by `0x00F0` ("sender is in *specified* Address Book") and `0x0215` ("except if sender is in *specified* Address Book").
 
 | Field | Size | Description |
 |---|---|---|
 | EntryID | variable | Counted entry ID ([§2.3](#23-counted-entry-id)) of the address book container. |
-| Name | variable | String: UTF-16 in G2, ANSI if written in an older format. |
+| Name | variable | String. |
 
 Outlook 2003–2007 read and write it as Outlook 2002 does. How Outlook tests the condition is in [Running §3.6](Running.md#36-address-books).
 
@@ -1174,7 +1206,7 @@ Used by `0x00F3` ("which is an *Alert E-mail*").
 Outlook splits Name at the last U+0001. The part before it is the alert's name, which Outlook shows in the rule. The part after it identifies messages from the alert: Outlook looks for it in their transport headers ([Running §3.7](Running.md#37-alert-e-mail)). In the sample (`Conditions/AlertCondition`) the second part is a GUID: `Alert from "Home" about "Documents (All Changes)"` U+0001 `{1D7EAA7A-B10A-485D-A8E9-5B3D611597E1}`.
 
 ### 8.19 FolderParameter
-`CFolderParameter`. Used by `0x012C` ("move it to the *specified* folder") and `0x0139` ("move a copy to the *specified* folder").
+Used by `0x012C` ("move it to the *specified* folder") and `0x0139` ("move a copy to the *specified* folder").
 
 | Field | Size | Description |
 |---|---|---|
@@ -1184,7 +1216,7 @@ Outlook splits Name at the last U+0001. The part before it is the alert's name, 
 | SecondaryStore | 4 | Added in version 970718, so it is absent in Outlook 97's formats (G0 and version stamp 970102) and in G0s (version 0). Outlook 98–2013 check the version; Outlook 2010 sets the field to `0` when loading an older stream. **[Unknown]** Always `1` observed. |
 
 ### 8.20 PathParameter / MessageParameter
-`CLaunchFileParameter`, `CMessageParameter` and `CTemplateParameter`. Used by `0x012F` (template path), `0x0130` (alert message text), `0x0136` (sound file) and `0x0149` (application path). Outlook 2003's and 2007's hidden action `0x014D` ("have server reply using *a specific message*") uses the same layout.
+Used by `0x012F` (template path), `0x0130` (alert message text), `0x0136` (sound file) and `0x0149` (application path). Outlook 2003's and 2007's hidden action `0x014D` ("have server reply using *a specific message*") uses the same layout.
 
 | Field | Size | Description |
 |---|---|---|
@@ -1202,7 +1234,7 @@ Used by `0x0131` ("flag message for *action in a number of days*").
 Outlook 98–2013 read and write this layout the same way. Outlook 2007–2013 offer `0x0131` ("flag message for *action in a number of days*") only for rules on sent messages ([§7.4](#74-actions)).
 
 ### 8.22 DeferParameter
-`CDeferDialog`. Used by `0x013E` ("defer delivery by *a number of* minutes").
+Used by `0x013E` ("defer delivery by *a number of* minutes").
 
 | Field | Size | Description |
 |---|---|---|
@@ -1221,21 +1253,21 @@ Used by `0x013F` ("perform *a custom action*").
 Outlook 2013 still reads and writes this layout, but no longer runs the action ([§7.4](#74-actions)).
 
 ### 8.24 RelevanceParameter
-`CRelevanceParameter`. Used by `0x0145` ("add *number* to relevance").
+Used by `0x0145` ("add *number* to relevance").
 
 | Field | Size | Description |
 |---|---|---|
 | Value | 4 | The number to add to the relevance. |
 
-Outlook 2013 has no class for this layout: it reads and writes a `0x0145` ("add *number* to relevance") parameter as Reserved and one String, as it does `0x00ED` ("with a relevance *in a specific range*")'s ([§8.14](#814-relevancerangeparameter)).
+Outlook 2013 has no class for this layout. As with `0x00ED` ([§8.14](#814-relevancerangeparameter)), it reads and writes a `0x0145` parameter as Reserved and one String.
 
 ### 8.25 ServerReplyParameter
-`CReplyServerParameter`. Used by `0x0146` ("have server reply using *a specific message*").
+Used by `0x0146` ("have server reply using *a specific message*").
 
 | Field | Size | Description |
 |---|---|---|
 | MessageEntryID | variable | Counted entry ID of the reply template message, which is stored in the mailbox. |
-| Name | variable | String: ANSI in the Outlook 2000 format, UTF-16 in G2. Outlook 2002–2007 write it as a String like any other: UTF-16 from version 1000000, ANSI below. |
+| Name | variable | String. |
 
 The action is sent to the Exchange server ([Server rules §3](ServerRules.md#3-server-forms-of-elements)). When Outlook runs it itself, it uses its "reply using a template" handler ([Running §4.4](Running.md#44-server-reply)).
 
@@ -1244,13 +1276,13 @@ Used by `0x014B` ("run *a script*").
 
 | Field | Size | Description |
 |---|---|---|
-| Name | variable | String: UTF-16 in G2, ANSI if written in an older format. The full name of the VBA procedure to run, such as `Project1.CustomMailMessageRule`. This is the string Outlook passes to VBA and shows in the rule. |
+| Name | variable | String. The full name of the VBA procedure to run, such as `Project1.CustomMailMessageRule`. This is the string Outlook passes to VBA and shows in the rule. |
 | Function | variable | String, like Name. A second string from the same macro-list entry. Outlook stores and copies it but doesn't use it to run the script. Observed equal to Name. |
 
 Outlook 2002–2013 read and write it in this order, and run the procedure that Name names ([Running §4.3](Running.md#43-scripts)). The Rules Wizard fills in both strings from Outlook's list of VBA procedures ([Rules Wizard §2](RulesWizard.md#2-filling-in-parameters)).
 
 ### 8.27 FlagForFollowUpParameter
-`ToDoActionDlg`. Used by `0x0151` ("flag message for *follow up at this time*").
+Used by `0x0151` ("flag message for *follow up at this time*").
 
 | Field | Size | Description |
 |---|---|---|
