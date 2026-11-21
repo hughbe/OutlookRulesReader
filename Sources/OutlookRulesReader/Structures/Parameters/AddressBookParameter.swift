@@ -10,11 +10,17 @@ import MAPI
 
 public struct AddressBookParameter: RuleParameter {
     public var reserved: UInt32 = 0
-    public var entryId: EntryID
+    /// The address book's entry ID, exactly as stored. Always written back unchanged.
+    public var entryIdBytes: [UInt8]
+    /// The address book's entry ID, decoded; nil if `MAPI` can't decode it. Setting it replaces `entryIdBytes`.
+    public var entryId: EntryID? {
+        get { RawEntryID.decode(entryIdBytes) }
+        set { entryIdBytes = newValue.map(RawEntryID.encode) ?? [] }
+    }
     public var name: String
     
     public init(entryId: EntryID, name: String) {
-        self.entryId = entryId
+        self.entryIdBytes = RawEntryID.encode(entryId)
         self.name = name
     }
 
@@ -23,7 +29,7 @@ public struct AddressBookParameter: RuleParameter {
         self.reserved = try dataStream.read(endianess: .littleEndian)
         
         /// Entry Id (4 bytes)
-        self.entryId = try FlatEntry(dataStream: &dataStream).entryID
+        self.entryIdBytes = try RawEntryID.read(from: &dataStream)
         
         /// Name (variable)
         self.name = try VersionedString.read(from: &dataStream, version: version)
@@ -33,7 +39,7 @@ public struct AddressBookParameter: RuleParameter {
         /// Reserved (4 bytes)
         dataStream.write(reserved, endianess: .littleEndian)
         
-        FlatEntry(entryID: entryId).write(to: &dataStream)
+        RawEntryID.write(entryIdBytes, to: &dataStream)
         
         /// Name (variable)
         VersionedString.write(name, to: &dataStream, version: version)

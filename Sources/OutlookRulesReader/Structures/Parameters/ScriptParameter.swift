@@ -10,10 +10,10 @@ import DataStream
 public struct ScriptParameter: RuleParameter {
     public var reserved: UInt32 = 0
     /// The full name of the VBA procedure to run, such as `Project1.CustomMailMessageRule`. Outlook 2003 passes
-    /// this string to VBA and shows it in the rule (spec §6.26).
+    /// this string to VBA and shows it in the rule (spec §8.26).
     public var name: String
     /// A second string from the same entry of Outlook's macro list. Stored but not used to run the script; observed
-    /// equal to `name` (spec §6.26).
+    /// equal to `name` (spec §8.26).
     public var function: String
 
     public init(name: String, function: String) {

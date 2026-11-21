@@ -7,36 +7,37 @@
 
 import DataStream
 
-/// The header of an individual rule. See spec §4.3.1.
+/// The header of an individual rule. See spec §5.1.
 internal struct RuleHeader {
     /// The rule's own version stamp (Outlook 2002 and later formats only). Normally the stream's stamp; a rule with
-    /// an older stamp keeps that older layout inside a newer stream (spec §4.3.1).
-    public var versionStamp: UInt32?
-    public var name: String
-    public var enabled: Bool
-    /// 1 after the rule failed while running on the client (Outlook 2000; spec §4.3.1).
-    public var runError: UInt32 = 0
-    /// 1 once the rule has been saved to the Exchange server's rules table (spec §4.3.1).
-    public var serverRule: UInt32 = 0
-    /// Rule flags (Outlook 98 and later). See `RuleFlags` and spec §4.3.1.1.
-    public var flags: UInt32? = 0
-    /// The ID of the rule's copy on the Exchange server (Outlook 2002 and later; spec §4.3.1).
-    public var serverRuleId: UInt32? = 0
+    /// an older stamp keeps that older layout inside a newer stream (spec §9.2).
+    var versionStamp: UInt32?
+    var name: String
+    /// Any non-zero value means enabled (spec §5.1).
+    var rawEnabled: UInt32
+    /// 1 after the rule failed while running on the client (Outlook 2000; spec §5.1).
+    var runError: UInt32 = 0
+    /// 1 once the rule has been saved to the Exchange server's rules table (spec §5.1).
+    var serverRule: UInt32 = 0
+    /// Rule flags (Outlook 98 and later). See `RuleFlags` and spec §5.2.
+    var flags: UInt32? = 0
+    /// The ID of the rule's copy on the Exchange server (Outlook 2002 and later; spec §5.1).
+    var serverRuleId: UInt32? = 0
     /// The number of bytes from the end of this field to the end of the rule (Outlook 2002 and later only).
-    public var dataSize: UInt32?
+    var dataSize: UInt32?
     /// Whether NumberOfElements and the elements follow. In the Outlook 2002 and later formats, a DataSize of 0 means
-    /// the rule stores no element list at all, not even its count (Outlook 2003; spec §4.3.1).
-    public var hasElementList: Bool = true
-    public var numberOfElements: UInt16
+    /// the rule stores no element list at all, not even its count (Outlook 2003; spec §5.1).
+    var hasElementList: Bool = true
+    var numberOfElements: UInt32
 
-    public init(name: String, enabled: Bool = false, numberOfElements: UInt16, dataSize: UInt32) {
+    init(name: String, rawEnabled: UInt32, numberOfElements: UInt32, dataSize: UInt32) {
         self.name = name
-        self.enabled = enabled
+        self.rawEnabled = rawEnabled
         self.dataSize = dataSize
         self.numberOfElements = numberOfElements
     }
 
-    /// The format the rule's contents use: the stream's, or the rule's own stamp if that is older (spec §4.3.1).
+    /// The format the rule's contents use: the stream's, or the rule's own stamp if that is older (spec §5.1).
     static func contentVersion(streamVersion: OutlookRulesVersion, versionStamp: UInt32?) -> OutlookRulesVersion {
         guard streamVersion >= .outlook2002, let stamp = versionStamp.map({ $0 & 0x00FFFFFF }), stamp >= 960706 else {
             return streamVersion
@@ -46,7 +47,7 @@ internal struct RuleHeader {
     }
 
     /// Reads a rule header. `version` is the stream's version; the rule's contents use `contentVersion`.
-    public init(dataStream: inout DataStream, version: OutlookRulesVersion) throws {
+    init(dataStream: inout DataStream, version: OutlookRulesVersion) throws {
         if version >= .outlook2002 {
             /// Version Stamp (4 bytes)
             self.versionStamp = try dataStream.read(endianess: .littleEndian)
@@ -60,7 +61,7 @@ internal struct RuleHeader {
         self.name = try VersionedString.read(from: &dataStream, version: version)
 
         /// Enabled (4 bytes)
-        self.enabled = try dataStream.read(endianess: .littleEndian) as UInt32 != 0x0000
+        self.rawEnabled = try dataStream.read(endianess: .littleEndian)
 
         /// Run Error (4 bytes)
         self.runError = try dataStream.read(endianess: .littleEndian)
@@ -88,16 +89,16 @@ internal struct RuleHeader {
             self.dataSize = nil
         }
 
-        /// Number of Elements (2 bytes), absent when Data Size is 0
+        /// Number of Elements (2 or 6 bytes), absent when Data Size is 0
         if hasElementList {
-            self.numberOfElements = try dataStream.read(endianess: .littleEndian)
+            self.numberOfElements = try ArchiveCount.read(from: &dataStream)
         } else {
             self.numberOfElements = 0
         }
     }
 
     /// Writes the header. `version` is the stream's version; the rule's contents use `contentVersion`.
-    public func write(to dataStream: inout OutputDataStream, version streamVersion: OutlookRulesVersion) {
+    func write(to dataStream: inout OutputDataStream, version streamVersion: OutlookRulesVersion) {
         let stamp = versionStamp ?? RulesHeader.defaultVersionStamp(for: streamVersion) ?? 0
         if streamVersion >= .outlook2002 {
             /// Version Stamp (4 bytes)
@@ -110,7 +111,7 @@ internal struct RuleHeader {
         VersionedString.write(name, to: &dataStream, version: version)
 
         /// Enabled (4 bytes)
-        dataStream.write((enabled ? 1 : 0) as UInt32, endianess: .littleEndian)
+        dataStream.write(rawEnabled, endianess: .littleEndian)
 
         /// Run Error (4 bytes)
         dataStream.write(runError, endianess: .littleEndian)
@@ -135,9 +136,16 @@ internal struct RuleHeader {
             }
         }
 
-        /// Number of Elements (2 bytes)
-        dataStream.write(numberOfElements, endianess: .littleEndian)
+        /// Number of Elements (2 or 6 bytes)
+        ArchiveCount.write(numberOfElements, to: &dataStream)
     }
+}
+
+/// Whether the `CRuleElement` class descriptor has been read or written yet in a stream, and its MFC schema number,
+/// which is written back as it was read (spec §2.5).
+internal struct ClassDeclaration {
+    var isDeclared = false
+    var schema: UInt16 = 0
 }
 
 /// The MFC `CArchive` object tag that precedes every rule element. See spec §2.5.
@@ -149,35 +157,33 @@ internal enum ObjectTag {
     static let className = "CRuleElement"
 
     /// Reads the tag, and the class descriptor if this is the first element of the stream.
-    static func read(from dataStream: inout DataStream, classDeclared: inout Bool) throws {
+    static func read(from dataStream: inout DataStream, classDeclared: inout ClassDeclaration) throws {
         let tag: UInt16 = try dataStream.read(endianess: .littleEndian)
         switch tag {
         case newClass:
-            guard !classDeclared else {
-                throw OutlookRulesReadError.corrupted
+            guard !classDeclared.isDeclared else {
+                throw OutlookRulesReadError.invalidClassDeclaration
             }
 
             /// Schema (2 bytes)
-            let _: UInt16 = try dataStream.read(endianess: .littleEndian)
+            classDeclared.schema = try dataStream.read(endianess: .littleEndian)
 
             /// Class Name Length (2 bytes)
             let classNameLength: UInt16 = try dataStream.read(endianess: .littleEndian)
             guard classNameLength <= dataStream.remainingCount else {
-                throw OutlookRulesReadError.corrupted
+                throw OutlookRulesReadError.lengthOutOfRange
             }
 
             /// Class Name (variable)
-            guard let className = try dataStream.readString(count: Int(classNameLength), encoding: .ascii) else {
-                throw OutlookRulesReadError.corrupted
-            }
+            let className = ANSIEncoding.decode(try dataStream.readBytes(count: Int(classNameLength)))
             guard className == ObjectTag.className else {
                 throw OutlookRulesReadError.unknownRuleClass(ruleClass: className)
             }
 
-            classDeclared = true
+            classDeclared.isDeclared = true
         case firstClass:
-            guard classDeclared else {
-                throw OutlookRulesReadError.corrupted
+            guard classDeclared.isDeclared else {
+                throw OutlookRulesReadError.invalidClassDeclaration
             }
         default:
             throw OutlookRulesReadError.invalidObjectTag(tag: tag)
@@ -185,8 +191,8 @@ internal enum ObjectTag {
     }
 
     /// Writes the tag, and the class descriptor if this is the first element of the stream.
-    static func write(to dataStream: inout OutputDataStream, classDeclared: inout Bool) {
-        if classDeclared {
+    static func write(to dataStream: inout OutputDataStream, classDeclared: inout ClassDeclaration) {
+        if classDeclared.isDeclared {
             dataStream.write(firstClass, endianess: .littleEndian)
             return
         }
@@ -195,7 +201,7 @@ internal enum ObjectTag {
         dataStream.write(newClass, endianess: .littleEndian)
 
         /// Schema (2 bytes)
-        dataStream.write(0 as UInt16, endianess: .littleEndian)
+        dataStream.write(classDeclared.schema, endianess: .littleEndian)
 
         /// Class Name Length (2 bytes)
         dataStream.write(UInt16(className.utf8.count), endianess: .littleEndian)
@@ -203,6 +209,6 @@ internal enum ObjectTag {
         /// Class Name (variable)
         dataStream.write(className, encoding: .ascii)
 
-        classDeclared = true
+        classDeclared.isDeclared = true
     }
 }

@@ -13,7 +13,7 @@ public enum FollowUp: UInt32 {
     case tomorrow = 0x00000002
     case thisWeek = 0x00000003
     case nextWeek = 0x00000004
-    /// Accepted by Outlook 2007's follow-up action, which looks up dates for values 1–6 (spec §6.27). The name is
+    /// Accepted by Outlook 2007's follow-up action, which looks up dates for values 1–6 (spec §8.27). The name is
     /// inferred from its date rule; no sample uses it.
     case thisMonth = 0x00000005
     /// See `thisMonth`.
@@ -25,11 +25,14 @@ public enum FollowUp: UInt32 {
 public struct FlagForFollowUpParameter: RuleParameter {
     public var reserved: UInt32 = 0
     public var rawFollowUp: UInt32
-    public var followUp: FollowUp {
+    /// The value of `rawFollowUp`, or nil if it isn't a known value. Setting nil leaves `rawFollowUp` unchanged.
+    public var followUp: FollowUp? {
         get {
-            return FollowUp(rawValue: rawFollowUp)!
+            return FollowUp(rawValue: rawFollowUp)
         } set {
-            rawFollowUp = newValue.rawValue
+            if let newValue = newValue {
+                rawFollowUp = newValue.rawValue
+            }
         }
     }
     public var action: String

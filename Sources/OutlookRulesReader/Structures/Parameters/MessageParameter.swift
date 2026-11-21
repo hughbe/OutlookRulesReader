@@ -11,8 +11,8 @@ public struct MessageParameter: RuleParameter {
     public var reserved: UInt32 = 0
     public var message: String
     
-    public init(path: String) {
-        self.message = path
+    public init(message: String) {
+        self.message = message
     }
     
     public init(dataStream: inout DataStream, version: OutlookRulesVersion) throws {

@@ -180,9 +180,11 @@ final class ExportTests: XCTestCase {
             // Write using the version that the file was read with.
             XCTAssertEqual(expected, summary(of: try OutlookRules(data: original.getData())), url.lastPathComponent)
 
-            // Write using every other version.
+            // Write using every other version. Like Outlook, rules with elements the version can't store are left out (spec §9.4).
             for version in writableVersions {
-                XCTAssertEqual(expected, summary(of: try OutlookRules(data: original.getData(version: version))), "\(url.lastPathComponent) as \(version)")
+                var supported = original
+                supported.rules = original.rules.filter { $0.isSupported(in: version) }
+                XCTAssertEqual(summary(of: supported), summary(of: try OutlookRules(data: original.getData(version: version))), "\(url.lastPathComponent) as \(version)")
             }
             tested += 1
         }
@@ -255,20 +257,4 @@ final class ExportTests: XCTestCase {
         XCTAssertEqual(original[PropertyId.tagSearchKey.rawValue] as? [UInt8], rereadParameter.values[0][PropertyId.tagSearchKey.rawValue] as? [UInt8])
         XCTAssertEqual(original[PropertyId.tagEntryId.rawValue] as? [UInt8], rereadParameter.values[0][PropertyId.tagEntryId.rawValue] as? [UInt8])
     }
-
-    static var allTests = [
-        ("testEmpty", testEmpty),
-        ("testEmptyRule", testEmptyRule),
-        ("testSentOnlyToMe", testSentOnlyToMe),
-        ("testHasAttachment", testHasAttachment),
-        ("testWriteVersionSignatures", testWriteVersionSignatures),
-        ("testWriteNoSignature", testWriteNoSignature),
-        ("testWriteDefaultsToReadVersion", testWriteDefaultsToReadVersion),
-        ("testNameWithCarriageReturnLineFeed", testNameWithCarriageReturnLineFeed),
-        ("testElementOrderIsPreserved", testElementOrderIsPreserved),
-        ("testRoundTripResources", testRoundTripResources),
-        ("testWriteAddressParameter", testWriteAddressParameter),
-        ("testAddressParameterRoundTripIsLossless", testAddressParameterRoundTripIsLossless),
-        ("testModifyAddressParameter", testModifyAddressParameter),
-    ]
 }

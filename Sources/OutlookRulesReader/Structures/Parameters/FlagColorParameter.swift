@@ -7,7 +7,7 @@
 
 import DataStream
 
-/// The parameter of "flag message with <a colored flag>" (0x0150, Outlook 2003). See spec §6.29.
+/// The parameter of "flag message with <a colored flag>" (0x0150, Outlook 2003). See spec §8.29.
 public struct FlagColorParameter: RuleParameter {
     public var reserved: UInt32 = 0
 

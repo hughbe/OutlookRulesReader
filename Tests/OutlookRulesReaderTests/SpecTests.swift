@@ -13,7 +13,14 @@ import XCTest
 /// Tests for the behaviour described in spec/Rules.md.
 final class SpecTests: XCTestCase {
     private func sampleFiles() -> [URL] {
-        return (Bundle.module.urls(forResourcesWithExtension: "rwz", subdirectory: nil) ?? [])
+        // Enumerated rather than using Bundle.urls(forResourcesWithExtension:), which returns [NSURL] on Linux.
+        guard let resources = Bundle.module.resourceURL,
+              let enumerator = FileManager.default.enumerator(at: resources, includingPropertiesForKeys: nil) else {
+            return []
+        }
+
+        return enumerator.compactMap { $0 as? URL }
+            .filter { $0.pathExtension == "rwz" }
             .sorted { $0.lastPathComponent < $1.lastPathComponent }
     }
 
@@ -44,7 +51,7 @@ final class SpecTests: XCTestCase {
         }
     }
 
-    /// Rule header fields with unknown meaning survive a round trip (spec §4.3.1).
+    /// Rule header fields with unknown meaning survive a round trip (spec §5.1).
     func testRuleHeaderFieldsPreserved() throws {
         let exceptionList = try OutlookRules(data: try getData(name: "Outlook2000_ExceptionList_Default", fileExtension: "rwz"))
         XCTAssertEqual(.exceptionListRule, exceptionList.rules[0].flags)
@@ -57,7 +64,7 @@ final class SpecTests: XCTestCase {
         XCTAssertEqual(data, file.getData())
     }
 
-    /// The Net Folders rule uses elements 0x00E7 and 0x0141, which take no parameters (spec §5).
+    /// The Net Folders rule uses elements 0x00E7 and 0x0141, which take no parameters (spec §7).
     func testNetFolders() throws {
         let file = try OutlookRules(data: try getData(name: "Outlook2000_NetFolders_Default", fileExtension: "rwz"))
         XCTAssertEqual(1, file.rules.count)
@@ -66,7 +73,7 @@ final class SpecTests: XCTestCase {
         XCTAssertTrue(file.rules[0].elements[2...].allSatisfy { $0.parameters.isEmpty })
     }
 
-    /// RuleHeader Unknown1 records that the rule failed while running on the client (spec §4.3.1).
+    /// RuleHeader Unknown1 records that the rule failed while running on the client (spec §5.1).
     func testRunError() throws {
         let data = try getData(name: "Outlook2000_NetFolders_Default", fileExtension: "rwz")
         var file = try OutlookRules(data: data)
@@ -75,9 +82,11 @@ final class SpecTests: XCTestCase {
         var rules = file.rules
         rules[0].hasRunError = true
         var changed = OutputDataStream()
-        rules[0].write(to: &changed, index: 0, version: .outlook98)
+        var classDeclared = ClassDeclaration()
+        rules[0].write(to: &changed, version: .outlook98, versionStamp: nil, classDeclared: &classDeclared)
         var dataStream = DataStream(changed.data)
-        let rule = try Rule(dataStream: &dataStream, index: 0, version: .outlook98)
+        classDeclared = ClassDeclaration()
+        let rule = try Rule(dataStream: &dataStream, version: .outlook98, classDeclared: &classDeclared)
         XCTAssertTrue(rule.hasRunError)
         file = try OutlookRules(data: data)
         XCTAssertEqual(data, file.getData())
@@ -103,7 +112,7 @@ final class SpecTests: XCTestCase {
         XCTAssertEqual(2, header.numberOfRules)
     }
 
-    /// The writer version holds the writer's version stamp and an index into the version table (spec §4.2).
+    /// The writer version holds the writer's version stamp and an index into the version table (spec §4).
     func testWriterVersion() throws {
         var dataStream = DataStream(try getData(name: "Outlook2007_Delete_2002", fileExtension: "rwz"))
         let header = try RulesHeader(dataStream: &dataStream)
@@ -137,7 +146,7 @@ final class SpecTests: XCTestCase {
         XCTAssertEqual(2, try OutlookRules(data: data).rules.count)
     }
 
-    /// Outlook 97 stores the wizard template name after the rule name, separated by a tab (spec §4.3.1).
+    /// Outlook 97 stores the wizard template name after the rule name, separated by a tab (spec §5.1).
     func testTemplateName() throws {
         let data = try getData(name: "Outlook97_FlagForAction", fileExtension: "rwz")
         let file = try OutlookRules(data: data)
@@ -155,7 +164,7 @@ final class SpecTests: XCTestCase {
         XCTAssertEqual("Template", reread.rules[0].templateName)
     }
 
-    /// Element 0x0064 is "For each <message>" (spec §6.2).
+    /// Element 0x0064 is "For each <message>" (spec §8.2).
     func testItemTypes() throws {
         for url in sampleFiles() {
             for rule in try OutlookRules(data: try Data(contentsOf: url)).rules {
@@ -170,7 +179,7 @@ final class SpecTests: XCTestCase {
         XCTAssertEqual(RuleItemTypes(rawValue: 0x3), (reread.rules[0].elements.first { $0.identifier == .itemType }?.parameter as? ItemTypeParameter)?.itemTypes)
     }
 
-    /// Address conditions match any of the addresses; address actions apply to all of them; Cc is marked (spec §6.4).
+    /// Address conditions match any of the addresses; address actions apply to all of them; Cc is marked (spec §8.4).
     func testAddressParameterMatchAnyAndCc() throws {
         func parameter(_ name: String) throws -> AddressParameter {
             let file = try OutlookRules(data: try getData(name: name, fileExtension: "rwz"))
@@ -191,7 +200,7 @@ final class SpecTests: XCTestCase {
         XCTAssertTrue(cc.isCc)
     }
 
-    /// The flag action and the "flagged for" condition share a layout, distinguished by isCondition (spec §6.5, §6.21).
+    /// The flag action and the "flagged for" condition share a layout, distinguished by isCondition (spec §8.5, §8.21).
     func testFlagIsCondition() throws {
         let flagged = try OutlookRules(data: try getData(name: "Outlook2007_Flagged_Default", fileExtension: "rwz"))
         let condition = try XCTUnwrap(flagged.rules[0].conditions[0].parameter as? FlaggedForActionParameter)
@@ -205,7 +214,7 @@ final class SpecTests: XCTestCase {
         XCTAssertFalse(action.isCondition)
     }
 
-    /// The server-rule flag is exposed and preserved (spec §4.3.1).
+    /// The server-rule flag is exposed and preserved (spec §5.1).
     func testServerRule() throws {
         let file = try OutlookRules(data: try getData(name: "RedirectToPeopleOrPublicGroup", fileExtension: "rwz"))
         XCTAssertTrue(file.rules[0].isServerRule)
@@ -216,7 +225,7 @@ final class SpecTests: XCTestCase {
         XCTAssertTrue(try OutlookRules(data: OutlookRules(rules: [rule]).getData()).rules[0].isServerRule)
     }
 
-    /// Header Unknown5-8 are the Rules Wizard's server and Inbox Assistant settings (spec §4.2).
+    /// Header Unknown5-8 are the Rules Wizard's server and Inbox Assistant settings (spec §4).
     func testHeaderSettings() throws {
         let outlook98 = try OutlookRules(data: try getData(name: "Outlook98_Delete", fileExtension: "rwz"))
         XCTAssertTrue(outlook98.serverRulesOutOfDate)
@@ -248,7 +257,7 @@ final class SpecTests: XCTestCase {
         }
     }
 
-    /// A user who answered "No" to the Inbox Assistant prompt has Unknown8 = 0, which must be accepted (spec §4.2).
+    /// A user who answered "No" to the Inbox Assistant prompt has Unknown8 = 0, which must be accepted (spec §4).
     func testHeaderWithInboxAssistantAnswerNo() throws {
         var data = try getData(name: "Outlook98_Delete", fileExtension: "rwz")
         // Signature (4) + Unknown1-7 (28) puts Unknown8 at offset 32.
@@ -259,7 +268,7 @@ final class SpecTests: XCTestCase {
         XCTAssertEqual(data, file.getData())
     }
 
-    /// DocumentProperty Unknown2 is "match if the property is missing" (spec §6.9).
+    /// DocumentProperty Unknown2 is "match if the property is missing" (spec §8.9).
     func testDocumentPropertyMatchIfMissing() throws {
         let file = try OutlookRules(data: try getData(name: "Outlook2007_WithSelectedPropertiesOfDocumentsOrForms_Default", fileExtension: "rwz"))
         let parameter = try XCTUnwrap(file.rules[0].conditions[0].parameter as? FormParameter)
@@ -273,7 +282,7 @@ final class SpecTests: XCTestCase {
         var reader = DataStream(stream.data)
         XCTAssertTrue(try DocumentProperty(dataStream: &reader, version: .outlook2010).matchIfMissing)
 
-        // Outlook 2003 and 2007 test for exactly 1 (spec §6.9.1); other values are kept but don't count.
+        // Outlook 2003 and 2007 test for exactly 1 (spec §8.9.1); other values are kept but don't count.
         property.rawMatchIfMissing = 2
         XCTAssertFalse(property.matchIfMissing)
         stream = OutputDataStream()
@@ -282,7 +291,7 @@ final class SpecTests: XCTestCase {
         XCTAssertEqual(2, try DocumentProperty(dataStream: &reader, version: .outlook2010).rawMatchIfMissing)
     }
 
-    /// Element IDs that only Outlook 97's rule evaluator knows (spec Appendix D.4) can be read and written back.
+    /// Element IDs that only Outlook 97's rule evaluator knows (spec §7.6) can be read and written back.
     func testEvaluatorOnlyElements() throws {
         func patched(_ name: String, from old: UInt32, to new: UInt32) throws -> Data {
             var data = try getData(name: name, fileExtension: "rwz")
@@ -307,9 +316,11 @@ final class SpecTests: XCTestCase {
     }
 
     /// Signature 970102 is Outlook 97's profile copy of the rules: the Outlook 98 layout without rule flags
-    /// (added in 970812) or the folder's secondary-store field (added in 970718) (spec §4.1).
+    /// (added in 970812) or the folder's secondary-store field (added in 970718) (spec §3.3).
     func testOutlook97Profile() throws {
-        let file = try OutlookRules(data: try getData(name: "Outlook2007_MoveToFolder_Default", fileExtension: "rwz"))
+        // Not an Outlook 2007 sample: its rule has "on this computer only" (0x00EF), which Outlook 97 and 98 can't
+        // store, so writing it to those formats leaves the rule out (spec §9.4).
+        let file = try OutlookRules(data: try getData(name: "Outlook98_MoveToFolder", fileExtension: "rwz"))
         XCTAssertEqual(1, file.rules.count)
 
         let profile = file.getData(version: .outlook97Profile)
@@ -348,7 +359,7 @@ final class SpecTests: XCTestCase {
         XCTAssertEqual(.outlook2010, RulesHeader.detectVersion(versionStamp: 0x150000))
     }
 
-    /// Header Unknown1-3 are only preserved by Outlook, so readers accept any value (spec §4.2).
+    /// Header Unknown1-3 are only preserved by Outlook, so readers accept any value (spec §4).
     func testHeaderUnknownsAccepted() throws {
         var data = try getData(name: "Outlook98_Delete", fileExtension: "rwz")
         // Unknown1 follows the 4-byte signature.
@@ -358,7 +369,7 @@ final class SpecTests: XCTestCase {
         XCTAssertEqual(data, file.getData())
     }
 
-    /// Outlook 2000 has the account and server-reply elements and writes their names in ANSI (spec §6.15, §6.25).
+    /// Outlook 2000 has the account and server-reply elements and writes their names in ANSI (spec §8.15, §8.25).
     func testAnsiAccountAndTemplateNames() throws {
         let folderFile = try OutlookRules(data: try getData(name: "Outlook2007_MoveToFolder_Default", fileExtension: "rwz"))
         let folder = try XCTUnwrap(folderFile.rules[0].actions.first { $0.parameter is FolderParameter }?.parameter as? FolderParameter)
@@ -366,7 +377,7 @@ final class SpecTests: XCTestCase {
             eventFlags: .afterReceived,
             name: "Rule",
             conditions: [RuleElement(identifier: .throughSpecifiedAccountCondition, parameter: AccountParameter(accountName: "Work", accountStamp: "12345"))],
-            actions: [RuleElement(identifier: .automaticReply, parameter: TemplateParameter(messageEntryId: folder.folderEntryId, name: "Reply"))]
+            actions: [RuleElement(identifier: .serverReplyAction, parameter: TemplateParameter(messageEntryId: try XCTUnwrap(folder.folderEntryId), name: "Reply"))]
         )
         let file = OutlookRules(rules: [rule])
 
@@ -384,7 +395,7 @@ final class SpecTests: XCTestCase {
         XCTAssertNotNil(ansi.range(of: Data([5]) + Data("Reply".utf8)))
     }
 
-    /// Outlook 2000 reads element 0x00EA as the junk-mail condition 0x00EB (spec §5.2).
+    /// Outlook 2000 reads element 0x00EA as the junk-mail condition 0x00EB (spec §7.3).
     func testLegacyJunkCondition() throws {
         var data = try getData(name: "Outlook98_Junk", fileExtension: "rwz")
         let needle = Data([0x01, 0x80, 0xEB, 0x00, 0x00, 0x00])
@@ -398,7 +409,7 @@ final class SpecTests: XCTestCase {
     }
 
     /// Outlook 2000 saves with stamp 970812 unless a rule needs 980413, and leaves out rules that use Outlook
-    /// 2000-only elements when saving for Outlook 98 (spec §4.1.2).
+    /// 2000-only elements when saving for Outlook 98 (spec §9.5).
     func testOutlook2000SaveVersion() throws {
         func version(_ name: String) throws -> OutlookRulesVersion {
             var dataStream = DataStream(try getData(name: name, fileExtension: "rwz"))
@@ -417,7 +428,7 @@ final class SpecTests: XCTestCase {
         XCTAssertEqual(0, print98.rules.count)
     }
 
-    /// From Outlook 2002 the header ends with a byte count and that many bytes, which must be preserved (spec §4.2).
+    /// From Outlook 2002 the header ends with a byte count and that many bytes, which must be preserved (spec §4).
     func testHeaderExtraData() throws {
         let original = try getData(name: "Outlook2002FromOutlook2019", fileExtension: "rwz")
         var dataStream = DataStream(original)
@@ -437,7 +448,7 @@ final class SpecTests: XCTestCase {
     }
 
     /// A rule whose own stamp is older than the stream's keeps that older layout: ANSI name, no server rule ID or
-    /// data size, and ANSI parameters (spec §4.3.1).
+    /// data size, and ANSI parameters (spec §5.1).
     func testRuleWithOlderVersionStamp() throws {
         var rule = Rule(eventFlags: .afterReceived, name: "Older", conditions: [
             RuleElement(identifier: .specificWordsInSubjectCondition, parameter: StringParameter(value: "hello"))
@@ -456,7 +467,7 @@ final class SpecTests: XCTestCase {
     }
 
     /// A Data Size of 0 means the rule has no element list, not even its count. Outlook 2003 writes the Download
-    /// Options rule this way (spec §4.3.1).
+    /// Options rule this way (spec §5.1).
     func testRuleWithoutElementList() throws {
         var bigItemRule = Rule(eventFlags: .afterReceived, name: "Big items")
         bigItemRule.flags = .downloadOptionsRule
@@ -478,7 +489,7 @@ final class SpecTests: XCTestCase {
         XCTAssertEqual(data, file.getData())
     }
 
-    /// Actions defined by Outlook 2003: 0x014D and 0x014E, which it hides, and the colored flag 0x0150 (spec §5.3).
+    /// Actions defined by Outlook 2003: 0x014D and 0x014E, which it hides, and the colored flag 0x0150 (spec §7.4).
     func testOutlook2003Actions() throws {
         let rule = Rule(eventFlags: .afterReceived, name: "2003", actions: [
             RuleElement(identifier: .hiddenServerReplyAction, parameter: StringParameter(value: "Reply")),
@@ -521,7 +532,7 @@ final class SpecTests: XCTestCase {
         XCTAssertEqual(propertiesZero, rereadProperties.getData())
     }
 
-    /// Outlook 2007 reads "from any RSS feed" with an optional parameter that holds only the Reserved field (spec §5.2).
+    /// Outlook 2007 reads "from any RSS feed" with an optional parameter that holds only the Reserved field (spec §7.3).
     func testFromAnyRSSFeedReservedParameter() throws {
         let rule = Rule(eventFlags: .afterReceived, name: "RSS", conditions: [
             RuleElement(identifier: .fromAnyRSSFeedCondition, parameter: ReservedParameter())
@@ -536,40 +547,6 @@ final class SpecTests: XCTestCase {
         XCTAssertTrue(file.rules[0].exceptions[0].parameters.isEmpty)
         XCTAssertEqual(data, file.getData())
     }
-
-    static var allTests = [
-        ("testAllSamplesRoundTrip", testAllSamplesRoundTrip),
-        ("testFromAnyRSSFeedReservedParameter", testFromAnyRSSFeedReservedParameter),
-        ("testSignatureZeroOmitsVersionedFields", testSignatureZeroOmitsVersionedFields),
-        ("testRuleWithoutElementList", testRuleWithoutElementList),
-        ("testOutlook2003Actions", testOutlook2003Actions),
-        ("testParameterDataSizeMatchesWrittenSize", testParameterDataSizeMatchesWrittenSize),
-        ("testRuleHeaderFieldsPreserved", testRuleHeaderFieldsPreserved),
-        ("testNetFolders", testNetFolders),
-        ("testRunError", testRunError),
-        ("testHeaderExtraData", testHeaderExtraData),
-        ("testRuleWithOlderVersionStamp", testRuleWithOlderVersionStamp),
-        ("testEmptyOutlook97Stream", testEmptyOutlook97Stream),
-        ("testSignatureZeroHeader", testSignatureZeroHeader),
-        ("testWriterVersion", testWriterVersion),
-        ("testLongStrings", testLongStrings),
-        ("testClassDescriptorWrittenOnce", testClassDescriptorWrittenOnce),
-        ("testTemplateName", testTemplateName),
-        ("testItemTypes", testItemTypes),
-        ("testAddressParameterMatchAnyAndCc", testAddressParameterMatchAnyAndCc),
-        ("testFlagIsCondition", testFlagIsCondition),
-        ("testServerRule", testServerRule),
-        ("testHeaderSettings", testHeaderSettings),
-        ("testHeaderWithInboxAssistantAnswerNo", testHeaderWithInboxAssistantAnswerNo),
-        ("testDocumentPropertyMatchIfMissing", testDocumentPropertyMatchIfMissing),
-        ("testEvaluatorOnlyElements", testEvaluatorOnlyElements),
-        ("testOutlook97Profile", testOutlook97Profile),
-        ("testVersionStampRanges", testVersionStampRanges),
-        ("testHeaderUnknownsAccepted", testHeaderUnknownsAccepted),
-        ("testAnsiAccountAndTemplateNames", testAnsiAccountAndTemplateNames),
-        ("testLegacyJunkCondition", testLegacyJunkCondition),
-        ("testOutlook2000SaveVersion", testOutlook2000SaveVersion),
-    ]
 }
 
 private extension Data {

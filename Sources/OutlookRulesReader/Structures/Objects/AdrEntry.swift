@@ -9,18 +9,18 @@ import DataStream
 import Foundation
 import MAPI
 
-/// A serialized MAPI `ADRENTRY` whose `SPropValue` array has its pointers replaced by offsets (spec §6.4).
+/// A serialized MAPI `ADRENTRY` whose `SPropValue` array has its pointers replaced by offsets (spec §8.4).
 internal struct AdrEntry {
     /// A single property, retaining everything needed to write it back byte-for-byte.
-    public struct Property {
-        public var type: PropertyType
-        public var id: UInt16
-        public var alignPad: UInt32
-        public var valueHigh: UInt32
-        public var value: Any
+    struct Property {
+        var type: PropertyType
+        var id: UInt16
+        var alignPad: UInt32
+        var valueHigh: UInt32
+        var value: Any
         
         /// Whether the value is of the Swift type that is used to represent the property type.
-        public func accepts(_ value: Any) -> Bool {
+        func accepts(_ value: Any) -> Bool {
             switch type {
             case .integer32, .errorCode:
                 return value is UInt32
@@ -36,7 +36,7 @@ internal struct AdrEntry {
         }
         
         /// Infers the property type to use for a value that has no recorded type.
-        public static func inferredType(for value: Any) -> PropertyType? {
+        static func inferredType(for value: Any) -> PropertyType? {
             switch value {
             case let value as UInt32:
                 // Error codes (e.g. MAPI_E_NOT_FOUND) have the high bit set.
@@ -53,18 +53,23 @@ internal struct AdrEntry {
         }
     }
     
-    public var dataSize: UInt32 {
+    var dataSize: UInt32 {
         var stream = OutputDataStream()
         write(to: &stream)
         return UInt32(stream.data.count)
     }
     
     /// `ADRENTRY.ulReserved1`. Often uninitialised memory; preserved when round-tripping.
-    public var reserved1: UInt32 = 0
-    public var propertyValues: [Property]
+    var reserved1: UInt32 = 0
+    var propertyValues: [Property]
+
+    /// The property block as read, and the block this library would have written for the properties as read. While
+    /// the properties still produce that block, the original is written back, so padding and the layout Outlook chose
+    /// are kept exactly.
+    private var original: (block: [UInt8], canonicalBlock: [UInt8])?
 
     /// The values of the properties, keyed by property ID.
-    public var properties: [UInt16: Any] {
+    var properties: [UInt16: Any] {
         var properties: [UInt16: Any] = [:]
         properties.reserveCapacity(propertyValues.count)
         for entry in propertyValues {
@@ -74,14 +79,14 @@ internal struct AdrEntry {
         return properties
     }
     
-    public init(propertyValues: [Property], reserved1: UInt32 = 0) {
+    init(propertyValues: [Property], reserved1: UInt32 = 0) {
         self.propertyValues = propertyValues
         self.reserved1 = reserved1
     }
     
     /// Creates a list from property values, reusing the types, order and flags of the properties
     /// in a previous list, if there is one, so that unmodified properties are written back unchanged.
-    public init(properties: [UInt16: Any], reusing previous: AdrEntry? = nil) {
+    init(properties: [UInt16: Any], reusing previous: AdrEntry? = nil) {
         var remaining = properties
         var propertyValues: [Property] = []
         propertyValues.reserveCapacity(properties.count)
@@ -107,102 +112,102 @@ internal struct AdrEntry {
         }
         
         self.init(propertyValues: propertyValues, reserved1: previous?.reserved1 ?? 0)
+        self.original = previous?.original
     }
     
-    public init(dataStream: inout DataStream) throws {
+    init(dataStream: inout DataStream) throws {
         /// Reserved1 (4 bytes)
         self.reserved1 = try dataStream.read(endianess: .littleEndian)
         
         /// Number of Properties (4 bytes)
         let numberOfProperties: UInt32 = try dataStream.read(endianess: .littleEndian)
         
-        /// Block Size (4 bytes): the size of the SPropValue array and the data it points to, as produced by MAPI ScCopyProps (spec §6.4)
+        /// Block Size (4 bytes): the size of the SPropValue array and the data it points to, as produced by MAPI ScCopyProps (spec §8.4)
         let propertyBlockDataSize: UInt32 = try dataStream.read(endianess: .littleEndian)
+        guard propertyBlockDataSize <= dataStream.remainingCount,
+              UInt64(numberOfProperties) * UInt64(SPropValue.dataSize) <= UInt64(propertyBlockDataSize) else {
+            throw OutlookRulesReadError.lengthOutOfRange
+        }
 
-        let startPosition = dataStream.position
-        let endPosition = dataStream.position + Int(propertyBlockDataSize)
+        /// Property Block (variable): the SPropValue array, then the data block. Offsets in the array are measured
+        /// from the start of the block, and every value must lie inside it.
+        let block = try dataStream.readBytes(count: Int(propertyBlockDataSize))
+        var headerStream = DataStream(block)
         
         var propertyValues: [Property] = []
         propertyValues.reserveCapacity(Int(numberOfProperties))
         for _ in 0..<numberOfProperties {
-            let header = try SPropValue(dataStream: &dataStream)
-            let position = dataStream.position
+            let header = try SPropValue(dataStream: &headerStream)
 
-            var value: Any
+            let value: Any
             switch header.propTag.type {
-            case PropertyType.integer32:
-                value = UInt32(header.valueLow)
-                break
-            case PropertyType.errorCode:
-                value = UInt32(header.valueLow)
-                break
+            case PropertyType.integer32, PropertyType.errorCode:
+                value = header.valueLow
             case PropertyType.string:
-                // Data stored in data block.
-                let offset = Int(header.valueLow)
-                guard offset >= 0 && offset <= endPosition else {
-                    throw OutlookRulesReadError.corrupted
-                }
-
-                dataStream.position = startPosition + offset
-
-                // Continue reading until null terminator.
-                value = try dataStream.readUnicodeString(endianess: .littleEndian)!
-                guard dataStream.position <= endPosition else {
-                    throw OutlookRulesReadError.corrupted
-                }
-                
-                dataStream.position = position
-                break
+                /// A null-terminated UTF-16 string in the data block.
+                let bytes = try AdrEntry.nullTerminatedBytes(in: block, at: Int(header.valueLow), unitSize: 2)
+                value = try UTF16Decoding.decode(bytes)
             case PropertyType.string8:
-                // Data stored in data block.
-                let offset = Int(header.valueLow)
-                guard offset >= 0 && offset <= endPosition else {
-                    throw OutlookRulesReadError.corrupted
-                }
-
-                dataStream.position = startPosition + offset
-
-                // Continue reading until null terminator.
-                value = try dataStream.readAsciiString()!
-                guard dataStream.position <= endPosition else {
-                    throw OutlookRulesReadError.corrupted
-                }
-                
-                dataStream.position = position
-                break
+                /// A null-terminated ANSI string in the data block.
+                value = ANSIEncoding.decode(try AdrEntry.nullTerminatedBytes(in: block, at: Int(header.valueLow), unitSize: 1))
             case PropertyType.binary:
-                // Data stored in data block. Like an SBinary, the value is a length followed by the location of the data.
+                /// Like an SBinary, the value is a length followed by the location of the data.
                 let length = Int(header.valueLow)
                 let offset = Int(header.valueHigh)
-                guard offset >= 0 && offset <= endPosition - startPosition else {
-                    throw OutlookRulesReadError.corrupted
+                guard offset <= block.count, length <= block.count - offset else {
+                    throw OutlookRulesReadError.lengthOutOfRange
                 }
 
-                dataStream.position = startPosition + offset
-                
-                guard length >= 0 && dataStream.position + length <= endPosition else {
-                    throw OutlookRulesReadError.corrupted
-                }
-                
-                value = try dataStream.readBytes(count: length)
-                
-                dataStream.position = position
-                break
+                value = Array(block[offset..<offset + length])
             case PropertyType.boolean:
                 value = UInt16(truncatingIfNeeded: header.valueLow) != 0
             default:
-                // Property type not yet supported.
-                throw OutlookRulesReadError.corrupted
+                throw OutlookRulesReadError.unsupportedPropertyType(type: header.propTag.type.rawValue)
             }
             
             propertyValues.append(Property(type: header.propTag.type, id: header.propTag.id, alignPad: header.alignPad, valueHigh: header.valueHigh, value: value))
         }
         
         self.propertyValues = propertyValues
-        dataStream.position = endPosition
+        self.original = (block, canonicalBlock())
+    }
+
+    /// The bytes of a null-terminated string at `offset` in the property block, without the terminator.
+    /// `unitSize` is 1 for ANSI strings and 2 for UTF-16 strings. Throws if the string isn't terminated inside the block.
+    private static func nullTerminatedBytes(in block: [UInt8], at offset: Int, unitSize: Int) throws -> [UInt8] {
+        var end = offset
+        while true {
+            guard end <= block.count - unitSize else {
+                throw OutlookRulesReadError.lengthOutOfRange
+            }
+            if block[end..<end + unitSize].allSatisfy({ $0 == 0 }) {
+                return Array(block[offset..<end])
+            }
+
+            end += unitSize
+        }
     }
     
-    public func write(to dataStream: inout OutputDataStream) {
+    func write(to dataStream: inout OutputDataStream) {
+        let canonical = canonicalBlock()
+        let block = original.map { $0.canonicalBlock == canonical ? $0.block : canonical } ?? canonical
+
+        /// Reserved1 (4 bytes)
+        dataStream.write(reserved1, endianess: .littleEndian)
+
+        /// Number of Properties (4 bytes)
+        dataStream.write(UInt32(propertyValues.count), endianess: .littleEndian)
+
+        /// Block Size (4 bytes): the size of the SPropValue array and the data it points to (spec §8.4)
+        dataStream.write(UInt32(block.count), endianess: .littleEndian)
+
+        /// Property Block (variable)
+        dataStream.write(block)
+    }
+
+    /// The SPropValue array followed by the data block, laid out as MAPI ScCopyProps does (spec §8.4).
+    private func canonicalBlock() -> [UInt8] {
+        var dataStream = OutputDataStream()
         // Property headers are followed by a data block that holds strings and binary values.
         var dataBlock = OutputDataStream()
         var headers: [(type: PropertyType, id: UInt16, alignPad: UInt32, valueLow: UInt32, valueHigh: UInt32)] = []
@@ -223,8 +228,7 @@ internal struct AdrEntry {
                 dataBlock.write(0 as UInt16, endianess: .littleEndian)
             case .string8:
                 valueLow = UInt32(dataBlockOffset + dataBlock.data.count)
-                let bytes = ((entry.value as? String) ?? "").data(using: .isoLatin1, allowLossyConversion: true) ?? Data()
-                dataBlock.write(bytes)
+                dataBlock.write(ANSIEncoding.encode((entry.value as? String) ?? ""))
                 dataBlock.write(0 as UInt8)
             case .binary:
                 let bytes = (entry.value as? [UInt8]) ?? []
@@ -238,15 +242,6 @@ internal struct AdrEntry {
             headers.append((entry.type, entry.id, entry.alignPad, valueLow, valueHigh))
         }
         
-        /// Reserved1 (4 bytes)
-        dataStream.write(reserved1, endianess: .littleEndian)
-        
-        /// Number of Properties (4 bytes)
-        dataStream.write(UInt32(propertyValues.count), endianess: .littleEndian)
-        
-        /// Block Size (4 bytes): the size of the SPropValue array and the data it points to, as produced by MAPI ScCopyProps (spec §6.4)
-        dataStream.write(UInt32(dataBlockOffset + dataBlock.data.count), endianess: .littleEndian)
-        
         /// Property Headers (variable)
         for header in headers {
             dataStream.write(header.type.rawValue, endianess: .littleEndian)
@@ -258,5 +253,6 @@ internal struct AdrEntry {
         
         /// Data Block (variable)
         dataStream.write(dataBlock.data)
+        return [UInt8](dataStream.data)
     }
 }

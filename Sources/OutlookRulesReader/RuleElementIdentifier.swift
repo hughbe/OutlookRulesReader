@@ -46,7 +46,7 @@ public enum RuleElementIdentifier: UInt32 {
     case sensitivityCondition = 0x000000D3
     
     /// "where my name is in the To box and it is a meeting". Never created by the Rules Wizard, but Outlook 97's
-    /// rule evaluator supports it (spec Appendix D.4). Takes no parameters.
+    /// rule evaluator supports it (spec §7.6). Takes no parameters.
     case nameInToBoxMeetingCondition = 0x000000D4
 
     /// "where my name is not in the To box and it is a meeting". See `nameInToBoxMeetingCondition`.
@@ -56,7 +56,7 @@ public enum RuleElementIdentifier: UInt32 {
     case assignedToCategoryCondition = 0x000000D7
     
     /// "sent to <people or public group>" as Cc recipients. Never created by the Rules Wizard, but Outlook 97's
-    /// rule evaluator supports it (spec Appendix D.4).
+    /// rule evaluator supports it (spec §7.6).
     case sentToAsCcCondition = 0x000000DA
 
     /// "sent to <people or public group>": the same test as `sentToCondition`. Never created by the Rules Wizard.
@@ -107,7 +107,7 @@ public enum RuleElementIdentifier: UInt32 {
     case exceptionListCondition = 0x000000E9
     
     /// An older identifier for `junkCondition`, probably from pre-release Outlook 98 builds. Outlook 2000 reads it as
-    /// `junkCondition` (0x00EB) (spec §5.2). Takes the same parameter.
+    /// `junkCondition` (0x00EB) (spec §7.3). Takes the same parameter.
     case legacyJunkCondition = 0x000000EA
 
     /// "suspected to be junk-email or from <Junk Senders>"
@@ -231,7 +231,7 @@ public enum RuleElementIdentifier: UInt32 {
     case addToRelevanceAction = 0x00000145
     
     /// “have server reply using <a specific message>”
-    case automaticReply = 0x00000146
+    case serverReplyAction = 0x00000146
     
     /// “forward it to <people or public group> as attachment”
     case forwardAsAttachmentAction = 0x00000147
@@ -254,10 +254,10 @@ public enum RuleElementIdentifier: UInt32 {
     case markAsReadAction = 0x0000014C
 
     /// “have server reply using <a specific message>”: a hidden variant of 0x0146 that Outlook 2003 defines for
-    /// another kind of rule and drops when it loads a rule (spec §5.3).
+    /// another kind of rule and drops when it loads a rule (spec §7.4).
     case hiddenServerReplyAction = 0x0000014D
 
-    /// “notify me using a .NET notification”: hidden in Outlook 2003, which drops it when it loads a rule (spec §5.3).
+    /// “notify me using a .NET notification”: hidden in Outlook 2003, which drops it when it loads a rule (spec §7.4).
     case dotNetNotificationAction = 0x0000014E
 
     /// “display a Desktop alert”
@@ -289,7 +289,7 @@ public enum RuleElementIdentifier: UInt32 {
     case fromException = 0x000001F7
     
     /// “except if sent to <people or public group>”
-    case toException = 0x000001F8
+    case sentToException = 0x000001F8
     
     /// “except if the subject contains <specific words>”
     case specificWordsInSubjectException = 0x000001F9
@@ -307,7 +307,7 @@ public enum RuleElementIdentifier: UInt32 {
     case importanceException = 0x000001FE
     
     /// “except if it is marked as <sensitivity>”
-    case sensitivityConditionException = 0x000001FF
+    case sensitivityException = 0x000001FF
     
     /// Exception form of `nameInToBoxMeetingCondition`.
     case nameInToBoxMeetingException = 0x00000200
@@ -379,4 +379,134 @@ public enum RuleElementIdentifier: UInt32 {
     
     /// “except from any RSS Feed”
     case fromAnyRSSFeedException = 0x0000021B
+
+    /// The type of the element's parameters, or nil if the element takes none (spec §7 and §8).
+    public var parameterType: RuleParameter.Type? {
+        switch self {
+        case .eventFlags:
+            return EventParameter.self
+        case .itemType:
+            return ItemTypeParameter.self
+        case .fromCondition, .sentToCondition, .sentToAsCcCondition, .sentToAlternateCondition, .forwardAction,
+             .ccAction, .redirectAction, .forwardAsAttachmentAction, .fromException, .sentToException,
+             .sentToAsCcException, .sentToAlternateException:
+            return AddressParameter.self
+        case .specificWordsInSubjectCondition, .specificWordsInBodyCondition, .specificWordsInSubjectOrBodyCondition,
+             .specificWordsInRecipientsAddressCondition, .specificWordsInSendersAddressCondition,
+             .specificWordsInMessageHeaderCondition, .fromRSSFeedsWithSpecifiedTextInTitleCondition,
+             .hiddenServerReplyAction, .specificWordsInSubjectException, .specificWordsInBodyException,
+             .specificWordsInSubjectOrBodyException, .specificWordsInRecipientsAddressException,
+             .specificWordsInSendersAddressException, .specificWordsInMessageHeaderException,
+             .fromRSSFeedsWithSpecifiedTextInTitleException:
+            return StringParameter.self
+        case .flaggedForActionCondition, .flaggedForActionException:
+            return FlaggedForActionParameter.self
+        case .importanceCondition, .markImportanceAction, .importanceException:
+            return ImportanceParameter.self
+        case .sensitivityCondition, .markSensitivityAction, .sensitivityException:
+            return SensitivityParameter.self
+        case .assignedToCategoryCondition, .assignToCategoryAction, .assignedToCategoryException:
+            return CategoryParameter.self
+        case .withSelectedPropertiesOfDocumentOrFormsCondition, .withSelectedPropertiesOfDocumentOrFormsException:
+            return FormParameter.self
+        case .sizeInSpecificRangeCondition, .sizeInSpecificRangeException:
+            return SizeParameter.self
+        case .receivedInSpecificDateSpanCondition, .receivedInSpecificDateSpanException:
+            return TimeParameter.self
+        case .usesFormCondition, .specificInfoPathFormCondition, .usesFormException, .specificInfoPathFormException:
+            return FormTypeParameter.self
+        case .exceptionListCondition, .legacyJunkCondition, .junkCondition, .adultCondition:
+            return SendersListParameter.self
+        case .relevanceInSpecificRangeCondition:
+            return RelevanceRangeParameter.self
+        case .throughSpecifiedAccountCondition, .throughSpecifiedAccountException:
+            return AccountParameter.self
+        case .onThisComputerOnlyCondition:
+            return ProfileStampParameter.self
+        case .senderInSpecifiedAddressBookCondition, .senderInSpecifiedAddressBookException:
+            return AddressBookParameter.self
+        case .alertCondition:
+            return AlertParameter.self
+        case .fromAnyRSSFeedCondition, .fromAnyRSSFeedException:
+            return ReservedParameter.self
+        case .moveToFolderAction, .moveCopyToFolderAction:
+            return FolderParameter.self
+        case .replyUsingTemplateAction, .playSoundAction, .startApplicationAction:
+            return PathParameter.self
+        case .displayMessageInNewItemAlertWindowAction:
+            return MessageParameter.self
+        case .flagAction:
+            return FlagParameter.self
+        case .deferDeliveryAction:
+            return DeferParameter.self
+        case .performCustomActionAction:
+            return CustomActionParameter.self
+        case .addToRelevanceAction:
+            return RelevanceParameter.self
+        case .serverReplyAction:
+            return TemplateParameter.self
+        case .runScriptAction:
+            return ScriptParameter.self
+        case .flagColorAction:
+            return FlagColorParameter.self
+        case .flagForFollowUpAction:
+            return FlagForFollowUpParameter.self
+        case .applyRetentionPolicyAction:
+            return RetentionPolicyParameter.self
+        case .nameInToBoxCondition, .sentOnlyToMeCondition, .nameNotInToBoxCondition, .nameInToBoxMeetingCondition,
+             .nameNotInToBoxMeetingCondition, .automaticReplyCondition, .hasAttachmentCondition, .nameInCcBoxCondition,
+             .nameInToOrCcBoxCondition, .netFoldersCondition, .whichIsAMeetingInvitationOrInviteCondition,
+             .assignedToAnyCategoryCondition, .deleteAction, .clearFlagAction, .notifyReadAction,
+             .notifyDeliveredAction, .netFoldersAction, .unusedAction, .stopProcessingMoreRulesAction,
+             .doNotSearchForCommercialOrAdultContentAction, .printAction, .permanentlyDeleteAction, .markAsReadAction,
+             .dotNetNotificationAction, .displayDesktopAlertAction, .clearCategoriesAction, .nameInToBoxException,
+             .sentOnlyToMeException, .nameNotInToBoxException, .nameInToBoxMeetingException,
+             .nameNotInToBoxMeetingException, .automaticReplyException, .hasAttachmentException, .nameInCcBoxException,
+             .nameInToOrCcBoxException, .whichIsAMeetingInvitationOrInviteException, .assignedToAnyCategoryException:
+            return nil
+        }
+    }
+
+    /// The oldest format that can store this element: the first version of Outlook that defines it (spec §7.3–§7.5).
+    /// An exception is defined in the same versions as its condition.
+    ///
+    /// Outlook 2003's own export table (spec §9.4) agrees, except that it only exports the account condition and
+    /// exception (`0x00EE`, `0x0214`) for Outlook 2002 and later, although Outlook 2000 defines them.
+    public var minimumVersion: OutlookRulesVersion {
+        switch rawValue {
+        case 0x00E7...0x00E9, 0x00EB, 0x00EC, 0x0141...0x0143, 0x0213:
+            return .outlook98
+        case 0x00ED, 0x00EE, 0x0144...0x014A, 0x0214:
+            return .outlook2000
+        case 0x00EF, 0x00F0, 0x014B, 0x014C, 0x0215:
+            return .outlook2002
+        case 0x00F1, 0x00F3, 0x014D...0x0150, 0x0216:
+            return .outlook2003
+        case 0x00F4...0x00F7, 0x0151, 0x0152, 0x0218...0x021B:
+            return .outlook2007
+        case 0x0153:
+            return .outlook2010
+        default:
+            return .outlook97
+        }
+    }
+
+    /// Whether a file in the format of `version` can store this element, so that the version of Outlook that reads
+    /// it can load it. Outlook fails to load a whole file that contains an element it doesn't define (spec §7.3).
+    public func isSupported(in version: OutlookRulesVersion) -> Bool {
+        switch self {
+        case .hiddenServerReplyAction, .dotNetNotificationAction:
+            /// Outlook 2010 and later no longer define these.
+            if version >= .outlook2010 {
+                return false
+            }
+        default:
+            break
+        }
+
+        /// Version-0 streams are written by Outlook 2003, which keeps the Outlook 98 elements in them but drops
+        /// anything that needs version 980413 or later (spec §3, §9.4).
+        let effectiveVersion: OutlookRulesVersion = version == .signatureZero ? .outlook98 : version
+        return minimumVersion <= effectiveVersion
+    }
 }
