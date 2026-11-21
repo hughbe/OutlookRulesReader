@@ -637,7 +637,7 @@ Readers SHOULD do the same: keep a rule whose version is newer than they support
 | TemplateDirectoryLength | 4 | Number of characters in TemplateDirectory. Outlook keeps it ≤ 260 (`MAX_PATH`). |
 | TemplateDirectory | variable | The directory used most recently in the "reply using template" browse dialog, for example `C:\Users\<user>\AppData\Roaming\Microsoft\Templates`. ANSI bytes in G0s and G1; UTF-16 code units in G2. No length prefix (unlike [§2.2](#22-string)) and no NUL terminator. Often empty. Writers MUST keep it under 260 characters (below). |
 | Timestamp | 12 | An OleDateTime ([§2.4](#24-oledatetime)): when the rules were last synchronized with the Exchange server. Null if they never have been (below). |
-| Unknown | 4 | MUST be `0` (all 291 footers). Outlook 97–2013 load and save it unchanged, and nothing else reads or writes it (in Outlook 98, other uses weren't looked for). |
+| Unknown | 4 | Writers MUST write `0`; it is `0` in all 291 footers. Outlook 97–2013 load and save it unchanged, and nothing else reads or writes it (in Outlook 98, other uses weren't looked for). |
 
 The footer is absent in G0. After the footer the stream MUST end: no sample has trailing bytes.
 
@@ -767,10 +767,10 @@ Notes on the table:
 | `0x0137` | mark it as *importance* | [§8.6](#86-importanceparameter) | ✓ | Outlook 2013 doesn't offer it for stores that **[Inferred]** are Exchange ActiveSync accounts ([§8.6](#86-importanceparameter)). | 97–2013 |
 | `0x0138` | mark it as *sensitivity* | [§8.7](#87-sensitivityparameter) | ✓ | | 97–2013 |
 | `0x0139` | move a copy to the *specified* folder | [§8.19](#819-folderparameter) | | | 97–2013 |
-| `0x013A` | notify me when it is read | — | ✓ | Sent-mail rules. | 97–2013 |
-| `0x013B` | notify me when it is delivered | — | ✓ | Sent-mail rules. | 97–2013 |
-| `0x013C` | Cc the message to *people or public group* | [§8.4](#84-addressparameter) | | Sent-mail rules. | 97–2013 |
-| `0x013E` | defer delivery by *a number of* minutes | [§8.22](#822-deferparameter) | ✓ | Sent-mail rules. | 97–2013 |
+| `0x013A` | notify me when it is read | — | ✓ | Offered only for rules on sent messages. | 97–2013 |
+| `0x013B` | notify me when it is delivered | — | ✓ | Offered only for rules on sent messages. | 97–2013 |
+| `0x013C` | Cc the message to *people or public group* | [§8.4](#84-addressparameter) | | Offered only for rules on sent messages. | 97–2013 |
+| `0x013E` | defer delivery by *a number of* minutes | [§8.22](#822-deferparameter) | ✓ | Offered only for rules on sent messages. | 97–2013 |
 | `0x013F` | perform *a custom action* | [§8.23](#823-customactionparameter) | ✓ | Runs an action implemented by a DLL. Outlook 2013 no longer runs it. See the notes below the table. | 97–2013 |
 | `0x0140` | *none* | — | | Defined by Outlook 97 with no UI text, no parameter and every flag clear: a hidden or retired action. No version runs it. | 97–2013 |
 | `0x0141` | *none* (Net Folders) | — | ✓ | Hidden. Only in the Net Folders rule. See the notes below the table. | 98–2013 |
@@ -807,7 +807,7 @@ Notes on the table:
 
 Every exception has the same parameter layout as its condition, and is defined in exactly the same versions (Outlook 97–2013). The conditions without an exception are `0x00E7` (Net Folders), `0x00E9` ("from senders on my *Exception List*"), `0x00EB` ("suspected to be junk e-mail or from *Junk Senders*"), `0x00EC` ("containing adult content or from *Adult Content Senders*"), `0x00ED` ("with a relevance *in a specific range*"), `0x00EF` ("on this computer only") and `0x00F3` ("which is an *Alert E-mail*"). Outlook shows an exception as its condition preceded by "except", for example "except if sent directly to me".
 
-| Exception | Wording | Condition |
+| Exception | UI text | Condition |
 |---|---|---|
 | `0x01F4` | except where my name is in the To box | `0x00C8` |
 | `0x01F5` | except if sent only to me | `0x00C9` |
@@ -874,7 +874,7 @@ The rest is described in [Rules Wizard §1](RulesWizard.md#1-element-definitions
 
 An element's parameters follow its NumberOfParameters ([§5.3](#53-element)). The element's identifier alone decides their layout: Outlook looks up the element's definition and creates the matching parameter class, so no class tag is written ([§1.3](#13-the-format-at-a-glance)). The class names in the table below come from strings in Outlook's binaries, matched to parameters by name only **[Inferred]**; the parameter names are this document's.
 
-**Reserved.** Every parameter starts with a 4-byte **Reserved** field. It MUST be `0` (all 791 parameters observed). It is a field of the common parameter base class: the constructor sets it to `0`, and the base `Serialize` writes it first. In Outlook 97–2002 the class also has a virtual getter and setter for it, but nothing in Outlook 97 calls them, and no parameter class reads or writes the field directly. Outlook 2003–2013 drop the getter and setter, and nothing else reads the field. It is reserved ([Appendix A](#appendix-a-open-questions)).
+**Reserved.** Every parameter starts with a 4-byte **Reserved** field. Writers MUST write `0`; it is `0` in all 791 parameters observed. It is a field of the common parameter base class: the constructor sets it to `0`, and the base `Serialize` writes it first. In Outlook 97–2002 the class also has a virtual getter and setter for it, but nothing in Outlook 97 calls them, and no parameter class reads or writes the field directly. Outlook 2003–2013 drop the getter and setter, and nothing else reads the field. It is reserved ([Appendix A](#appendix-a-open-questions)).
 
 **Strings.** A String parameter is UTF-16 from version 1000000 and ANSI below it, whatever the element (Outlook 2002–2013). String8 parameters are ANSI in every generation.
 
@@ -976,7 +976,7 @@ This is a serialized MAPI `ADRLIST`. For each `ADRENTRY`, Outlook 97 writes `ulR
 | Field | Size | Description |
 |---|---|---|
 | PropTag | 4 | A property tag: the type in the low 16 bits and the ID in the high 16 bits ([MS-OXCDATA](https://learn.microsoft.com/en-us/openspecs/exchange_server_protocols/ms-oxcdata) §2.9). |
-| AlignPad | 4 | `dwAlignPad`. Uninitialised memory. MUST be ignored and SHOULD be preserved when round-tripping. |
+| AlignPad | 4 | `dwAlignPad`. Uninitialised memory. Readers MUST ignore it; writers SHOULD preserve it when rewriting a file. |
 | Value | 8 | `union _PV`. Its encoding depends on the property type (below). |
 
 | Type | Value encoding |
@@ -1334,9 +1334,9 @@ Observed WriterVersion values:
 |---|---|---|
 | Outlook 2007 | 1200000 or 1000000 | `0x05124F80` (index 5, stamp 1200000) |
 | Outlook 2007 (one file, `FormsException.rwz`) | 1000000 | `0x03124F80` (index 3) |
-| Outlook 2010+ | `0x140000` or 1000000 | `0x06140000` (index 6, stamp `0x140000`) |
-| Outlook 2010+ (`New732.rwz`) | 1000000 | `0x03140000` (index 3) |
-| Outlook 2010+ (`Outlook2003All.rwz`) | 1100000 | `0x04140000` (index 4) |
+| Outlook 2010 and later | `0x140000` or 1000000 | `0x06140000` (index 6, stamp `0x140000`) |
+| Outlook 2010 and later (`New732.rwz`) | 1000000 | `0x03140000` (index 3) |
+| Outlook 2010 and later (`Outlook2003All.rwz`) | 1100000 | `0x04140000` (index 4) |
 
 ### 9.2 A rule's own version
 
@@ -1425,6 +1425,40 @@ Outlook 2007 doesn't follow these rules when exporting: its exports "for Outlook
 4. In G2, use DataSize to find the end of the rule. If the rule's version is newer than the reader supports, or the rule contains an element the reader doesn't know, keep the rule's bytes and move on ([§5.5](#55-rules-from-newer-versions)). A DataSize of `0` means the rule has no elements.
 5. Read each element: the object tag ([§2.5](#25-object-tag)), the identifier ([§7](#7-elements)), NumberOfParameters, and the parameters for that identifier ([§8](#8-parameters)). Strings are ANSI or UTF-16 by generation ([§2.2](#22-string)).
 6. Except in G0, read the RulesFooter ([§6](#6-rulesfooter)). The stream should then end.
+
+In outline, for a stream whose rules all have the stream's version, as in every exported file:
+
+```
+if length < 4 or first u32 is not 0 and outside 960706–0xFFFFFF:   // G0 (§3.2)
+    version = 970102; unicode = false
+    count = Count                                                   // no header
+else:
+    version = u32 (VersionStamp; 0 in G0s); unicode = version >= 1000000
+    if unicode: WriterVersion = u32
+    Unknown1, Unknown2, Unknown3, ClearCategoriesRuleCreated = u32 × 4
+    ServerRulesOutOfDate, ServerUpdateMode = u32 × 2
+    PromptToConvertInboxAssistantRules, ConvertInboxAssistantRules = u32 × 2
+    if unicode: ExtraData = u32 size, then that many bytes
+    count = Count
+
+repeat count:                                                       // §5
+    if unicode: RuleVersionStamp = u32
+    Name = String; Enabled, RunError, ServerRule = u32 × 3
+    if version >= 970812: Flags = u32
+    if unicode: ServerRuleId = u32; DataSize = u32
+    if not (unicode and DataSize == 0):
+        repeat Count:                                               // §5.3
+            tag = u16; if tag == 0xFFFF: u16 schema, u16 length, class name
+            Identifier = u32; n = u32
+            repeat n: parameter for Identifier                      // §8
+
+if not G0:                                                          // §6
+    TemplateDirectory = u32 length, then characters
+    Timestamp = OleDateTime
+    Unknown = u32
+```
+
+String means String8 when `unicode` is false and StringW when it is true ([§2.2](#22-string)). Parameters check the version too: DocumentProperty's MatchIfMissing needs 970102 and FolderParameter's SecondaryStore needs 970718 ([§3.4](#34-version-dependent-fields)). Every stamped stream has the whole footer, including G0s, though Outlook's own reader only reads footer fields from 960723 on ([§6](#6-rulesfooter)). Outlook's own copy in the mailbox can give each rule a different version ([§9.2](#92-a-rules-own-version)).
 
 Readers SHOULD be lenient where Outlook is: treat any non-zero Enabled as enabled and any non-zero RunError as an error, accept any value in the [Unknown] fields, ignore `SPropValue.AlignPad` and `AdrEntry.Reserved1`, accept zero or one Reserved parameter on `0x00F7` ("from any RSS feed") and `0x021B` ("except if from any RSS feed"), and read `0x00EA` (older form of junk senders) as `0x00EB` ("suspected to be junk e-mail or from *Junk Senders*").
 
