@@ -34,7 +34,7 @@ Every trigger first sets a **run mode**, which says what kind of message is bein
 | `2` | A sent message | Rules on sent messages (event `0x4`). Outlook first saves the message. |
 | `4` | Messages processed later, in Cached Exchange Mode or in a folder | Both kinds of rule. |
 
-The event test matches a rule whose `0x0190` flags have "arrives" (`0x1`) only in modes `0` and `4`, and "sent" (`0x4`) only in modes `2` and `4` ([Rules §8.1](Rules.md#81-eventparameter)). The move and copy actions also check the message's store, but only in modes `0` and `4`.
+The event test matches a rule whose `0x0190` ("apply this rule *after the message arrives*") flags have "arrives" (`0x1`) only in modes `0` and `4`, and "sent" (`0x4`) only in modes `2` and `4` ([Rules §8.1](Rules.md#81-eventparameter)). The move and copy actions also check the message's store, but only in modes `0` and `4`.
 
 * **Outlook 2003**'s Cached Exchange Mode trigger passes `4` ([Storage §1](Storage.md#1-the-rules-message)), one trigger passes `2`, and the others `0`.
 * **Outlook 2007, 2010 and 2013** have four triggers: new mail (mode `0`, **[Inferred]** in Outlook 2007), a sent message (`2`), deferred action messages (`0`, or `4` when the cleanup routine has marked them, [Server rules §4](ServerRules.md#4-client-only-parts-and-deferred-actions)), and messages already in a folder (`4`). The folder run goes through a folder and its subfolders, 500 messages at a time. **[Inferred]** It is used by Run Rules Now and by "Run this rule now on messages already in the current folder" on the wizard's last page.
@@ -61,39 +61,39 @@ Each condition is a test on the message being processed. Exceptions are tested a
 
 | Element | Test |
 |---|---|
-| `0x00C8`, `0x00CA`, `0x00E2`, `0x00E3` | Read from `PR_MESSAGE_TO_ME`, `PR_MESSAGE_CC_ME` and `PR_MESSAGE_RECIP_ME`. |
+| `0x00C8` ("where my name is in the To box"), `0x00CA` ("where my name is not in the To box"), `0x00E2` ("where my name is in the Cc box"), `0x00E3` ("where my name is in the To or Cc box") | Read from `PR_MESSAGE_TO_ME`, `PR_MESSAGE_CC_ME` and `PR_MESSAGE_RECIP_ME`. |
 | `0x00C9` sent only to me | Its own test. |
 | `0x00CB` from | The sender, against the parameter's addresses. |
 | `0x00CC`, `0x00DB` sent to | Matches if any To recipient or any Cc recipient matches. |
 | `0x00DA` sent to as Cc | Cc recipients only. |
 | `0x00CD`, `0x00CE` words in subject, body | The words of [§3.1](#31-words), on `PR_SUBJECT` or on the body. |
 | `0x00CF` words in subject or body | The subject first, then the body. |
-| `0x00D4`, `0x00D5` | "To me" (or not) and a meeting message class. |
+| `0x00D4` ("where my name is in the To box and it is a meeting"), `0x00D5` ("where my name is not in the To box and it is a meeting") | "To me" (or not) and a meeting message class. |
 | `0x00D7` assigned to category | The parameter's categories, split at `;`, against the message's categories. |
 | `0x00DC` automatic reply | `PR_MESSAGE_CLASS` is `IPM.Note.Rules.OofTemplate.Microsoft`, ignoring case. |
 | `0x00DF` document properties | [§3.2](#32-document-properties). |
-| `0x00E5`, `0x00E6`, `0x00E8` | Words in the recipients' addresses, the sender's address, and `PR_TRANSPORT_MESSAGE_HEADERS`. |
+| `0x00E5` ("with *specific words* in the recipient's address"), `0x00E6` ("with *specific words* in the sender's address"), `0x00E8` ("with *specific words* in the message header") | Words in the recipients' addresses, the sender's address, and `PR_TRANSPORT_MESSAGE_HEADERS`. |
 | `0x00E9`–`0x00EC` junk mail | Never match. |
 | `0x00EE` account | [§3.4](#34-accounts). |
 | `0x00EF` on this computer only | The parameter's GUID equals this computer's ID. |
 | `0x00F0` sender in address book | [§3.6](#36-address-books). |
 | `0x00F1` meeting invitation or update | `PR_MESSAGE_CLASS` starts with `IPM.Schedule.Meeting.Request` or `IPM.Schedule.Meeting.Canceled`, ignoring case: the same test as the server form. |
 | `0x00F3` Alert E-mail | `PR_TRANSPORT_MESSAGE_HEADERS` contains the text after the alert name's last U+0001 ([§3.7](#37-alert-e-mail)). |
-| `0x0064`, `0x0190` | The item type and event are tested too. |
+| `0x0064` ("for each *message*"), `0x0190` ("apply this rule *after the message arrives*") | The item type and event are tested too. |
 
 **Other versions.**
 
 * **Outlook 97**'s evaluator has a test for every element in its table, and for the four conditions in [Rules §7.6](Rules.md#76-identifiers-outside-the-tables). "Is a meeting" means `IPM.Appointment` or `IPM.Schedule.Meeting.Request`, and "is a task" means `IPM.Task` or `IPM.TaskRequest`. "Sent directly to me" reads `PR_MESSAGE_TO_ME`, and "my name in the Cc box" reads `PR_MESSAGE_CC_ME`. The item type (`0x0064`) always matches.
-* **Outlook 98** has the same design. `0x00D1`, `0x00D6`, `0x00D8`, `0x00D9` and `0x00DD` have no test, `0x00E9` never matches, and `0x00EA`–`0x00EC` use the junk-mail test ([§3.3](#33-junk-mail)). Document properties are matched with MatchIfMissing pairs ([Rules §8.9.1](Rules.md#891-matchifmissing)).
+* **Outlook 98** has the same design. `0x00D1`, `0x00D6`, `0x00D8`, `0x00D9` and `0x00DD` have no test, `0x00E9` ("from senders on my *Exception List*") never matches, and `0x00EA`–`0x00EC` use the junk-mail test ([§3.3](#33-junk-mail)). Document properties are matched with MatchIfMissing pairs ([Rules §8.9.1](Rules.md#891-matchifmissing)).
 * **Outlook 2000** has the same design and tests, plus relevance (`0x00ED`).
-* **Outlook 2002** fetches the message body only if a rule needs it: word conditions on the body (`0x00CE`, `0x00CF` and their exceptions) or the junk-mail conditions (`0x00E9`–`0x00EC`). It tests `0x00EA`–`0x00EC` with the junk-mail test, which Outlook 2003 replaced with "never matches". In both, `0x00D1`, `0x00D6`, `0x00D8`, `0x00D9`, `0x00DD` and `0x00E9` count as no match.
+* **Outlook 2002** fetches the message body only if a rule needs it: word conditions on the body (`0x00CE`, `0x00CF` and their exceptions) or the junk-mail conditions (`0x00E9`–`0x00EC`). It tests `0x00EA`–`0x00EC` with the junk-mail test, which Outlook 2003 replaced with "never matches". In both, `0x00D1`, `0x00D6`, `0x00D8`, `0x00D9`, `0x00DD` and `0x00E9` ("from senders on my *Exception List*") count as no match.
 * **Outlook 2007** adds tests for its new conditions:
   * `0x00F4` InfoPath form type: the message class against each parameter's message class.
   * `0x00F5` RSS feed name: the message class starts with `IPM.Post.Rss`, the "Enable rules on all RSS Feeds" setting is on ([Rules Wizard §3](RulesWizard.md#3-dialogs-by-version)), and the feed's subscription name (the PostRss named property `0x8906`) equals one of the parameter's strings, ignoring case. Despite the UI text, this is the feed's name, not the item's title.
   * `0x00F6` any category: the message's `Keywords` has at least one value.
   * `0x00F7` any RSS feed: the message class starts with `IPM.Post.Rss` and the RSS setting is on.
-* **Outlook 2010** has the same tests as Outlook 2007. `0x00E7` and `0x00E9`–`0x00EC` share a test that always fails. Outlook 2010 RTM still has a test for `0x00ED`.
-* **Outlook 2013** is the same as Outlook 2010, except that `0x00ED` now shares the failing test.
+* **Outlook 2010** has the same tests as Outlook 2007. `0x00E7` (Net Folders) and `0x00E9`–`0x00EC` share a test that always fails. Outlook 2010 RTM still has a test for `0x00ED` ("with a relevance *in a specific range*").
+* **Outlook 2013** is the same as Outlook 2010, except that `0x00ED` ("with a relevance *in a specific range*") now shares the failing test.
 
 ### 3.1 Words
 
@@ -118,7 +118,7 @@ Outlook 2007 and 2010 compare the same way. Both handle `PT_I2`, `PT_LONG`, `PT_
 
 ### 3.3 Junk mail
 
-Outlook 98–2002 don't read the parameter. For `0x00EA` and `0x00EB` they check that the message's property `0x1083` (`PT_LONG`, one of the properties Outlook fetches for every message it runs rules on) is `1`, and for `0x00EC` that it is `2`. `0x00E9` never matches. Outlook reads property `0x1083` from the message with `GetProps`, so it is a property stored on the message. No code in `OUTLLIB.DLL` or `OUTLAS.DLL` writes it: its tag appears only in Outlook's list of properties to fetch. What sets it was not found in these binaries. Outlook 2003–2013 never match any of the four.
+Outlook 98–2002 don't read the parameter. For `0x00EA` (older form of junk senders) and `0x00EB` ("suspected to be junk e-mail or from *Junk Senders*") they check that the message's property `0x1083` (`PT_LONG`, one of the properties Outlook fetches for every message it runs rules on) is `1`, and for `0x00EC` ("containing adult content or from *Adult Content Senders*") that it is `2`. `0x00E9` ("from senders on my *Exception List*") never matches. Outlook reads property `0x1083` from the message with `GetProps`, so it is a property stored on the message. No code in `OUTLLIB.DLL` or `OUTLAS.DLL` writes it: its tag appears only in Outlook's list of properties to fetch. What sets it was not found in these binaries. Outlook 2003–2013 never match any of the four.
 
 ### 3.4 Accounts
 
@@ -142,19 +142,19 @@ What each action does when Outlook runs it (Outlook 2003):
 
 | Action | Behaviour |
 |---|---|
-| `0x012C` move, `0x0139` copy | Move or copy the message; one handler for both. |
+| `0x012C` move, `0x0139` ("move a copy to the *specified* folder") copy | Move or copy the message; one handler for both. |
 | `0x012D` delete | Delete the message, and stop processing ([§2](#2-processing-the-rules)). |
 | `0x014A` permanently delete | Separate from "delete it"; also stops processing. |
-| `0x012E` forward, `0x0147` forward as attachment | Forward the message. |
+| `0x012E` forward, `0x0147` ("forward it to *people or public group* as an attachment") forward as attachment | Forward the message. |
 | `0x0144` redirect | Its own handler. |
-| `0x012F` reply using template, `0x0146` server reply, `0x014D` | One handler for all three. |
+| `0x012F` reply using template, `0x0146` ("have server reply using *a specific message*") server reply, `0x014D` ("have server reply using *a specific message*") | One handler for all three. |
 | `0x0130` alert window | Show the message in the New Item Alert window. |
 | `0x0131` flag | Flag the message, computing the due date. |
 | `0x0132` clear flag | Clear the flag. |
 | `0x0133` category | Assign the categories. |
 | `0x0136` play a sound | Play the sound through Office. |
-| `0x0137` importance, `0x0138` sensitivity | Set the property. |
-| `0x013A` read receipt, `0x013B` delivery receipt | Request the receipt. |
+| `0x0137` importance, `0x0138` ("mark it as *sensitivity*") sensitivity | Set the property. |
+| `0x013A` read receipt, `0x013B` ("notify me when it is delivered") delivery receipt | Request the receipt. |
 | `0x013C` Cc | Add recipients with `PR_RECIPIENT_TYPE`. |
 | `0x013E` defer delivery | Compute the delivery time. |
 | `0x013F` custom action | Run the custom action. |
@@ -165,19 +165,19 @@ What each action does when Outlook runs it (Outlook 2003):
 | `0x014C` mark as read | Mark the message read. |
 | `0x014F` Desktop Alert | Show Outlook's New Mail Desktop Alert for the message. When Outlook shows it for new mail, it first checks the "Display a New Mail Desktop Alert" option; the rule shows it whatever that option says. |
 | `0x0150` coloured flag | Set `PR_FLAG_ICON` to the colour and `PR_FLAG_STATUS` to `2` (flagged). If the message has no flag text, also set the default flag text. Colour `0` instead marks the colour for removal, as "clear the Message flag" does. This confirms that [Rules §8.29](Rules.md#829-flagcolorparameter)'s Color is a `PR_FLAG_ICON` value. |
-| `0x0141` Net Folders, `0x0142` stop processing | Set the run's stop flag. |
+| `0x0141` Net Folders, `0x0142` ("stop processing more rules") stop processing | Set the run's stop flag. |
 | `0x0143` | Nothing. |
-| `0x0134`, `0x0135`, `0x013D`, `0x0140`, `0x014E` | No handler. Outlook reports an error for the rule. |
+| `0x0134`, `0x0135`, `0x013D`, `0x0140` (hidden, no text), `0x014E` ("notify me using a .NET notification") | No handler. Outlook reports an error for the rule. |
 
 The actions collect their changes to the message and save them together.
 
 **Other versions.**
 
-* **Outlook 98** has a handler for each action from `0x012C` to `0x0142`. Copy (`0x0139`) uses the same handler as move, "play a sound" (`0x0136`) has its own, and "stop processing more rules" (`0x0142`) is handled by the loop. `0x0134`, `0x0135`, `0x013D` and `0x0140` have no handler, as in Outlook 2003.
+* **Outlook 98** has a handler for each action from `0x012C` ("move it to the *specified* folder") to `0x0142`. Copy (`0x0139`) uses the same handler as move, "play a sound" (`0x0136`) has its own, and "stop processing more rules" (`0x0142`) is handled by the loop. `0x0134`, `0x0135`, `0x013D` and `0x0140` (hidden, no text) have no handler, as in Outlook 2003.
 * **Outlook 2000**: a failing action sets RunError and turns the rule off ([Rules §5.1](Rules.md#51-ruleheader)). `0x0141` hands the message to Net Folders ([Rules §7.4](Rules.md#74-actions)).
-* **Outlook 2007** adds the follow-up flag (`0x0151`, [§4.1](#41-follow-up-flags)) and "clear message's categories" (`0x0152`), which removes the message's `Keywords`. `0x014D` still runs like "reply using a template", `0x014E` still has no handler, and `0x0141` and `0x0142` still set the stop flag.
-* **Outlook 2010** adds the retention policy (`0x0153`, [§4.2](#42-retention-policies)). `0x0141` no longer stops processing: like `0x0143`, it does nothing. `0x014D` now has no handler, like `0x0134`, `0x0135`, `0x013D`, `0x0140` and `0x014E`. The custom action (`0x013F`) still runs. "Stop processing more rules" sets the stop flag, and "delete it" also marks the message as deleted and stops.
-* **Outlook 2013** no longer runs the custom action: `0x013F` joins the actions without a handler. "Add to relevance" (`0x0145`) does nothing, like `0x0141` and `0x0143`. The other actions run as in Outlook 2010.
+* **Outlook 2007** adds the follow-up flag (`0x0151`, [§4.1](#41-follow-up-flags)) and "clear message's categories" (`0x0152`), which removes the message's `Keywords`. `0x014D` ("have server reply using *a specific message*") still runs like "reply using a template", `0x014E` ("notify me using a .NET notification") still has no handler, and `0x0141` (Net Folders) and `0x0142` ("stop processing more rules") still set the stop flag.
+* **Outlook 2010** adds the retention policy (`0x0153`, [§4.2](#42-retention-policies)). `0x0141` (Net Folders) no longer stops processing: like `0x0143` ("do not search message for commercial or adult content"), it does nothing. `0x014D` ("have server reply using *a specific message*") now has no handler, like `0x0134`, `0x0135`, `0x013D`, `0x0140` (hidden, no text) and `0x014E` ("notify me using a .NET notification"). The custom action (`0x013F`) still runs. "Stop processing more rules" sets the stop flag, and "delete it" also marks the message as deleted and stops.
+* **Outlook 2013** no longer runs the custom action: `0x013F` ("perform *a custom action*") joins the actions without a handler. "Add to relevance" (`0x0145`) does nothing, like `0x0141` (Net Folders) and `0x0143` ("do not search message for commercial or adult content"). The other actions run as in Outlook 2010.
 
 ### 4.1 Follow-up flags
 

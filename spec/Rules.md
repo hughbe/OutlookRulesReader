@@ -413,7 +413,7 @@ Outlook identifies format versions with 24-bit *version stamps*. Up to Outlook 2
 | 3 | 1000000 | `0x0F4240` | **Outlook 2002** (v10). Adds WriterVersion, the header's extra data, and the rule header's VersionStamp, ServerRuleId and DataSize, and switches strings to UTF-16. Outlook 2002 writes at most this stamp, and doesn't move older rules to it by itself ([§9.3](#93-upgrading-rules)). |
 | 4 | 1100000 | `0x10C8E0` | **Outlook 2003** (v11). Adds no fields: the layout is the same as 1000000. Outlook 2003 writes at most this stamp, and new profiles start with it. It adds elements that need it ([§9.4](#94-exporting-to-older-formats)) and the rule without an element list ([§5.5](#55-rules-from-newer-versions)). |
 | 5 | 1200000 | `0x124F80` | **Outlook 2007** (v12). Adds no fields. Outlook 2007 writes at most this stamp, and new profiles start with it. It adds elements that need it. |
-| 6 | 1310720 | `0x140000` | **Outlook 2010** (v14) and later. Adds no fields: the layout is the same as 1000000. Outlook 2010 writes at most this stamp, and new profiles start with it. It adds the element that needs it, `0x0153`. Outlook 2013 writes at most this stamp too, and new profiles start with it. Outlook 2019 still writes this stamp. |
+| 6 | 1310720 | `0x140000` | **Outlook 2010** (v14) and later. Adds no fields: the layout is the same as 1000000. Outlook 2010 writes at most this stamp, and new profiles start with it. It adds the element that needs it, `0x0153` ("apply retention policy: *retention policy*"). Outlook 2013 writes at most this stamp too, and new profiles start with it. Outlook 2019 still writes this stamp. |
 | 7 | 1376256 | `0x150000` | v15 (Outlook 2013). Never written and never observed in a file. Outlook 2010's and 2013's tables of stamps have it, but Outlook 2013 still writes `0x140000`. It keeps a rule stamped `0x150000` unparsed, and reads a stream stamped `0x150000` with the Outlook 2002 layout. |
 
 **Outlook's table of stamps.** From Outlook 2002 on, Outlook keeps a table of the stamps it knows, and records a stamp's position in that table next to the stamp in its version words ([§9.1](#91-version-words)). The Index column is that position. Indices 0–7 match the order of a table found in a disassembly of a modern 64-bit Outlook build (`docs/Internals/RWZ Decompilation Notes.docx`). The tables differ by version:
@@ -582,9 +582,9 @@ Outlook 2000 and 2002 create some rules themselves and set their Flags: three ju
 |---|---|---|
 | `0x01`, `0x02` | **[Unknown]** | None. No version from Outlook 98 to 2013 sets these bits (below). |
 | `0x08` | Junk e-mail rule | Condition `0x00EB` (junk senders), action `0x012C` (move to folder). |
-| `0x10` | Adult content rule | Condition `0x00EC` (adult content senders), action `0x012C`. |
+| `0x10` | Adult content rule | Condition `0x00EC` (adult content senders), action `0x012C` ("move it to the *specified* folder"). |
 | `0x20` | "Exception List" rule | Condition `0x00E9` (senders on my Exception List), action `0x0143` (don't search for commercial or adult content). |
-| `0x40` | The "big item rule" of the "Download Options" dialog ("Don't download messages larger than *n* KB", with exceptions for chosen senders, high importance and a flag, and a "Restore Default Rule" button) | Condition `0x00E0` (size), actions `0x0130` and `0x012C`, exceptions `0x01F7`, `0x01FE` and `0x01FC`. |
+| `0x40` | The "big item rule" of the "Download Options" dialog ("Don't download messages larger than *n* KB", with exceptions for chosen senders, high importance and a flag, and a "Restore Default Rule" button) | Condition `0x00E0` (size), actions `0x0130` ("display *a specific message* in the New Item Alert window") and `0x012C` ("move it to the *specified* folder"), exceptions `0x01F7` ("except if from *people or public group*"), `0x01FE` ("except if it is marked as *importance*") and `0x01FC` ("except if it is flagged for *action*"). |
 
 The sample `ExceptionList/Outlook2000_ExceptionList_*.rwz` holds the `0x20` rule as Outlook 2000 creates it.
 
@@ -610,18 +610,18 @@ Parameter counts:
 
 **NumberOfParameters over time.** Outlook 97 and 98 write `1` if the element has a parameter object and `0` if not, and read any non-zero value as "has a parameter"; Outlook 98's word parameter holds a single string. From Outlook 2000 on, Outlook **reads the field as a count** and reads that many parameters. Outlook 2000–2013 write the number of parameters, except that at version 970812 exactly they write at most `1` and only the first parameter ([§9.5](#95-how-outlook-2000-chooses-the-stamp)). Files that store several words as several parameters, as Outlook 2007 does even when exporting "for Outlook 98", therefore need Outlook 2000 or later **[Inferred]**.
 
-**Elements Outlook doesn't know.** In Outlook 2000–2013, an identifier that isn't in Outlook's tables makes the whole load fail, except `0x00EA`, which is read as `0x00EB` ([§7.6](#76-identifiers-outside-the-tables)). Outlook 2010 and 2013 no longer define `0x014D` and `0x014E`, so a stream containing either fails to load in them. A reader can't skip an unknown element on its own, because its parameter layout is unknown. In G2 it can skip the whole rule using DataSize ([§5.5](#55-rules-from-newer-versions)).
+**Elements Outlook doesn't know.** In Outlook 2000–2013, an identifier that isn't in Outlook's tables makes the whole load fail, except `0x00EA` (older form of junk senders), which is read as `0x00EB` ([§7.6](#76-identifiers-outside-the-tables)). Outlook 2010 and 2013 no longer define `0x014D` ("have server reply using *a specific message*") and `0x014E` ("notify me using a .NET notification"), so a stream containing either fails to load in them. A reader can't skip an unknown element on its own, because its parameter layout is unknown. In G2 it can skip the whole rule using DataSize ([§5.5](#55-rules-from-newer-versions)).
 
-**Elements Outlook drops.** Outlook 2003 and 2007 also drop some elements they know when loading: those whose rule-set mask lacks bit `0x2`, which are only `0x014D` and `0x014E` ([Rules Wizard §1](RulesWizard.md#1-element-definitions)). Outlook 2010 and 2013 drop none.
+**Elements Outlook drops.** Outlook 2003 and 2007 also drop some elements they know when loading: those whose rule-set mask lacks bit `0x2`, which are only `0x014D` ("have server reply using *a specific message*") and `0x014E` ([Rules Wizard §1](RulesWizard.md#1-element-definitions)). Outlook 2010 and 2013 drop none.
 
 ### 5.4 Element order
 
 Every rule observed starts with:
 
 1. `0x0190`: when the rule runs, "Apply this rule *after the message arrives*" ([§8.1](#81-eventparameter)), and
-2. `0x0064`: which kinds of item it applies to, "for each *message*" ([§8.2](#82-itemtypeparameter)).
+2. `0x0064` ("for each *message*"): which kinds of item it applies to, "for each *message*" ([§8.2](#82-itemtypeparameter)).
 
-These are followed by conditions, then actions, then exceptions, in the order the user added them. Readers SHOULD NOT depend on this order. Writers MUST emit `0x0190` and `0x0064` first. Every version from Outlook 97 to 2013 defines both elements, and every rule it writes starts with them.
+These are followed by conditions, then actions, then exceptions, in the order the user added them. Readers SHOULD NOT depend on this order. Writers MUST emit `0x0190` ("apply this rule *after the message arrives*") and `0x0064` ("for each *message*") first. Every version from Outlook 97 to 2013 defines both elements, and every rule it writes starts with them.
 
 ### 5.5 Rules from newer versions
 
@@ -674,7 +674,7 @@ Identifiers are grouped by range:
 
 | Range | Group |
 |---|---|
-| `0x0064`, `0x0190` | Mandatory |
+| `0x0064` ("for each *message*"), `0x0190` ("apply this rule *after the message arrives*") | Mandatory |
 | `0x00C8`–`0x012B` (200–299) | Conditions |
 | `0x012C`–`0x018F` (300–399) | Actions |
 | `0x01F4`–`0x0257` (500–599) | Exceptions |
@@ -684,17 +684,17 @@ Which elements each version knows:
 | Version | Conditions | Actions | Exceptions |
 |---|---|---|---|
 | Outlook 97 | `0x00C8`–`0x00E6` | `0x012C`–`0x0140` | `0x01F4`–`0x0212` |
-| Outlook 98 | to `0x00EC` | to `0x0143` | to `0x0213` |
-| Outlook 2000 | to `0x00EE` | to `0x014A` | adds `0x0214` |
-| Outlook 2002 | to `0x00F0` | to `0x014C` | to `0x0215` |
-| Outlook 2003 | adds `0x00F1`, `0x00F3` | adds `0x014D`–`0x0150` | adds `0x0216` |
-| Outlook 2007 | adds `0x00F4`–`0x00F7` | adds `0x0151`, `0x0152` | adds `0x0218`–`0x021B` |
-| Outlook 2010 | no change | adds `0x0153`; drops `0x014D`, `0x014E` | no change |
-| Outlook 2013 | no change, but `0x00ED` is switched off | no change, but `0x0145` is switched off | no change |
+| Outlook 98 | to `0x00EC` ("containing adult content or from *Adult Content Senders*") | to `0x0143` ("do not search message for commercial or adult content") | to `0x0213` ("except if the message header contains *specific words*") |
+| Outlook 2000 | to `0x00EE` ("through the *specified* account") | to `0x014A` ("permanently delete it") | adds `0x0214` ("except through the *specified* account") |
+| Outlook 2002 | to `0x00F0` ("sender is in *specified* Address Book") | to `0x014C` ("mark it as read") | to `0x0215` ("except if sender is in *specified* Address Book") |
+| Outlook 2003 | adds `0x00F1` ("which is a meeting invitation or update"), `0x00F3` ("which is an *Alert E-mail*") | adds `0x014D`–`0x0150` | adds `0x0216` ("except if it is a meeting invitation or update") |
+| Outlook 2007 | adds `0x00F4`–`0x00F7` | adds `0x0151` ("flag message for *follow up at this time*"), `0x0152` ("clear message's categories") | adds `0x0218`–`0x021B` |
+| Outlook 2010 | no change | adds `0x0153` ("apply retention policy: *retention policy*"); drops `0x014D` ("have server reply using *a specific message*"), `0x014E` ("notify me using a .NET notification") | no change |
+| Outlook 2013 | no change, but `0x00ED` ("with a relevance *in a specific range*") is switched off | no change, but `0x0145` ("add *number* to relevance") is switched off | no change |
 
-Outlook 97 also defines `0x0064` and `0x0190`, as does every later version. The definition tables of each version are in [Decompilation notes](Decompilation.md#3-outlook-97-ruleswizdll).
+Outlook 97 also defines `0x0064` ("for each *message*") and `0x0190` ("apply this rule *after the message arrives*"), as does every later version. The definition tables of each version are in [Decompilation notes](Decompilation.md#3-outlook-97-ruleswizdll).
 
-For conditions `0x00C8`–`0x00E6`, the matching exception is the condition's identifier + 300 (`0x012C`). After that the exception numbers are assigned in sequence and the +300 relationship breaks: `0x00E8` → `0x0213`, `0x00EE` → `0x0214`, `0x00F0` → `0x0215`, and so on ([§7.5](#75-exceptions)).
+For conditions `0x00C8`–`0x00E6`, the matching exception is the condition's identifier + 300 (`0x012C`). After that the exception numbers are assigned in sequence and the +300 relationship breaks: `0x00E8` ("with *specific words* in the message header") → `0x0213` ("except if the message header contains *specific words*"), `0x00EE` ("through the *specified* account") → `0x0214` ("except through the *specified* account"), `0x00F0` ("sender is in *specified* Address Book") → `0x0215` ("except if sender is in *specified* Address Book"), and so on ([§7.5](#75-exceptions)).
 
 In the tables below, the "UI text" column gives the Rules Wizard's English wording, with the parameter in italics. "Param" refers to [§8](#8-parameters), and "—" means the element has no parameters. "Client" marks elements that make a rule client-only, according to `docs/Rules Sever Side.xlsx` ([Server rules §1](ServerRules.md#1-which-rules-run-on-the-server)). "Defined in" lists the versions whose element definition tables contain the element; "—" means no table from Outlook 97 to 2013 has it.
 
@@ -725,8 +725,8 @@ Every version from Outlook 97 to 2013 defines both, and every rule it writes sta
 | `0x00D4` | where my name is in the To box and it is a meeting | — | | Never created by the Rules Wizard; supported by Outlook 97's evaluator ([§7.6](#76-identifiers-outside-the-tables)). | — |
 | `0x00D5` | where my name is not in the To box and it is a meeting | — | | As `0x00D4`. | — |
 | `0x00D7` | assigned to *category* category | [§8.8](#88-categoryparameter) | ✓ | | 97–2013 |
-| `0x00DA` | sent to *people or public group* as Cc | [§8.4](#84-addressparameter) | | As `0x00D4`. **[Inferred]** parameter, from the evaluator reading the element's address list. | — |
-| `0x00DB` | sent to *people or public group* | [§8.4](#84-addressparameter) | | As `0x00DA`, but the same test as `0x00CC`. | — |
+| `0x00DA` | sent to *people or public group* as Cc | [§8.4](#84-addressparameter) | | As `0x00D4` ("where my name is in the To box and it is a meeting"). **[Inferred]** parameter, from the evaluator reading the element's address list. | — |
+| `0x00DB` | sent to *people or public group* | [§8.4](#84-addressparameter) | | As `0x00DA` ("sent to *people or public group* as Cc"), but the same test as `0x00CC` ("sent to *people or public group*"). | — |
 | `0x00DC` | which is an automatic reply ("which is an Out of Office message" before Outlook 2010) | — | | Matches Exchange's automatic replies, by message class. See the notes below the table. | 97–2013 |
 | `0x00DE` | which has an attachment | — | | | 97–2013 |
 | `0x00DF` | with *selected properties* of documents or forms | [§8.9](#89-formparameter) | ✓ | | 97–2013 |
@@ -740,13 +740,13 @@ Every version from Outlook 97 to 2013 defines both, and every rule it writes sta
 | `0x00E7` | *none* (Net Folders) | — | | Hidden. Only in Outlook 98's and 2000's Net Folders rule. See the notes below the table. | 98–2013 |
 | `0x00E8` | with *specific words* in the message header | [§8.3](#83-wordparameter) | | Added in Outlook 98. | 98–2013 |
 | `0x00E9` | from senders on my *Exception List* | [§8.13](#813-senderslistparameter) | ✓ | Junk-mail feature of Outlook 98 and 2000. Never matches. See the notes below the table. | 98–2013 |
-| `0x00EA` | *older form of `0x00EB`* | [§8.13](#813-senderslistparameter) | ✓ | Not in Outlook 98's or 2000's tables, but Outlook 2000–2013 read it as `0x00EB`. Probably from pre-release Outlook 98 builds. | — |
-| `0x00EB` | suspected to be junk e-mail or from *Junk Senders* | [§8.13](#813-senderslistparameter) | ✓ | Added in Outlook 98, removed in 2003, as `0x00E9`. | 98–2013 |
-| `0x00EC` | containing adult content or from *Adult Content Senders* | [§8.13](#813-senderslistparameter) | ✓ | Added in Outlook 98, removed in 2003, as `0x00E9`. | 98–2013 |
+| `0x00EA` | *older form of `0x00EB` ("suspected to be junk e-mail or from *Junk Senders*")* | [§8.13](#813-senderslistparameter) | ✓ | Not in Outlook 98's or 2000's tables, but Outlook 2000–2013 read it as `0x00EB`. Probably from pre-release Outlook 98 builds. | — |
+| `0x00EB` | suspected to be junk e-mail or from *Junk Senders* | [§8.13](#813-senderslistparameter) | ✓ | Added in Outlook 98, removed in 2003, as `0x00E9` ("from senders on my *Exception List*"). | 98–2013 |
+| `0x00EC` | containing adult content or from *Adult Content Senders* | [§8.13](#813-senderslistparameter) | ✓ | Added in Outlook 98, removed in 2003, as `0x00E9` ("from senders on my *Exception List*"). | 98–2013 |
 | `0x00ED` | with a relevance *in a specific range* | [§8.14](#814-relevancerangeparameter) | ✓ | Hidden. Switched off in Outlook 2013. See the notes below the table. | 2000–2013 |
 | `0x00EE` | through the *specified* account | [§8.15](#815-accountparameter) | ✓ | Added in Outlook 2000. Offered only for incoming mail until Outlook 2002 allowed it on sent mail too. | 2000–2013 |
 | `0x00EF` | on this computer only ("on this machine only" in Outlook 2002–2007) | [§8.16](#816-profilestampparameter) | ✓ | Added in Outlook 2002. | 2002–2013 |
-| `0x00F0` | sender is in *specified* Address Book | [§8.17](#817-addressbookparameter) | ✓ | Added in Outlook 2002. Requires `0x00EF`. | 2002–2013 |
+| `0x00F0` | sender is in *specified* Address Book | [§8.17](#817-addressbookparameter) | ✓ | Added in Outlook 2002. Requires `0x00EF` ("on this computer only"). | 2002–2013 |
 | `0x00F1` | which is a meeting invitation or update | — | | Added in Outlook 2003. | 2003–2013 |
 | `0x00F3` | which is an *Alert E-mail* | [§8.18](#818-alertparameter) | | Added in Outlook 2003. Created only from an Office alert source ([Rules Wizard §3](RulesWizard.md#3-dialogs-by-version)). | 2003–2013 |
 | `0x00F4` | of the *specific* form type (InfoPath) | [§8.12](#812-formtypeparameter) | ✓ | Requires InfoPath. Added in Outlook 2007. | 2007–2013 |
@@ -756,11 +756,11 @@ Every version from Outlook 97 to 2013 defines both, and every rule it writes sta
 
 Notes on the table:
 
-* **`0x00DC`.** Matches messages whose `PR_MESSAGE_CLASS` is `IPM.Note.Rules.OofTemplate.Microsoft`, ignoring case, on the client and on the server: the class of the Exchange Out of Office template, which Exchange's auto-replies carry (Outlook 2003–2013).
+* **`0x00DC` ("which is an automatic reply").** Matches messages whose `PR_MESSAGE_CLASS` is `IPM.Note.Rules.OofTemplate.Microsoft`, ignoring case, on the client and on the server: the class of the Exchange Out of Office template, which Exchange's auto-replies carry (Outlook 2003–2013).
 * **`0x00E7`.** Only seen in the hidden `#NET FOLDERS#` rule created by Outlook 98's and 2000's Net Folders (`NetFolders/Outlook2000_NetFolders_Default.rwz`). Outlook 98 defines it with no parameter, the text "(none)" and empty masks, so the wizard never offers it. In Outlook 2000 it means "the subject begins with `#NET FOLDERS#`": Outlook turns it into a prefix test on `PR_SUBJECT`. Net Folders' own messages carry that subject. Outlook 2010 and 2013 no longer match it, and delete the rule when they save ([§5.2](#52-rule-flags)).
-* **`0x00E9`.** Junk-mail feature of Outlook 98 and 2000. Never matches when Outlook 98–2002 run rules ([§8.13](#813-senderslistparameter)). Outlook 2003 removed the feature: it still reads the element, but deletes rules that use it when it saves ([§5.2](#52-rule-flags)), and never matches it, or `0x00EA`–`0x00EC`, when running rules. Outlook 2007–2013 still delete such rules when they save. Outlook 2010 and 2013 still define it, but its UI text is gone (it shows "(none)"), they read its parameter as a plain String ([§8.13](#813-senderslistparameter)), and they never match it.
-* **`0x00ED`.** Added in Outlook 2000. Hidden unless `HKCU\Software\Microsoft\Office\8.0\Outlook\Relevance` exists. Not traced in Outlook 2002–2007. Outlook 2010 still has a test for it, but won't let the wizard use it ([Rules Wizard §1](RulesWizard.md#1-element-definitions)). Outlook 2013 switches it off: it still defines it, but with no parameter class and empty masks, so the wizard never offers it, its parameter is read as a plain String ([§8.14](#814-relevancerangeparameter)), and the condition always fails.
-* **`0x00F7`.** Added in Outlook 2007. Its definition names a parameter class that holds only Reserved, but the wizard creates the element without one, so it is written with NumberOfParameters `0` (as in the sample). Outlook reads a parameter if the count says there is one: readers SHOULD accept zero or one 4-byte Reserved parameter. Its exception `0x021B` is the same.
+* **`0x00E9` ("from senders on my *Exception List*").** Junk-mail feature of Outlook 98 and 2000. Never matches when Outlook 98–2002 run rules ([§8.13](#813-senderslistparameter)). Outlook 2003 removed the feature: it still reads the element, but deletes rules that use it when it saves ([§5.2](#52-rule-flags)), and never matches it, or `0x00EA`–`0x00EC`, when running rules. Outlook 2007–2013 still delete such rules when they save. Outlook 2010 and 2013 still define it, but its UI text is gone (it shows "(none)"), they read its parameter as a plain String ([§8.13](#813-senderslistparameter)), and they never match it.
+* **`0x00ED` ("with a relevance *in a specific range*").** Added in Outlook 2000. Hidden unless `HKCU\Software\Microsoft\Office\8.0\Outlook\Relevance` exists. Not traced in Outlook 2002–2007. Outlook 2010 still has a test for it, but won't let the wizard use it ([Rules Wizard §1](RulesWizard.md#1-element-definitions)). Outlook 2013 switches it off: it still defines it, but with no parameter class and empty masks, so the wizard never offers it, its parameter is read as a plain String ([§8.14](#814-relevancerangeparameter)), and the condition always fails.
+* **`0x00F7` ("from any RSS feed").** Added in Outlook 2007. Its definition names a parameter class that holds only Reserved, but the wizard creates the element without one, so it is written with NumberOfParameters `0` (as in the sample). Outlook reads a parameter if the count says there is one: readers SHOULD accept zero or one 4-byte Reserved parameter. Its exception `0x021B` ("except if from any RSS feed") is the same.
 
 ### 7.4 Actions
 
@@ -793,7 +793,7 @@ Notes on the table:
 | `0x0147` | forward it to *people or public group* as an attachment | [§8.4](#84-addressparameter) | | Added in Outlook 2000. | 2000–2013 |
 | `0x0148` | print it | — | ✓ | Added in Outlook 2000. | 2000–2013 |
 | `0x0149` | start *application* | [§8.20](#820-pathparameter--messageparameter) | ✓ | Added in Outlook 2000. Refused by Outlook 2010's later updates unless unsafe actions are allowed ([Running §6](Running.md#6-unsafe-actions)). Hidden in Outlook 2016 and later. | 2000–2013 |
-| `0x014A` | permanently delete it | — | ✓ | Added in Outlook 2000. Outlook also requires `0x0142`. | 2000–2013 |
+| `0x014A` | permanently delete it | — | ✓ | Added in Outlook 2000. Outlook also requires `0x0142` ("stop processing more rules"). | 2000–2013 |
 | `0x014B` | run *a script* | [§8.26](#826-scriptparameter) | ✓ | Added in Outlook 2002. Refused by Outlook 2010's later updates unless unsafe actions are allowed ([Running §6](Running.md#6-unsafe-actions)). Hidden in Outlook 2016 and later. | 2002–2013 |
 | `0x014C` | mark it as read | — | ✓ | Added in Outlook 2002. | 2002–2013 |
 | `0x014D` | have server reply using *a specific message* | [§8.20](#820-pathparameter--messageparameter) | | Hidden twin of `0x0146`. Never saved. See the notes below the table. | 2003–2007 |
@@ -806,36 +806,50 @@ Notes on the table:
 
 Notes on the table:
 
-* **`0x013F`.** Runs an action implemented by a DLL. Reported as removed in Outlook 2010, but Outlook 2010 RTM still defines it, still has the "Select Custom Action" dialog, and still runs it. Outlook 2010's later updates refuse it unless an administrator allows unsafe actions ([Running §6](Running.md#6-unsafe-actions)). Outlook 2013 removes it in practice: it still defines it and reads and writes its parameter, but the wizard won't use it, Outlook doesn't run it, and the "Select Custom Action" dialog and the text "a custom action" are gone.
+* **`0x013F` ("perform *a custom action*").** Runs an action implemented by a DLL. Reported as removed in Outlook 2010, but Outlook 2010 RTM still defines it, still has the "Select Custom Action" dialog, and still runs it. Outlook 2010's later updates refuse it unless an administrator allows unsafe actions ([Running §6](Running.md#6-unsafe-actions)). Outlook 2013 removes it in practice: it still defines it and reads and writes its parameter, but the wizard won't use it, Outlook doesn't run it, and the "Select Custom Action" dialog and the text "a custom action" are gone.
 * **`0x0141`.** Only seen in the hidden `#NET FOLDERS#` rule, with `0x00E7`. Defined by Outlook 98 as client-only, with empty masks. In Outlook 2000 it hands the message to Net Folders: Outlook moves it into a folder whose entry ID is kept in property `0x60010102`, schedules Net Folders to process it, and stops processing more rules. Not traced in Outlook 2002. Outlook 2003 and 2007 still stop processing more rules after it. Outlook 2010 and 2013 do nothing for it. They also delete the `#NET FOLDERS#` rule whenever they save ([§5.2](#52-rule-flags)), and remove any server rule whose name starts with `#NET` when they read the server's rules ([Server rules §5](ServerRules.md#5-reading-server-rules-back)).
-* **`0x0143`.** Added in Outlook 98 with empty masks, so only the junk-mail feature creates it. Removed in 2003. Not traced in Outlook 2000–2002. Outlook 2003 and 2007 still define it but do nothing for it. Outlook 2010 and 2013 still define it, without its UI text, and do nothing for it.
-* **`0x0145`.** Added in Outlook 2000. Hidden; see `0x00ED`. Not traced in Outlook 2002–2010, apart from Outlook 2003's handler and Outlook 2010 RTM, which won't let the wizard use it. Outlook 2013 switches it off as it does `0x00ED`: no parameter class, empty masks, the parameter read as a plain String, and an action that does nothing.
-* **`0x014D`.** A hidden twin of `0x0146` with the same text, defined by Outlook 2003 with a Reserved and String parameter, event mask `0x2` and no item types. Outlook 2003 discards it when loading ([Rules Wizard §1](RulesWizard.md#1-element-definitions)), so it never appears in a rule it saves. Outlook 2007 still defines and discards it, and still runs it like "reply using a template". Never observed in a file. Outlook 2010 and 2013 no longer define it, so a stream holding it fails to load, and they have no handler for it.
-* **`0x014E`.** Hidden in Outlook 2003 and 2007, with no parameter and empty masks. Discarded when loading, as `0x014D`, and has no handler. Never observed in a file. Outlook 2010 and 2013 no longer define it, as `0x014D`.
-* **`0x0153`.** Added in Outlook 2010, and the only element that needs version `0x140000` ([§9.4](#94-exporting-to-older-formats)). Offered only when retention policies are available. It sets the message's `PR_POLICY_TAG` and `PR_RETENTION_PERIOD`, on the client and on the server. Outlook 2013 is the same.
+* **`0x0143` ("do not search message for commercial or adult content").** Added in Outlook 98 with empty masks, so only the junk-mail feature creates it. Removed in 2003. Not traced in Outlook 2000–2002. Outlook 2003 and 2007 still define it but do nothing for it. Outlook 2010 and 2013 still define it, without its UI text, and do nothing for it.
+* **`0x0145` ("add *number* to relevance").** Added in Outlook 2000. Hidden; see `0x00ED` ("with a relevance *in a specific range*"). Not traced in Outlook 2002–2010, apart from Outlook 2003's handler and Outlook 2010 RTM, which won't let the wizard use it. Outlook 2013 switches it off as it does `0x00ED`: no parameter class, empty masks, the parameter read as a plain String, and an action that does nothing.
+* **`0x014D` ("have server reply using *a specific message*").** A hidden twin of `0x0146` ("have server reply using *a specific message*") with the same text, defined by Outlook 2003 with a Reserved and String parameter, event mask `0x2` and no item types. Outlook 2003 discards it when loading ([Rules Wizard §1](RulesWizard.md#1-element-definitions)), so it never appears in a rule it saves. Outlook 2007 still defines and discards it, and still runs it like "reply using a template". Never observed in a file. Outlook 2010 and 2013 no longer define it, so a stream holding it fails to load, and they have no handler for it.
+* **`0x014E` ("notify me using a .NET notification").** Hidden in Outlook 2003 and 2007, with no parameter and empty masks. Discarded when loading, as `0x014D` ("have server reply using *a specific message*"), and has no handler. Never observed in a file. Outlook 2010 and 2013 no longer define it, as `0x014D`.
+* **`0x0153` ("apply retention policy: *retention policy*").** Added in Outlook 2010, and the only element that needs version `0x140000` ([§9.4](#94-exporting-to-older-formats)). Offered only when retention policies are available. It sets the message's `PR_POLICY_TAG` and `PR_RETENTION_PERIOD`, on the client and on the server. Outlook 2013 is the same.
 
 ### 7.5 Exceptions
 
-Every exception has the same parameter layout as its condition, and is defined in exactly the same versions (Outlook 97–2013). The conditions without an exception are `0x00E7`, `0x00E9`, `0x00EB`, `0x00EC`, `0x00ED`, `0x00EF` and `0x00F3`. Outlook shows an exception as its condition preceded by "except", for example "except if sent directly to me".
+Every exception has the same parameter layout as its condition, and is defined in exactly the same versions (Outlook 97–2013). The conditions without an exception are `0x00E7` (Net Folders), `0x00E9` ("from senders on my *Exception List*"), `0x00EB` ("suspected to be junk e-mail or from *Junk Senders*"), `0x00EC` ("containing adult content or from *Adult Content Senders*"), `0x00ED` ("with a relevance *in a specific range*"), `0x00EF` ("on this computer only") and `0x00F3` ("which is an *Alert E-mail*"). Outlook shows an exception as its condition preceded by "except", for example "except if sent directly to me".
 
-| ID | Condition | ID | Condition |
-|---|---|---|---|
-| `0x01F4` | `0x00C8` | `0x020B` | `0x00DF` |
-| `0x01F5` | `0x00C9` | `0x020C` | `0x00E0` |
-| `0x01F6` | `0x00CA` | `0x020D` | `0x00E1` |
-| `0x01F7` | `0x00CB` | `0x020E` | `0x00E2` |
-| `0x01F8` | `0x00CC` | `0x020F` | `0x00E3` |
-| `0x01F9` | `0x00CD` | `0x0210` | `0x00E4` |
-| `0x01FA` | `0x00CE` | `0x0211` | `0x00E5` |
-| `0x01FB` | `0x00CF` | `0x0212` | `0x00E6` |
-| `0x01FC` | `0x00D0` | `0x0213` | `0x00E8` |
-| `0x01FE` | `0x00D2` | `0x0214` | `0x00EE` |
-| `0x01FF` | `0x00D3` | `0x0215` | `0x00F0` |
-| `0x0203` | `0x00D7` | `0x0216` | `0x00F1` |
-| `0x0208` | `0x00DC` | `0x0218` | `0x00F4` |
-| `0x020A` | `0x00DE` | `0x0219` | `0x00F5` |
-| | | `0x021A` | `0x00F6` |
-| | | `0x021B` | `0x00F7` |
+| Exception | Wording | Condition |
+|---|---|---|
+| `0x01F4` | except where my name is in the To box | `0x00C8` |
+| `0x01F5` | except if sent only to me | `0x00C9` |
+| `0x01F6` | except where my name is not in the To box | `0x00CA` |
+| `0x01F7` | except if from *people or public group* | `0x00CB` |
+| `0x01F8` | except if sent to *people or public group* | `0x00CC` |
+| `0x01F9` | except if the subject contains *specific words* | `0x00CD` |
+| `0x01FA` | except if the body contains *specific words* | `0x00CE` |
+| `0x01FB` | except if the subject or body contains *specific words* | `0x00CF` |
+| `0x01FC` | except if it is flagged for *action* | `0x00D0` |
+| `0x01FE` | except if it is marked as *importance* | `0x00D2` |
+| `0x01FF` | except if it is marked as *sensitivity* | `0x00D3` |
+| `0x0203` | except if it is assigned to *category* category | `0x00D7` |
+| `0x0208` | except if it is an automatic reply | `0x00DC` |
+| `0x020A` | except if it has an attachment | `0x00DE` |
+| `0x020B` | except if it has *selected properties* of documents or forms | `0x00DF` |
+| `0x020C` | except if it has a size *in a specific range* | `0x00E0` |
+| `0x020D` | except if it was received *in a specific date span* | `0x00E1` |
+| `0x020E` | except where my name is in the Cc box | `0x00E2` |
+| `0x020F` | except where my name is in the To or Cc box | `0x00E3` |
+| `0x0210` | except if it uses the *form name* form | `0x00E4` |
+| `0x0211` | except if the recipient's address contains *specific words* | `0x00E5` |
+| `0x0212` | except if the sender's address contains *specific words* | `0x00E6` |
+| `0x0213` | except if the message header contains *specific words* | `0x00E8` |
+| `0x0214` | except through the *specified* account | `0x00EE` |
+| `0x0215` | except if sender is in *specified* Address Book | `0x00F0` |
+| `0x0216` | except if it is a meeting invitation or update | `0x00F1` |
+| `0x0218` | except if it is of the *specific* form type (InfoPath) | `0x00F4` |
+| `0x0219` | except if from RSS feeds with *specified text* in the title | `0x00F5` |
+| `0x021A` | except if it is assigned to any category | `0x00F6` |
+| `0x021B` | except if from any RSS feed | `0x00F7` |
 
 ### 7.6 Identifiers outside the tables
 
@@ -845,23 +859,23 @@ Some identifiers appear in Outlook's code but in no definition table, so no vers
 
 | ID | Exception | Test |
 |---|---|---|
-| `0x00D4` | `0x0200` | my name is in the To box **and** it is a meeting |
-| `0x00D5` | `0x0201` | my name is **not** in the To box **and** it is a meeting |
-| `0x00DA` | `0x0206` | sent to the element's addresses as Cc recipients: the recipient test with `PR_RECIPIENT_TYPE` = 2 (`MAPI_CC`) |
-| `0x00DB` | `0x0207` | sent to the element's addresses: the same recipient test as "sent to" (`0x00CC`), with type 1 (`MAPI_TO`) |
+| `0x00D4` | `0x0200` ("except where my name is in the To box and it is a meeting") | my name is in the To box **and** it is a meeting |
+| `0x00D5` | `0x0201` ("except where my name is not in the To box and it is a meeting") | my name is **not** in the To box **and** it is a meeting |
+| `0x00DA` | `0x0206` ("except if sent to *people or public group* as Cc") | sent to the element's addresses as Cc recipients: the recipient test with `PR_RECIPIENT_TYPE` = 2 (`MAPI_CC`) |
+| `0x00DB` | `0x0207` ("except if sent to *people or public group*") | sent to the element's addresses: the same recipient test as "sent to" (`0x00CC`), with type 1 (`MAPI_TO`) |
 
 None of these IDs is in Outlook 97's definition table, so Outlook 97 can't load a file that contains them. Readers SHOULD still accept them.
 
 **Server-rule and run code.** Outlook's code for server rules and for running rules also has cases for a few identifiers that no definition table has, such as `0x0134` and `0x0135`. None of them can appear in a file Outlook loads ([Server rules §3](ServerRules.md#3-server-forms-of-elements)).
 
-**`0x00EA`** is read as `0x00EB` by Outlook 2000–2013 ([§7.3](#73-conditions)). Any other unknown identifier makes the load fail ([§5.3](#53-element)).
+**`0x00EA` (older form of junk senders)** is read as `0x00EB` ("suspected to be junk e-mail or from *Junk Senders*") by Outlook 2000–2013 ([§7.3](#73-conditions)). Any other unknown identifier makes the load fail ([§5.3](#53-element)).
 
 ### 7.7 Element definitions
 
 Outlook keeps a *definition* for each element: its group, its parameter class, the masks that decide where the Rules Wizard offers it, whether it is client-only, and its UI text. Definitions aren't written to the file, but two things about them matter to readers and writers:
 
 * The parameter class decides the layout of the element's parameters ([§8](#8-parameters)). The classes are numbered (the *kind*), and the numbers changed between versions, but they aren't written either.
-* Outlook 2003 and 2007 discard an element whose *rule-set mask* lacks bit `0x2` when they load a file ([§5.3](#53-element)). Only the hidden actions `0x014D` and `0x014E` have such a mask, so neither ever appears in a rule they save. Outlook 2010 removes the mask.
+* Outlook 2003 and 2007 discard an element whose *rule-set mask* lacks bit `0x2` when they load a file ([§5.3](#53-element)). Only the hidden actions `0x014D` ("have server reply using *a specific message*") and `0x014E` ("notify me using a .NET notification") have such a mask, so neither ever appears in a rule they save. Outlook 2010 removes the mask.
 
 The rest is described in [Rules Wizard §1](RulesWizard.md#1-element-definitions).
 
@@ -880,7 +894,7 @@ An element's parameters follow its NumberOfParameters ([§5.3](#53-element)). Th
 The tables below list the fields after Reserved.
 
 ### 8.1 EventParameter
-Used by `0x0190`.
+Used by `0x0190` ("apply this rule *after the message arrives*").
 
 | Field | Size | Description |
 |---|---|---|
@@ -900,7 +914,7 @@ Used by `0x0064` ("For each %s").
 Outlook 98–2013 read and write this parameter the same way, and every sample uses `1`. In Outlook 98–2002 the element definitions' item-type masks are `7`, `5` or `1`, reserving bits `0x2` and `0x4` that no item type ever uses. From Outlook 2003 every mask is `1` (or `0`), so "message" is the only item type left.
 
 ### 8.3 WordParameter
-`CWordParameter`. Used by `0x00CD`–`0x00CF`, `0x00E5`, `0x00E6`, `0x00E8`, `0x00F5` and their exceptions.
+`CWordParameter`. Used by `0x00CD`–`0x00CF`, `0x00E5` ("with *specific words* in the recipient's address"), `0x00E6` ("with *specific words* in the sender's address"), `0x00E8` ("with *specific words* in the message header"), `0x00F5` ("from RSS feeds with *specified text* in the title") and their exceptions.
 
 | Field | Size | Description |
 |---|---|---|
@@ -913,7 +927,7 @@ An element has one WordParameter per word or phrase. The words are combined with
 How Outlook matches the words is described in [Running §3.1](Running.md#31-words).
 
 ### 8.4 AddressParameter
-Used by `0x00CB`, `0x00CC`, `0x012E`, `0x013C`, `0x0144`, `0x0147`, `0x01F7` and `0x01F8`.
+Used by `0x00CB` ("from *people or public group*"), `0x00CC` ("sent to *people or public group*"), `0x012E` ("forward it to *people or public group*"), `0x013C` ("Cc the message to *people or public group*"), `0x0144` ("redirect it to *people or public group*"), `0x0147` ("forward it to *people or public group* as an attachment"), `0x01F7` ("except if from *people or public group*") and `0x01F8` ("except if sent to *people or public group*").
 
 This is a serialized MAPI `ADRLIST`. For each `ADRENTRY`, Outlook 97 writes `ulReserved1` and `cValues`, copies the property array into one block (MAPI `ScCopyProps`), relocates its pointers to offsets from 0 (`ScRelocProps`), and writes the block's size and bytes. The uninitialised bytes inside `SPropValue`s are copied as they were in memory.
 
@@ -975,7 +989,7 @@ Even G2 files may use `PT_STRING8` properties. The property types are independen
 * **Outlook 2002–2013** copy and relocate the properties in the same way, giving the same layout as Outlook 97. When writing a format older than 1000000 they first convert the properties with `HrConvertSPropValues`, presumably to ANSI so that older versions can read them.
 
 ### 8.5 FlaggedForActionParameter
-Used by `0x00D0` and `0x01FC`. This is the same class as FlagParameter ([§8.21](#821-flagparameter)), with IsCondition set.
+Used by `0x00D0` ("flagged for *action*") and `0x01FC` ("except if it is flagged for *action*"). This is the same class as FlagParameter ([§8.21](#821-flagparameter)), with IsCondition set.
 
 | Field | Size | Description |
 |---|---|---|
@@ -983,35 +997,35 @@ Used by `0x00D0` and `0x01FC`. This is the same class as FlagParameter ([§8.21]
 | Action | variable | String. Localised flag text, for example `Follow up`, `Forward`, `Do not Forward`, or `Any`. "Any" is only offered when IsCondition is set. |
 | IsCondition | 4 | `1`: Outlook sets it for these elements. It switches the text from "*action* within *n* days" to just "*action*". |
 
-Outlook 98–2013 read and write this layout the same way, and every version sets IsCondition to `1` for these conditions and leaves it `0` for the action `0x0131`.
+Outlook 98–2013 read and write this layout the same way, and every version sets IsCondition to `1` for these conditions and leaves it `0` for the action `0x0131` ("flag message for *action in a number of days*").
 
 ### 8.6 ImportanceParameter
-`CImportanceDialog`. Used by `0x00D2`, `0x0137` and `0x01FE`.
+`CImportanceDialog`. Used by `0x00D2` ("marked as *importance*"), `0x0137` ("mark it as *importance*") and `0x01FE` ("except if it is marked as *importance*").
 
 | Field | Size | Description |
 |---|---|---|
 | Importance | 4 | PR_IMPORTANCE value: `0` = low, `1` = normal, `2` = high. |
 
-From Outlook 2003 the action `0x0137` has a parameter class of its own: the same class as the conditions', created with a flag set in memory. The flag isn't written, so the layout is unchanged. Outlook 2007–2013 keep this.
+From Outlook 2003 the action `0x0137` ("mark it as *importance*") has a parameter class of its own: the same class as the conditions', created with a flag set in memory. The flag isn't written, so the layout is unchanged. Outlook 2007–2013 keep this.
 
 Outlook 2013 doesn't offer the action for some stores ([Rules Wizard §1](RulesWizard.md#1-element-definitions)).
 
 ### 8.7 SensitivityParameter
-`CSensitivityDialog`. Used by `0x00D3`, `0x0138` and `0x01FF`.
+`CSensitivityDialog`. Used by `0x00D3` ("marked as *sensitivity*"), `0x0138` ("mark it as *sensitivity*") and `0x01FF` ("except if it is marked as *sensitivity*").
 
 | Field | Size | Description |
 |---|---|---|
 | Sensitivity | 4 | PR_SENSITIVITY value: `0` = normal, `1` = personal, `2` = private, `3` = confidential. |
 
 ### 8.8 CategoryParameter
-`CCategoryParameter`. Used by `0x00D7`, `0x0133` and `0x0203`.
+`CCategoryParameter`. Used by `0x00D7` ("assigned to *category* category"), `0x0133` ("assign it to the *category* category") and `0x0203` ("except if it is assigned to *category* category").
 
 | Field | Size | Description |
 |---|---|---|
 | Categories | variable | String. Category names separated by `;`. |
 
 ### 8.9 FormParameter
-`CFormParameter`. Used by `0x00DF` and `0x020B`.
+`CFormParameter`. Used by `0x00DF` ("with *selected properties* of documents or forms") and `0x020B` ("except if it has *selected properties* of documents or forms").
 
 | Field | Size | Description |
 |---|---|---|
@@ -1086,7 +1100,7 @@ The first property of a pair has the internal name's tag, and Field holds the me
 StringMatch, NumberMatch, BoolMatch and DateMatch apply by the type in PropTag: strings use StringMatch, integers NumberMatch (NumberValue1 for `PT_I2`, NumberValue2 for `PT_LONG`), booleans BoolMatch, and `PT_SYSTIME` DateMatch. The unused fields are written as zero or null. How Outlook compares the values is in [Running §3.2](Running.md#32-document-properties).
 
 ### 8.10 SizeParameter
-`CSizeParameter`. Used by `0x00E0` and `0x020C`.
+`CSizeParameter`. Used by `0x00E0` ("with a size *in a specific range*") and `0x020C` ("except if it has a size *in a specific range*").
 
 | Field | Size | Description |
 |---|---|---|
@@ -1094,7 +1108,7 @@ StringMatch, NumberMatch, BoolMatch and DateMatch apply by the type in PropTag: 
 | Maximum | 4 | Maximum size in KB. |
 
 ### 8.11 TimeParameter
-`CTimeParameter`. Used by `0x00E1` and `0x020D`.
+`CTimeParameter`. Used by `0x00E1` ("received *in a specific date span*") and `0x020D` ("except if it was received *in a specific date span*").
 
 | Field | Size | Description |
 |---|---|---|
@@ -1104,7 +1118,7 @@ StringMatch, NumberMatch, BoolMatch and DateMatch apply by the type in PropTag: 
 | Before | 12 | OleDateTime. |
 
 ### 8.12 FormTypeParameter
-Used by `0x00E4`, `0x0210`, `0x00F4` (`CInfoPathFormTypeParameter`) and `0x0218`.
+Used by `0x00E4` ("uses the *form name* form"), `0x0210` ("except if it uses the *form name* form"), `0x00F4` (`CInfoPathFormTypeParameter`) and `0x0218` ("except if it is of the *specific* form type (InfoPath)").
 
 | Field | Size | Description |
 |---|---|---|
@@ -1112,7 +1126,7 @@ Used by `0x00E4`, `0x0210`, `0x00F4` (`CInfoPathFormTypeParameter`) and `0x0218`
 | MessageClass | variable | String8 (ANSI in every generation). For example `IPM.Contact` or `IPM.InfoPathForm.<id>$<id>`. |
 
 ### 8.13 SendersListParameter
-Used by `0x00E9`, `0x00EB` and `0x00EC`. These elements exist only in G1.
+Used by `0x00E9` ("from senders on my *Exception List*"), `0x00EB` ("suspected to be junk e-mail or from *Junk Senders*") and `0x00EC` ("containing adult content or from *Adult Content Senders*"). These elements exist only in G1.
 
 | Field | Size | Description |
 |---|---|---|
@@ -1123,17 +1137,17 @@ Outlook 98's junk filter isn't stored in the file ([Storage §2.3](Storage.md#23
 Outlook 2010 and 2013 no longer have a class for these parameters: they read and write them with the plain String class, which reads the same single string. Their UI texts and the list names (`Exception List`, `Junk Senders`, `Adult Content Senders`) are gone from the resources.
 
 ### 8.14 RelevanceRangeParameter
-Used by `0x00ED`.
+Used by `0x00ED` ("with a relevance *in a specific range*").
 
 | Field | Size | Description |
 |---|---|---|
 | Minimum | 4 | |
 | Maximum | 4 | |
 
-Outlook 2013's definition of `0x00ED` no longer names this class, so Outlook 2013 reads and writes a `0x00ED` parameter as Reserved and one String, not this layout. The class still exists in Outlook 2013, but nothing uses it.
+Outlook 2013's definition of `0x00ED` ("with a relevance *in a specific range*") no longer names this class, so Outlook 2013 reads and writes a `0x00ED` parameter as Reserved and one String, not this layout. The class still exists in Outlook 2013, but nothing uses it.
 
 ### 8.15 AccountParameter
-`CAccountParameter`. Used by `0x00EE` and `0x0214`, from Outlook 2000.
+`CAccountParameter`. Used by `0x00EE` ("through the *specified* account") and `0x0214` ("except through the *specified* account"), from Outlook 2000.
 
 | Field | Size | Description |
 |---|---|---|
@@ -1143,7 +1157,7 @@ Outlook 2013's definition of `0x00ED` no longer names this class, so Outlook 201
 Outlook matches accounts by this number, not by name ([Running §3.4](Running.md#34-accounts)).
 
 ### 8.16 ProfileStampParameter
-Used by `0x00EF`.
+Used by `0x00EF` ("on this computer only").
 
 | Field | Size | Description |
 |---|---|---|
@@ -1152,7 +1166,7 @@ Used by `0x00EF`.
 Outlook 2003 and later match the condition when Stamp equals this computer's ID ([Running §3.5](Running.md#35-this-computer)). The ID also follows the rule to the Exchange server, in the server rule's provider name ([Server rules §2](ServerRules.md#2-uploading-rules)).
 
 ### 8.17 AddressBookParameter
-`CABContListDialog`. Used by `0x00F0` and `0x0215`.
+`CABContListDialog`. Used by `0x00F0` ("sender is in *specified* Address Book") and `0x0215` ("except if sender is in *specified* Address Book").
 
 | Field | Size | Description |
 |---|---|---|
@@ -1162,16 +1176,16 @@ Outlook 2003 and later match the condition when Stamp equals this computer's ID 
 Outlook 2003–2007 read and write it as Outlook 2002 does. How Outlook tests the condition is in [Running §3.6](Running.md#36-address-books).
 
 ### 8.18 AlertParameter
-Used by `0x00F3`.
+Used by `0x00F3` ("which is an *Alert E-mail*").
 
 | Field | Size | Description |
 |---|---|---|
-| Name | variable | String: UTF-16 in every format that can hold `0x00F3`, which needs version 1100000. The alert's name, a U+0001 character, and the text that identifies messages from the alert. |
+| Name | variable | String: UTF-16 in every format that can hold `0x00F3` ("which is an *Alert E-mail*"), which needs version 1100000. The alert's name, a U+0001 character, and the text that identifies messages from the alert. |
 
 Outlook splits Name at the last U+0001. The part before it is the alert's name, which Outlook shows in the rule. The part after it identifies messages from the alert: Outlook looks for it in their transport headers ([Running §3.7](Running.md#37-alert-e-mail)). In the sample (`Conditions/AlertCondition`) the second part is a GUID: `Alert from "Home" about "Documents (All Changes)"` U+0001 `{1D7EAA7A-B10A-485D-A8E9-5B3D611597E1}`.
 
 ### 8.19 FolderParameter
-`CFolderParameter`. Used by `0x012C` and `0x0139`.
+`CFolderParameter`. Used by `0x012C` ("move it to the *specified* folder") and `0x0139` ("move a copy to the *specified* folder").
 
 | Field | Size | Description |
 |---|---|---|
@@ -1181,14 +1195,14 @@ Outlook splits Name at the last U+0001. The part before it is the alert's name, 
 | SecondaryStore | 4 | Added in version 970718, so it is absent in Outlook 97's formats (G0 and version stamp 970102) and in G0s (version 0). Outlook 98–2013 check the version; Outlook 2010 sets the field to `0` when loading an older stream. **[Unknown]** Always `1` observed. |
 
 ### 8.20 PathParameter / MessageParameter
-`CLaunchFileParameter`, `CMessageParameter` and `CTemplateParameter`. Used by `0x012F` (template path), `0x0130` (alert message text), `0x0136` (sound file) and `0x0149` (application path). Outlook 2003's and 2007's hidden action `0x014D` uses the same layout.
+`CLaunchFileParameter`, `CMessageParameter` and `CTemplateParameter`. Used by `0x012F` (template path), `0x0130` (alert message text), `0x0136` (sound file) and `0x0149` (application path). Outlook 2003's and 2007's hidden action `0x014D` ("have server reply using *a specific message*") uses the same layout.
 
 | Field | Size | Description |
 |---|---|---|
 | Value | variable | String. |
 
 ### 8.21 FlagParameter
-Used by `0x0131`.
+Used by `0x0131` ("flag message for *action in a number of days*").
 
 | Field | Size | Description |
 |---|---|---|
@@ -1196,17 +1210,17 @@ Used by `0x0131`.
 | Action | variable | String. Flag text. |
 | IsCondition | 4 | `0` for this action. See [§8.5](#85-flaggedforactionparameter). |
 
-Outlook 98–2013 read and write this layout the same way. Outlook 2007–2013 offer `0x0131` only for rules on sent messages ([§7.4](#74-actions)).
+Outlook 98–2013 read and write this layout the same way. Outlook 2007–2013 offer `0x0131` ("flag message for *action in a number of days*") only for rules on sent messages ([§7.4](#74-actions)).
 
 ### 8.22 DeferParameter
-`CDeferDialog`. Used by `0x013E`.
+`CDeferDialog`. Used by `0x013E` ("defer delivery by *a number of* minutes").
 
 | Field | Size | Description |
 |---|---|---|
 | Minutes | 4 | |
 
 ### 8.23 CustomActionParameter
-Used by `0x013F`.
+Used by `0x013F` ("perform *a custom action*").
 
 | Field | Size | Description |
 |---|---|---|
@@ -1218,16 +1232,16 @@ Used by `0x013F`.
 Outlook 2013 still reads and writes this layout, but no longer runs the action ([§7.4](#74-actions)).
 
 ### 8.24 RelevanceParameter
-`CRelevanceParameter`. Used by `0x0145`.
+`CRelevanceParameter`. Used by `0x0145` ("add *number* to relevance").
 
 | Field | Size | Description |
 |---|---|---|
 | Value | 4 | The number to add to the relevance. |
 
-Outlook 2013 has no class for this layout: it reads and writes a `0x0145` parameter as Reserved and one String, as it does `0x00ED`'s ([§8.14](#814-relevancerangeparameter)).
+Outlook 2013 has no class for this layout: it reads and writes a `0x0145` ("add *number* to relevance") parameter as Reserved and one String, as it does `0x00ED` ("with a relevance *in a specific range*")'s ([§8.14](#814-relevancerangeparameter)).
 
 ### 8.25 ServerReplyParameter
-`CReplyServerParameter`. Used by `0x0146`.
+`CReplyServerParameter`. Used by `0x0146` ("have server reply using *a specific message*").
 
 | Field | Size | Description |
 |---|---|---|
@@ -1237,7 +1251,7 @@ Outlook 2013 has no class for this layout: it reads and writes a `0x0145` parame
 The action is sent to the Exchange server ([Server rules §3](ServerRules.md#3-server-forms-of-elements)). When Outlook runs it itself, it uses its "reply using a template" handler ([Running §4.4](Running.md#44-server-reply)).
 
 ### 8.26 ScriptParameter
-Used by `0x014B`.
+Used by `0x014B` ("run *a script*").
 
 | Field | Size | Description |
 |---|---|---|
@@ -1247,7 +1261,7 @@ Used by `0x014B`.
 Outlook 2002–2013 read and write it in this order, and run the procedure that Name names ([Running §4.3](Running.md#43-scripts)). The Rules Wizard fills in both strings from Outlook's list of VBA procedures ([Rules Wizard §2](RulesWizard.md#2-filling-in-parameters)).
 
 ### 8.27 FlagForFollowUpParameter
-`ToDoActionDlg`. Used by `0x0151`.
+`ToDoActionDlg`. Used by `0x0151` ("flag message for *follow up at this time*").
 
 | Field | Size | Description |
 |---|---|---|
@@ -1257,7 +1271,7 @@ Outlook 2002–2013 read and write it in this order, and run the procedure that 
 What the action does to the message for each value is in [Running §4.1](Running.md#41-follow-up-flags). Values `1`–`6` select a start and due date from a table in Outlook, so `5` and `6` are also valid, though the samples use only `1`–`4`. **[Inferred]** `5` and `6` are this month and next month, from their table entries.
 
 ### 8.28 RetentionPolicyParameter
-Used by `0x0153`.
+Used by `0x0153` ("apply retention policy: *retention policy*").
 
 | Field | Size | Description |
 |---|---|---|
@@ -1267,7 +1281,7 @@ Used by `0x0153`.
 New in Outlook 2010. The serializer writes Reserved, the 16-byte GUID and then Name as a String (so String8 below version 1000000, though `0x0153` itself needs `0x140000`). In memory the parameter also holds a retention period, which isn't written: Outlook fills it in from the policy. The UI text is "apply retention policy: %s", with the placeholder "retention policy". Outlook 2010's later updates also look the policy up by its GUID when loading. Outlook 2013 is the same as Outlook 2010. What the action does is in [Running §4.2](Running.md#42-retention-policies).
 
 ### 8.29 FlagColorParameter
-Used by `0x0150`.
+Used by `0x0150` ("flag message with *a colored flag*").
 
 | Field | Size | Description |
 |---|---|---|
@@ -1347,10 +1361,10 @@ Outlook 2003 decides with a table of the version each element needs; every other
 
 | Version needed | Elements |
 |---|---|
-| 980413 | `0x00ED`, `0x0144`–`0x014A` |
-| 1000000 | `0x00EE`–`0x00F0`, `0x014B`, `0x014C`, `0x0214` |
-| 1100000 | `0x00F1`, `0x00F3`, `0x014F`, `0x0150`, `0x0216` |
-| 1200000 | `0x00F4`–`0x00F7`, `0x0151`, `0x0152`, `0x0218`–`0x021B` (Outlook 2007) |
+| 980413 | `0x00ED` ("with a relevance *in a specific range*"), `0x0144`–`0x014A` |
+| 1000000 | `0x00EE`–`0x00F0`, `0x014B` ("run *a script*"), `0x014C` ("mark it as read"), `0x0214` ("except through the *specified* account") |
+| 1100000 | `0x00F1` ("which is a meeting invitation or update"), `0x00F3` ("which is an *Alert E-mail*"), `0x014F` ("display a Desktop Alert"), `0x0150` ("flag message with *a colored flag*"), `0x0216` ("except if it is a meeting invitation or update") |
+| 1200000 | `0x00F4`–`0x00F7`, `0x0151` ("flag message for *follow up at this time*"), `0x0152` ("clear message's categories"), `0x0218`–`0x021B` (Outlook 2007) |
 | `0x140000` | `0x0153` (Outlook 2010; otherwise the same as Outlook 2007's table). Outlook 2013's table is the same as Outlook 2010's. |
 
 The account condition (`0x00EE`, `0x0214`) came with Outlook 2000, but Outlook 2003 only exports it for Outlook 2002 and later. Outlook 2000 itself decides differently ([§9.5](#95-how-outlook-2000-chooses-the-stamp)). When saving at a lower version than a rule's own, Outlook 2003 leaves the rule out unless all its elements fit that version.
@@ -1384,7 +1398,7 @@ What happens when a version of Outlook meets a stream from another version:
 
 * **An older stream.** Every version reads the older layouts ([§3.2](#32-identifying-the-format)). Outlook 2002 and later keep each rule at its own version ([§9.2](#92-a-rules-own-version)), and ask before raising rules below 1000000 (Outlook 2007–2013, [§9.3](#93-upgrading-rules)).
 * **A newer stream.** Outlook 97 rejects it, and Outlook 2000 refuses Outlook 2002's format and warns about other newer stamps. Outlook 2002 and later read the header with their own layout, keep newer rules unparsed ([§5.5](#55-rules-from-newer-versions)), and fail on an element they don't know in a rule they do parse ([§5.3](#53-element)).
-* **An element a version dropped.** Outlook 2010 and 2013 fail to load a stream containing `0x014D` or `0x014E`. Neither element is ever saved by Outlook 2003 or 2007 ([Rules Wizard §1](RulesWizard.md#1-element-definitions)).
+* **An element a version dropped.** Outlook 2010 and 2013 fail to load a stream containing `0x014D` ("have server reply using *a specific message*") or `0x014E` ("notify me using a .NET notification"). Neither element is ever saved by Outlook 2003 or 2007 ([Rules Wizard §1](RulesWizard.md#1-element-definitions)).
 
 ---
 
@@ -1399,7 +1413,7 @@ What happens when a version of Outlook meets a stream from another version:
 5. Read each element: the object tag ([§2.5](#25-object-tag)), the identifier ([§7](#7-elements)), NumberOfParameters, and the parameters for that identifier ([§8](#8-parameters)). Strings are ANSI or UTF-16 by generation ([§2.2](#22-string)).
 6. Except in G0, read the RulesFooter ([§6](#6-rulesfooter)). The stream should then end.
 
-Readers SHOULD be lenient where Outlook is: treat any non-zero Enabled as enabled and any non-zero RunError as an error, accept any value in the [Unknown] fields, ignore `SPropValue.AlignPad` and `AdrEntry.Reserved1`, accept zero or one Reserved parameter on `0x00F7` and `0x021B`, and read `0x00EA` as `0x00EB`.
+Readers SHOULD be lenient where Outlook is: treat any non-zero Enabled as enabled and any non-zero RunError as an error, accept any value in the [Unknown] fields, ignore `SPropValue.AlignPad` and `AdrEntry.Reserved1`, accept zero or one Reserved parameter on `0x00F7` ("from any RSS feed") and `0x021B` ("except if from any RSS feed"), and read `0x00EA` (older form of junk senders) as `0x00EB` ("suspected to be junk e-mail or from *Junk Senders*").
 
 ### 10.2 Writing
 
@@ -1409,7 +1423,7 @@ To produce a stream that Outlook accepts:
 2. Header Unknown1–3 and ClearCategoriesRuleCreated = `0`, ServerRulesOutOfDate = `0`, ServerUpdateMode = `0`, PromptToConvertInboxAssistantRules = `1`, ConvertInboxAssistantRules = `1`, ExtraDataSize = `0` with no ExtraData.
 3. For each rule, write RuleHeader.VersionStamp = the stream's VersionStamp, and compute DataSize as defined in [§5.1](#51-ruleheader).
 4. Write `CRuleElement`'s class descriptor before the stream's first element, and `0x8001` before every other element.
-5. Every rule MUST begin with elements `0x0190` and `0x0064`.
+5. Every rule MUST begin with elements `0x0190` ("apply this rule *after the message arrives*") and `0x0064` ("for each *message*").
 6. Write all Reserved fields as `0`. Write SPropValue.AlignPad and AdrEntry.Reserved1 as `0`, or preserve the original values.
 7. Write the footer with Status = null (`2`) and Date = `0.0` unless a real timestamp is known.
 8. When writing an older format, follow [§9.4](#94-exporting-to-older-formats) and [§9.5](#95-how-outlook-2000-chooses-the-stamp): leave out rules that use elements the format doesn't have, and write at most one parameter per element for Outlook 97 and 98.
@@ -1423,14 +1437,14 @@ What changed in the file format in each version of Outlook. How Outlook's behavi
 ### Outlook 97
 
 * Keeps its own copy of the rules at version 970102 in the G1 layout, and accepts copies from 960706 to 970102. **Export Rules** writes the bare G0 layout: the rule count and the rules, with no header or footer ([§3.1](#31-generations)).
-* Elements `0x00C8`–`0x00E6`, `0x012C`–`0x0140` and `0x01F4`–`0x0212`, plus `0x0064` and `0x0190` ([§7.1](#71-identifiers)).
+* Elements `0x00C8`–`0x00E6`, `0x012C`–`0x0140` and `0x01F4`–`0x0212`, plus `0x0064` ("for each *message*") and `0x0190` ([§7.1](#71-identifiers)).
 * One word or phrase per word condition; NumberOfParameters is a has-parameter flag ([§5.3](#53-element)).
 * The rule name carries the wizard template after a tab ([§5.1](#51-ruleheader)).
 
 ### Outlook 98
 
 * Writes version 970812, which adds the rule **Flags** field; version 970718 added the folder's SecondaryStore ([§3.4](#34-version-dependent-fields)). Accepts 960706–970812, and imports G0 files as 970102 ([§3.2](#32-identifying-the-format)).
-* New elements: `0x00E7`, `0x00E8`, `0x00E9`, `0x00EB`, `0x00EC`, `0x0141`, `0x0142`, `0x0143` and `0x0213` ([§7](#7-elements)).
+* New elements: `0x00E7` (Net Folders), `0x00E8` ("with *specific words* in the message header"), `0x00E9` ("from senders on my *Exception List*"), `0x00EB` ("suspected to be junk e-mail or from *Junk Senders*"), `0x00EC` ("containing adult content or from *Adult Content Senders*"), `0x0141` (Net Folders), `0x0142` ("stop processing more rules"), `0x0143` ("do not search message for commercial or adult content") and `0x0213` ([§7](#7-elements)).
 * Drops the template from rule names when loading ([§5.1](#51-ruleheader)).
 * RunError stores the failing action's HRESULT ([§5.1](#51-ruleheader)).
 
@@ -1438,7 +1452,7 @@ What changed in the file format in each version of Outlook. How Outlook's behavi
 
 * Writes 970812, or 980413 once a rule needs it ([§9.5](#95-how-outlook-2000-chooses-the-stamp)). Refuses Outlook 2002's format and warns about newer stamps.
 * Reads NumberOfParameters as a count, so a word condition can hold several words ([§5.3](#53-element)).
-* New elements: `0x00ED`, `0x00EE`, `0x0214` and `0x0144`–`0x014A` ([§7](#7-elements)).
+* New elements: `0x00ED` ("with a relevance *in a specific range*"), `0x00EE` ("through the *specified* account"), `0x0214` ("except through the *specified* account") and `0x0144`–`0x014A` ([§7](#7-elements)).
 * Sets RunError to `1` for a failed rule ([§5.1](#51-ruleheader)). Creates rules of its own, marked by Flags ([§5.2](#52-rule-flags)).
 * Reads object tags more loosely than MFC ([§2.5](#25-object-tag)).
 
@@ -1446,13 +1460,13 @@ What changed in the file format in each version of Outlook. How Outlook's behavi
 
 * Writes **1000000**, the G2 layout: UTF-16 strings, WriterVersion and ExtraData in the header, and a version, server ID and size in each rule ([§3.1](#31-generations)). Rules from newer versions are kept unparsed ([§5.5](#55-rules-from-newer-versions)).
 * Discards Unknown1 and the server settings, and writes `0` for them ([§4](#4-rulesheader)).
-* New elements: `0x00EF`, `0x00F0`, `0x0215`, `0x014B` and `0x014C` ([§7](#7-elements)).
+* New elements: `0x00EF` ("on this computer only"), `0x00F0` ("sender is in *specified* Address Book"), `0x0215` ("except if sender is in *specified* Address Book"), `0x014B` ("run *a script*") and `0x014C` ([§7](#7-elements)).
 * The "Rules upgrade" option ([§9.3](#93-upgrading-rules)), and three export file types ([§9.4](#94-exporting-to-older-formats)).
 
 ### Outlook 2003
 
 * Writes **1100000**.
-* New elements: `0x00F1`, `0x0216`, `0x00F3`, `0x014D`, `0x014E`, `0x014F` and `0x0150` ([§7](#7-elements)). Drops `0x014D` and `0x014E` when loading ([§5.3](#53-element)).
+* New elements: `0x00F1` ("which is a meeting invitation or update"), `0x0216` ("except if it is a meeting invitation or update"), `0x00F3` ("which is an *Alert E-mail*"), `0x014D` ("have server reply using *a specific message*"), `0x014E` ("notify me using a .NET notification"), `0x014F` ("display a Desktop Alert") and `0x0150` ([§7](#7-elements)). Drops `0x014D` and `0x014E` when loading ([§5.3](#53-element)).
 * Deletes the old junk-mail rules on every save, and writes the Download Options rule without an element list ([§5.5](#55-rules-from-newer-versions)).
 * Reads and writes each rule at its own version, and starts new rules at 970812 ([§9.2](#92-a-rules-own-version)). Tolerates errors in rules with Flags `0x1` or `0x2` ([§5.2](#52-rule-flags)).
 * Four export file types, and an accidental version-0 export when WriterVersion holds a newer stamp ([§3.5](#35-version-0-streams-g0s)).
@@ -1461,7 +1475,7 @@ What changed in the file format in each version of Outlook. How Outlook's behavi
 ### Outlook 2007
 
 * Writes **1200000**. Its table of stamps already has Outlook 2010's `0x140000` ([§3.3](#33-version-stamps)).
-* New elements: `0x00F4`–`0x00F7`, `0x0218`–`0x021B`, `0x0151` and `0x0152` ([§7](#7-elements)).
+* New elements: `0x00F4`–`0x00F7`, `0x0218`–`0x021B`, `0x0151` ("flag message for *follow up at this time*") and `0x0152` ([§7](#7-elements)).
 * Sets bit `0x1` of ClearCategoriesRuleCreated ([§4.3](#43-clearcategoriesrulecreated)).
 * Starts new rules at 1000000, and asks before raising rules below 1000000 ([§9.2](#92-a-rules-own-version), [§9.3](#93-upgrading-rules)).
 * Its exports "for Outlook 98" keep every word as a separate parameter ([§9.5](#95-how-outlook-2000-chooses-the-stamp)).
@@ -1469,7 +1483,7 @@ What changed in the file format in each version of Outlook. How Outlook's behavi
 ### Outlook 2010
 
 * Writes **`0x140000`**, the major version as hex digits. Its table of stamps adds `0x150000` ([§3.3](#33-version-stamps)).
-* New element: `0x0153`. Drops `0x014D` and `0x014E`, so a stream holding them fails to load ([§5.3](#53-element)).
+* New element: `0x0153` ("apply retention policy: *retention policy*"). Drops `0x014D` ("have server reply using *a specific message*") and `0x014E` ("notify me using a .NET notification"), so a stream holding them fails to load ([§5.3](#53-element)).
 * Writes RunError as `0` or `1` ([§5.1](#51-ruleheader)).
 * Deletes the `#NET FOLDERS#` rule on every save ([§5.2](#52-rule-flags)).
 * Caps the default export at `0x140000` ([§9.4](#94-exporting-to-older-formats)).
@@ -1500,7 +1514,7 @@ The details of each search are in [Decompilation notes](Decompilation.md#appendi
 7. **Rule Flags bits `0x1` and `0x2`.** Outlook 97–2013 never set them (in Outlook 2013 the whole `OUTLOOK.EXE` was searched). Outlook 2010 and 2013 can still take them from offset `0x18` of an Outlook 98 or 2000 server rule's provider data; Outlook 2003–2013 forgive errors in single rules that have them; and every version from 98 to 2013 clears all the flags when the user edits such a rule ([§5.2](#52-rule-flags)). That supports the guess that they mark errors, but nothing studied writes them.
 8. **The two extra flags in each element definition.** Outlook 97's definitions have two flags that no code in Outlook 97, 98 or 2000 reads ([Decompilation §3.1](Decompilation.md#31-element-definitions)). The first is now answered: in Outlook 2010 and 2013 it means "the wizard may offer this element" ([Rules Wizard §1](RulesWizard.md#1-element-definitions)). The second is still unexplained. Outlook 97–2003 never read it, Outlook 2003 and later no longer copy it into their definitions, and although Outlook 2010 changes it for 41 elements, it still has no effect.
 9. **The field Outlook 2002 added to its definitions.** Answered for Outlook 2010 and 2013: it marks redirect and server reply, which the wizard hides when the store has no Exchange server rules ([Rules Wizard §1](RulesWizard.md#1-element-definitions)). Outlook 2002 and 2003 never use it.
-10. **Bit `0x1` of the rule-set mask** that Outlook 2003 added ([Rules Wizard §1](RulesWizard.md#1-element-definitions)). Outlook 2003 and 2007 never use it, and the Out of Office rules don't explain it ([Server rules §7](ServerRules.md#7-inbox-assistant-and-out-of-office-rules)). Only `0x014D` and `0x014E` have it, and nothing creates them. Outlook 2010 removes the mask, `0x014D` and `0x014E` altogether, so it can't answer the question either. Neither can Outlook 2013.
+10. **Bit `0x1` of the rule-set mask** that Outlook 2003 added ([Rules Wizard §1](RulesWizard.md#1-element-definitions)). Outlook 2003 and 2007 never use it, and the Out of Office rules don't explain it ([Server rules §7](ServerRules.md#7-inbox-assistant-and-out-of-office-rules)). Only `0x014D` ("have server reply using *a specific message*") and `0x014E` ("notify me using a .NET notification") have it, and nothing creates them. Outlook 2010 removes the mask, `0x014D` and `0x014E` altogether, so it can't answer the question either. Neither can Outlook 2013.
 
 ## Appendix C. Corrections to earlier notes
 
