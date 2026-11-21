@@ -218,19 +218,19 @@ Parameter objects all derive from one base class, whose `Serialize` writes a Res
 
 ### 1.4 Outlook versions at a glance
 
-| Version | Writes | Main changes to the format |
+| Version | Version stamp written | Main changes to the format |
 |---|---|---|
-| Outlook 97 | 970102 (its own copy); exports have no stamp | The first version. Its exports use the bare G0 layout. |
-| Outlook 98 | 970812 | Adds the rule Flags field and the folder's SecondaryStore, and elements for the message header, junk mail, Net Folders and "stop processing more rules". |
-| Outlook 2000 | 970812, or 980413 once a rule needs it | Several words per word condition. Adds the account, relevance, redirect, server reply, forward as attachment, print, start application and permanently delete elements. |
-| Outlook 2002 | 1000000 | UTF-16 strings; a version word and extra data in the header; a version, server ID and size in each rule. Adds "on this computer only", the address book, scripts and "mark it as read". |
-| Outlook 2003 | 1100000 | Adds meeting invitations, Alert E-mail, Desktop Alerts and coloured flags. |
-| Outlook 2007 | 1200000 | Adds InfoPath forms, RSS feeds, "any category", follow-up flags and "clear message's categories". |
-| Outlook 2010 | `0x140000` | Adds the retention policy action, and drops two hidden actions. |
-| Outlook 2013 | `0x140000` | No new stamp. Reads the relevance elements' parameters differently. |
-| Outlook 2016 and later | `0x140000` | Not disassembled. Still the Outlook 2010 format (Outlook 2019 samples). |
+| Outlook 97 | `970102` for its own copy; exports have none | The first version. Its exports use the bare G0 layout. |
+| Outlook 98 | `970812` | Adds the rule Flags field and the folder's SecondaryStore, and elements for the message header, junk mail, Net Folders and "stop processing more rules". |
+| Outlook 2000 | `970812`, or `980413` once a rule needs it | Several words per word condition. Adds the account, relevance, redirect, server reply, forward as attachment, print, start application and permanently delete elements. |
+| Outlook 2002 | `1000000` | UTF-16 strings; a version word and extra data in the header; a version, server ID and size in each rule. Adds "on this computer only", the address book, scripts and "mark it as read". |
+| Outlook 2003 | `1100000` | Adds meeting invitations, Alert E-mail, Desktop Alerts and coloured flags. |
+| Outlook 2007 | `1200000` | Adds InfoPath forms, RSS feeds, "any category", follow-up flags and "clear message's categories". |
+| Outlook 2010 | `0x140000` (1310720) | Adds the retention policy action, and drops two hidden actions. |
+| Outlook 2013 | `0x140000` (1310720) | No new stamp. Reads the relevance elements' parameters differently. |
+| Outlook 2016 and later | `0x140000` (1310720) | Not disassembled. Still the Outlook 2010 format (Outlook 2019 samples). |
 
-[Appendix A](#appendix-a-version-history) lists every change by version.
+A version stamp is a 24-bit number that identifies the format version. Up to Outlook 2000 it is a build date (`970812` is 12 August 1997), and Outlook 2002–2007 use the major version × 100000 (`1000000` is version 10). Outlook 2010 switched to the major version written as hex digits, so its stamp is `0x140000` for version 14 ([§3.3](#33-version-stamps)). [Appendix A](#appendix-a-version-history) lists every change by version.
 
 ### 1.5 Conventions
 
