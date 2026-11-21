@@ -87,7 +87,12 @@ final class RobustnessTests: XCTestCase {
 
     /// Changing any single byte of a file may make it fail to parse, but must never crash.
     func testSingleByteCorruptionNeverCrashes() throws {
-        for name in ["Outlook2007_Forward_Default", "Outlook2000_Print_98", "Outlook98_ReceivedInSpecificDateSpan", "Outlook2003All"] {
+        let names = [
+            "Outlook2007_Forward_Default", "Outlook2000_Print_98", "Outlook98_ReceivedInSpecificDateSpan", "Outlook2003All",
+            // Entry IDs, decoded by MAPI on demand.
+            "Outlook2007_MoveToFolder_Default", "Outlook98_MoveToFolder", "Outlook2007_SenderInAddressBook_Default",
+        ]
+        for name in names {
             let original = try getData(name: name, fileExtension: "rwz")
             for index in original.indices {
                 for byte: UInt8 in [0x00, 0x7F, 0xFF] {
@@ -96,8 +101,27 @@ final class RobustnessTests: XCTestCase {
                     // Anything that reads must write back to something that reads the same.
                     if let file = try? OutlookRules(data: data) {
                         XCTAssertEqual(file, try OutlookRules(data: file.getData()), "\(name) byte \(index) = \(byte)")
+                        _ = file.rules.map { $0.text }
+                        decodeEntryIds(in: file)
                     }
                 }
+            }
+        }
+    }
+
+    /// Decodes every entry ID in the file, which MAPI does on demand.
+    private func decodeEntryIds(in file: OutlookRules) {
+        for parameter in file.rules.flatMap({ $0.elements }).flatMap({ $0.parameters }) {
+            switch parameter {
+            case let folder as FolderParameter:
+                _ = folder.folderEntryId
+                _ = folder.storeEntryId
+            case let template as TemplateParameter:
+                _ = template.messageEntryId
+            case let addressBook as AddressBookParameter:
+                _ = addressBook.entryId
+            default:
+                break
             }
         }
     }
