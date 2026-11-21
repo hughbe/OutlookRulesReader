@@ -610,8 +610,4 @@ final class DumpFileTests: XCTestCase {
             print(rules)
         }
     }
-
-    static var allTests = [
-        ("testDumpRwz", testDumpRwz),
-    ]
 }

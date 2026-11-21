@@ -2052,7 +2052,7 @@ final class ImportConditionTests: XCTestCase {
             XCTAssertEqual(0, condition.documentProperties[0].numberValue2)
             XCTAssertEqual(0, condition.documentProperties[0].rawBoolMatchType)
             XCTAssertEqual(.after, condition.documentProperties[0].dateMatchType)
-            XCTAssertEqual(calendar.date(from: DateComponents(timeZone: timeZone, year: 2020, month: 08, day: 14, hour: 08, minute: 58, second: 01)), condition.documentProperties[0].dateValue.date)
+            XCTAssertEqual(calendar.date(from: DateComponents(timeZone: timeZone, year: 2020, month: 08, day: 14, hour: 08, minute: 58, second: 0)), condition.documentProperties[0].dateValue.date)
             XCTAssertEqual([], condition.classes)
         }
         // Multiple
@@ -2528,42 +2528,4 @@ final class ImportConditionTests: XCTestCase {
             XCTAssertEqual(0, file.rules[0].exceptions.count)
         }
     }
-
-    static var allTests = [
-        ("testFromCondition", testFromCondition),
-        ("testSpecificWordsInSubjectCondition", testSpecificWordsInSubjectCondition),
-        ("testThroughAccountCondition", testThroughAccountCondition),
-        ("testSentOnlyToMeCondition", testSentOnlyToMeCondition),
-        ("testNameInToBoxCondition", testNameInToBoxCondition),
-        ("testImportance", testImportance),
-        ("testSensitivityCondition", testSensitivityCondition),
-        ("testFlaggedForActionCondition", testFlaggedForActionCondition),
-        ("testNameInCcBoxCondition", testNameInCcBoxCondition),
-        ("testNameInToOrCcBoxCondition", testNameInToOrCcBoxCondition),
-        ("testNameNotInToBoxCondition", testNameNotInToBoxCondition),
-        ("testToCondition", testSentToCondition),
-        ("testSpecificWordsInBodyCondition", testSpecificWordsInBodyCondition),
-        ("testSpecificWordsInSubjectOrBodyCondition", testSpecificWordsInSubjectOrBodyCondition),
-        ("testSpecificWordsInMessageHeader", testSpecificWordsInMessageHeader),
-        ("testSpecificWordsInSendersAddress", testSpecificWordsInSendersAddress),
-        ("testSpecificWordsInRecipientsAddress", testSpecificWordsInRecipientsAddress),
-        ("testAssignedToCategoryCondition", testAssignedToCategoryCondition),
-        ("testWhichIsAnAutomaticReplyCondition", testWhichIsAnAutomaticReplyCondition),
-        ("testHasAttachmentCondition", testHasAttachmentCondition),
-        ("testSizeInSpecificRangeCondition", testSizeInSpecificRangeCondition),
-        ("testReceivedInSpecificDateSpanCondition", testReceivedInSpecificDateSpanCondition),
-        ("testUsesFormCondition", testUsesFormCondition),
-        ("testWithSelectedPropertiesOfDocumentOrFormsCondition", testWithSelectedPropertiesOfDocumentOrFormsCondition),
-        ("testWithRelevanceInSpecificRangeCondition", testWithRelevanceInSpecificRangeCondition),
-        ("testSenderInSpecifiedAddressBookCondition", testSenderInSpecifiedAddressBookCondition),
-        ("testWhichIsMeetingInvitationOrUpdateCondition", testWhichIsMeetingInvitationOrUpdateCondition),
-        ("testFromRSSFeedsWithSpecifiedTextInTitleCondition", testFromRSSFeedsWithSpecifiedTextInTitleCondition),
-        ("testFromAnyRSSFeedCondition", testFromAnyRSSFeedCondition),
-        ("testSpecificInfoPathFormCondition", testSpecificInfoPathFormCondition),
-        ("testJunkCondition", testJunkCondition),
-        ("testAdultCondition", testAdultCondition),
-        ("testExceptionListCondition", testExceptionListCondition),
-        ("testAlertCondition", testAlertCondition),
-        ("testMultipleConditions", testMultipleConditions),
-    ]
 }

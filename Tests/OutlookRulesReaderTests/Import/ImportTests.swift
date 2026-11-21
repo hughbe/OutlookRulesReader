@@ -278,13 +278,4 @@ final class ImportTests: XCTestCase {
             XCTAssertEqual("RULENAME", file.rules[0].name)
         }
     }
-
-    static var allTests = [
-        ("testEmptyRule", testEmptyRule),
-        ("testEnabled", testEnabled),
-        ("testName", testName),
-        ("testMultipleRules", testMultipleRules),
-        ("testTemplateDirectory", testTemplateDirectory),
-        ("testOutlook2000", testOutlook2000),
-    ]
 }

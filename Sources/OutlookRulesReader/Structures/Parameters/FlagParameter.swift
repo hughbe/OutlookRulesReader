@@ -13,7 +13,12 @@ public struct FlagParameter: RuleParameter {
     public var days: UInt32
     public var action: String
     /// Always false for this action. See `FlaggedForActionParameter`.
-    public var isCondition: Bool = false
+    public var isCondition: Bool {
+        get { rawIsCondition != 0 }
+        set { if newValue != isCondition { rawIsCondition = newValue ? 1 : 0 } }
+    }
+    /// The stored value of `isCondition`. Any non-zero value means true; it is kept so that the file round-trips exactly.
+    public var rawIsCondition: UInt32 = 0
     
     public init(action: String, days: UInt32) {
         self.action = action
@@ -35,7 +40,7 @@ public struct FlagParameter: RuleParameter {
         }
         
         /// Is Condition (4 bytes)
-        self.isCondition = (try dataStream.read(endianess: .littleEndian) as UInt32) != 0
+        self.rawIsCondition = try dataStream.read(endianess: .littleEndian)
     }
     
     public func write(to dataStream: inout OutputDataStream, version: OutlookRulesVersion) {
@@ -53,6 +58,6 @@ public struct FlagParameter: RuleParameter {
         }
         
         /// Is Condition (4 bytes)
-        dataStream.write((isCondition ? 1 : 0) as UInt32, endianess: .littleEndian)
+        dataStream.write(rawIsCondition, endianess: .littleEndian)
     }
 }

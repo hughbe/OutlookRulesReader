@@ -8,12 +8,13 @@
 import DataStream
 import Foundation
 
-public struct OleDateTime {
+public struct OleDateTime: Hashable {
     public let dataSize: UInt32 = 12
     
     public var rawStatus: UInt32
-    public var status: Status {
-        return Status(rawValue: rawStatus)!
+    /// The status, or nil if `rawStatus` isn't a known `COleDateTime` status.
+    public var status: Status? {
+        return Status(rawValue: rawStatus)
     }
     public var timestamp: Double
     public var date: Date {
@@ -30,6 +31,11 @@ public struct OleDateTime {
         self.timestamp = timestamp
     }
     
+    /// Creates a valid date from a `Date`, to the nearest second.
+    public init(date: Date) {
+        self.init(timestamp: date.oleTimestamp)
+    }
+
     public init(dataStream: inout DataStream) throws {
         /// Status (4 bytes)
         self.rawStatus = try dataStream.read(endianess: .littleEndian)
@@ -48,6 +54,7 @@ public struct OleDateTime {
     
     public enum Status: UInt32 {
         case valid = 0x00000000
+        case invalid = 0x00000001
         case null = 0x00000002
     }
 }

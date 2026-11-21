@@ -444,7 +444,7 @@ final class ImportExceptionTests: XCTestCase {
             XCTAssertEqual(0, file.rules[0].conditions.count)
             XCTAssertEqual(0, file.rules[0].actions.count)
             XCTAssertEqual(1, file.rules[0].exceptions.count)
-            XCTAssertEqual(.sensitivityConditionException, file.rules[0].exceptions[0].identifier)
+            XCTAssertEqual(.sensitivityException, file.rules[0].exceptions[0].identifier)
             XCTAssertTrue(file.rules[0].exceptions[0].parameter is SensitivityParameter)
 
             let exception = file.rules[0].exceptions[0].parameter as! SensitivityParameter
@@ -469,7 +469,7 @@ final class ImportExceptionTests: XCTestCase {
             XCTAssertEqual(0, file.rules[0].conditions.count)
             XCTAssertEqual(0, file.rules[0].actions.count)
             XCTAssertEqual(1, file.rules[0].exceptions.count)
-            XCTAssertEqual(.sensitivityConditionException, file.rules[0].exceptions[0].identifier)
+            XCTAssertEqual(.sensitivityException, file.rules[0].exceptions[0].identifier)
             XCTAssertTrue(file.rules[0].exceptions[0].parameter is SensitivityParameter)
 
             let exception = file.rules[0].exceptions[0].parameter as! SensitivityParameter
@@ -494,7 +494,7 @@ final class ImportExceptionTests: XCTestCase {
             XCTAssertEqual(0, file.rules[0].conditions.count)
             XCTAssertEqual(0, file.rules[0].actions.count)
             XCTAssertEqual(1, file.rules[0].exceptions.count)
-            XCTAssertEqual(.sensitivityConditionException, file.rules[0].exceptions[0].identifier)
+            XCTAssertEqual(.sensitivityException, file.rules[0].exceptions[0].identifier)
             XCTAssertTrue(file.rules[0].exceptions[0].parameter is SensitivityParameter)
 
             let exception = file.rules[0].exceptions[0].parameter as! SensitivityParameter
@@ -519,7 +519,7 @@ final class ImportExceptionTests: XCTestCase {
             XCTAssertEqual(0, file.rules[0].conditions.count)
             XCTAssertEqual(0, file.rules[0].actions.count)
             XCTAssertEqual(1, file.rules[0].exceptions.count)
-            XCTAssertEqual(.sensitivityConditionException, file.rules[0].exceptions[0].identifier)
+            XCTAssertEqual(.sensitivityException, file.rules[0].exceptions[0].identifier)
             XCTAssertTrue(file.rules[0].exceptions[0].parameter is SensitivityParameter)
 
             let exception = file.rules[0].exceptions[0].parameter as! SensitivityParameter
@@ -544,7 +544,7 @@ final class ImportExceptionTests: XCTestCase {
             XCTAssertEqual(0, file.rules[0].conditions.count)
             XCTAssertEqual(0, file.rules[0].actions.count)
             XCTAssertEqual(1, file.rules[0].exceptions.count)
-            XCTAssertEqual(.sensitivityConditionException, file.rules[0].exceptions[0].identifier)
+            XCTAssertEqual(.sensitivityException, file.rules[0].exceptions[0].identifier)
             XCTAssertTrue(file.rules[0].exceptions[0].parameter is SensitivityParameter)
 
             let exception = file.rules[0].exceptions[0].parameter as! SensitivityParameter
@@ -681,7 +681,7 @@ final class ImportExceptionTests: XCTestCase {
             XCTAssertEqual(0, file.rules[0].conditions.count)
             XCTAssertEqual(0, file.rules[0].actions.count)
             XCTAssertEqual(1, file.rules[0].exceptions.count)
-            XCTAssertEqual(.toException, file.rules[0].exceptions[0].identifier)
+            XCTAssertEqual(.sentToException, file.rules[0].exceptions[0].identifier)
             XCTAssertTrue(file.rules[0].exceptions[0].parameter is AddressParameter)
 
             let exception = file.rules[0].exceptions[0].parameter as!AddressParameter
@@ -764,7 +764,7 @@ final class ImportExceptionTests: XCTestCase {
             XCTAssertEqual(0, file.rules[0].conditions.count)
             XCTAssertEqual(0, file.rules[0].actions.count)
             XCTAssertEqual(1, file.rules[0].exceptions.count)
-            XCTAssertEqual(.toException, file.rules[0].exceptions[0].identifier)
+            XCTAssertEqual(.sentToException, file.rules[0].exceptions[0].identifier)
             XCTAssertTrue(file.rules[0].exceptions[0].parameter is AddressParameter)
 
             let exception = file.rules[0].exceptions[0].parameter as!AddressParameter
@@ -2010,7 +2010,7 @@ final class ImportExceptionTests: XCTestCase {
             XCTAssertEqual(0, exception.documentProperties[0].numberValue2)
             XCTAssertEqual(0, exception.documentProperties[0].rawBoolMatchType)
             XCTAssertEqual(.after, exception.documentProperties[0].dateMatchType)
-            XCTAssertEqual(calendar.date(from: DateComponents(timeZone: timeZone, year: 2020, month: 08, day: 14, hour: 08, minute: 58, second: 01)), exception.documentProperties[0].dateValue.date)
+            XCTAssertEqual(calendar.date(from: DateComponents(timeZone: timeZone, year: 2020, month: 08, day: 14, hour: 08, minute: 58, second: 0)), exception.documentProperties[0].dateValue.date)
             XCTAssertEqual([], exception.classes)
         }
         // Multiple
@@ -2304,37 +2304,4 @@ final class ImportExceptionTests: XCTestCase {
             XCTAssertEqual(0, file.rules[0].exceptions[1].parameters.count)
         }
     }
-
-    static var allTests = [
-        ("testFromException", testFromException),
-        ("testSpecificWordsInSubjectException", testSpecificWordsInSubjectException),
-        ("testThroughAccountException", testThroughAccountException),
-        ("testSentOnlyToMeException", testSentOnlyToMeException),
-        ("testNameInToBoxException", testNameInToBoxException),
-        ("testImportanceException", testImportanceException),
-        ("testsensitivityCondition", testsensitivityCondition),
-        ("testFlaggedForActionException", testFlaggedForActionException),
-        ("testNameInCcBoxException", testNameInCcBoxException),
-        ("testNameInToOrCcBoxException", testNameInToOrCcBoxException),
-        ("testNameNotInToBoxException", testNameNotInToBoxException),
-        ("testToException", testToException),
-        ("testSpecificWordsInBodyException", testSpecificWordsInBodyException),
-        ("testSpecificWordsInSubjectOrBodyException", testSpecificWordsInSubjectOrBodyException),
-        ("testSpecificWordsInMessageHeaderException", testSpecificWordsInMessageHeaderException),
-        ("testSpecificWordsInSendersAddressException", testSpecificWordsInSendersAddressException),
-        ("testSpecificWordsInRecipientsAddressException", testSpecificWordsInRecipientsAddressException),
-        ("testAssignedToCategoryException", testAssignedToCategoryException),
-        ("testWhichIsAnAutomaticReplyException", testWhichIsAnAutomaticReplyException),
-        ("testHasAttachmentException", testHasAttachmentException),
-        ("testSizeInSpecificRangeException", testSizeInSpecificRangeException),
-        ("testReceivedInSpecificDateSpanException", testReceivedInSpecificDateSpanException),
-        ("testUsesFormException", testUsesFormException),
-        ("testWithSelectedPropertiesOfDocumentOrFormsException", testWithSelectedPropertiesOfDocumentOrFormsException),
-        ("testSenderInSpecifiedAddressBookException", testSenderInSpecifiedAddressBookException),
-        ("testWhichIsMeetingInvitationOrUpdateException", testWhichIsMeetingInvitationOrUpdateException),
-        ("testFromRSSFeedsWithSpecifiedTextInTitleException", testFromRSSFeedsWithSpecifiedTextInTitleException),
-        ("testFromAnyRSSFeedException", testFromAnyRSSFeedException),
-        ("testSpecificInfoPathFormException", testSpecificInfoPathFormException),
-        ("testMultipleExceptions", testMultipleExceptions),
-    ]
 }

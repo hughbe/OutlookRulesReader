@@ -11,11 +11,14 @@ import MAPI
 public struct ImportanceParameter: RuleParameter {
     public var reserved: UInt32 = 0
     public var rawImportance: UInt32
-    public var importance: MessageImportance {
+    /// The value of `rawImportance`, or nil if it isn't a known value. Setting nil leaves `rawImportance` unchanged.
+    public var importance: MessageImportance? {
         get {
-            return MessageImportance(rawValue: rawImportance)!
+            return MessageImportance(rawValue: rawImportance)
         } set {
-            rawImportance = newValue.rawValue
+            if let newValue = newValue {
+                rawImportance = newValue.rawValue
+            }
         }
     }
     

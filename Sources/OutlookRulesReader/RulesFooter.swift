@@ -10,37 +10,31 @@ import Foundation
 import WindowsDataTypes
 
 internal struct RulesFooter {
-    public var templateDirectory: String = ""
+    var templateDirectory: String = ""
     /// Probably the time the rules were last saved (spec §4.4). Usually null.
-    public var timestamp: OleDateTime = OleDateTime()
-    public var unknown: UInt32 = 0
+    var timestamp: OleDateTime = OleDateTime()
+    var unknown: UInt32 = 0
+    /// Any bytes after the footer. Outlook doesn't write any, but they are kept so that the file round-trips.
+    var trailingData: Data = Data()
     
-    public init(templateDirectory: String = "") {
+    init(templateDirectory: String = "") {
         self.templateDirectory = templateDirectory
     }
     
-    public init(dataStream: inout DataStream, version: OutlookRulesVersion) throws {
+    init(dataStream: inout DataStream, version: OutlookRulesVersion) throws {
         /// Template Directory Length (4 bytes)
         /// Outlook keeps this at most MAX_PATH (260), but read whatever length is declared so that the
         /// fields that follow stay aligned.
         let templateDirectoryLength: UInt32 = try dataStream.read(endianess: .littleEndian)
         guard Int(templateDirectoryLength) <= dataStream.remainingCount / (version >= .outlook2002 ? 2 : 1) else {
-            throw OutlookRulesReadError.corrupted
+            throw OutlookRulesReadError.lengthOutOfRange
         }
         
         /// Template (variable)
         if version >= .outlook2002 {
-            guard let templateDirectory = try dataStream.readString(count: Int(templateDirectoryLength) * 2, encoding: .utf16LittleEndian) else {
-                throw OutlookRulesReadError.corrupted
-            }
-
-            self.templateDirectory = templateDirectory
+            self.templateDirectory = try UTF16Decoding.decode(try dataStream.readBytes(count: Int(templateDirectoryLength) * 2))
         } else {
-            guard let templateDirectory = try dataStream.readString(count: Int(templateDirectoryLength), encoding: .ascii) else {
-                throw OutlookRulesReadError.corrupted
-            }
-
-            self.templateDirectory = templateDirectory
+            self.templateDirectory = ANSIEncoding.decode(try dataStream.readBytes(count: Int(templateDirectoryLength)))
         }
         
         /// Timestamp (12 bytes)
@@ -49,10 +43,11 @@ internal struct RulesFooter {
         /// Unknown (4 bytes)
         self.unknown = try dataStream.read(endianess: .littleEndian)
         
-        assert(dataStream.remainingCount == 0)
+        /// Trailing Data (variable)
+        self.trailingData = Data(try dataStream.readBytes(count: dataStream.remainingCount))
     }
     
-    public func write(to dataStream: inout OutputDataStream, version: OutlookRulesVersion) {
+    func write(to dataStream: inout OutputDataStream, version: OutlookRulesVersion) {
         /// The length is measured in UTF-16 code units (Outlook 2002 and above) or bytes (earlier versions).
         let length: Int
         let bytes: Data
@@ -60,7 +55,7 @@ internal struct RulesFooter {
             length = templateDirectory.utf16.count
             bytes = templateDirectory.data(using: .utf16LittleEndian) ?? Data()
         } else {
-            bytes = templateDirectory.data(using: .isoLatin1, allowLossyConversion: true) ?? Data()
+            bytes = Data(ANSIEncoding.encode(templateDirectory))
             length = bytes.count
         }
         
@@ -75,5 +70,8 @@ internal struct RulesFooter {
 
         /// Unknown (4 bytes)
         dataStream.write(unknown, endianess: .littleEndian)
+
+        /// Trailing Data (variable)
+        dataStream.write(trailingData)
     }
 }

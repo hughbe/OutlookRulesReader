@@ -12,11 +12,14 @@ public struct SensitivityParameter: RuleParameter {
     public var reserved: UInt32 = 0
     public var rawSensitivity: UInt32
 
-    public var sensitivity: MessageSensitivity {
+    /// The value of `rawSensitivity`, or nil if it isn't a known value. Setting nil leaves `rawSensitivity` unchanged.
+    public var sensitivity: MessageSensitivity? {
         get {
-            return MessageSensitivity(rawValue: rawSensitivity)!
+            return MessageSensitivity(rawValue: rawSensitivity)
         } set {
-            rawSensitivity = newValue.rawValue
+            if let newValue = newValue {
+                rawSensitivity = newValue.rawValue
+            }
         }
     }
     

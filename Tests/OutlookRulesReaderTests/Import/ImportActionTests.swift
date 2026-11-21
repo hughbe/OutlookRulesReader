@@ -439,7 +439,7 @@ final class ImportActionTests: XCTestCase {
             XCTAssertEqual(1, file.rules.count)
             XCTAssertEqual(0, file.rules[0].conditions.count)
             XCTAssertEqual(1, file.rules[0].actions.count)
-            XCTAssertEqual(.automaticReply, file.rules[0].actions[0].identifier)
+            XCTAssertEqual(.serverReplyAction, file.rules[0].actions[0].identifier)
             XCTAssertTrue(file.rules[0].actions[0].parameter is TemplateParameter)
             XCTAssertEqual(0, file.rules[0].exceptions.count)
 
@@ -1109,7 +1109,7 @@ final class ImportActionTests: XCTestCase {
                 0x00, 0x68, 0x00, 0x65, 0x00, 0x20, 0x00, 0x4D, 0x00, 0x65, 0x00, 0x73, 0x00, 0x73, 0x00, 0x61,
                 0x00, 0x67, 0x00, 0x65, 0x00, 0x20, 0x00, 0x46, 0x00, 0x6C, 0x00, 0x61, 0x00, 0x67, 0x00, 0x01,
                 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                0x00, 0x00, 0x00, 0x40, 0x00, 0x00, 0x00, 0x03, 0x00, 0xFF, 0xFF, 0x00, 0x00, 0x0C, 0x00, 0x43,
+                0x00, 0x00, 0x00, 0x6D, 0x00, 0x00, 0x00, 0x03, 0x00, 0xFF, 0xFF, 0x00, 0x00, 0x0C, 0x00, 0x43,
                 0x52, 0x75, 0x6C, 0x65, 0x45, 0x6C, 0x65, 0x6D, 0x65, 0x6E, 0x74, 0x90, 0x01, 0x00, 0x00, 0x01,
                 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01, 0x80, 0x64, 0x00, 0x00,
                 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01, 0x80, 0x53,
@@ -2330,38 +2330,4 @@ final class ImportActionTests: XCTestCase {
         }
     }
     
-    static var allTests = [
-        ("testMoveToFolderAction", testMoveToFolderAction),
-        ("testAssignToCategoryAction", testAssignToCategoryAction),
-        ("testDeleteAction", testDeleteAction),
-        ("testPermanentlyDeleteAction", testPermanentlyDeleteAction),
-        ("testMoveCopyToFolderAction", testMoveCopyToFolderAction),
-        ("testFlagAction", testFlagAction),
-        ("testForwardAction", testForwardAction),
-        ("testAutomaticReplyAction", testAutomaticReplyAction),
-        ("testRedirectAction", testRedirectAction),
-        ("testAddToRelevanceAction", testAddToRelevanceAction),
-        ("testForwardAsAttachmentAction", testForwardAsAttachmentAction),
-        ("testReplyUsingTemplateAction", testReplyUsingTemplateAction),
-        ("testFlagForFollowUpAction", testFlagForFollowUpAction),
-        ("testClearFlagAction", testClearFlagAction),
-        ("testClearCategoriesAction", testClearCategoriesAction),
-        ("testApplyRetentionPolicyAction", testApplyRetentionPolicyAction),
-        ("testMarkImportanceAction", testMarkImportanceAction),
-        ("testPrintAction", testPrintAction),
-        ("testStartApplicationAction", testStartApplicationAction),
-        ("testPlaySoundAction", testPlaySoundAction),
-        ("testMarkAsReadAction", testMarkAsReadAction),
-        ("testRunScriptAction", testRunScriptAction),
-        ("testStopProcessingMoreRulesAction", testStopProcessingMoreRulesAction),
-        ("testMarkSensitivityAction", testMarkSensitivityAction),
-        ("testNotifyReadAction", testNotifyReadAction),
-        ("testNotifyDeliveredAction", testNotifyDeliveredAction),
-        ("testCcAction", testCcAction),
-        ("testDeferDeliveryAction", testDeferDeliveryAction),
-        ("testPerformCustomActionAction", testPerformCustomActionAction),
-        ("testDisplayMessageInNewItemAlertWindowAction", testDisplayMessageInNewItemAlertWindowAction),
-        ("testDisplayDesktopAlertAction", testDisplayDesktopAlertAction),
-        ("testMultipleActions", testMultipleActions),
-    ]
 }

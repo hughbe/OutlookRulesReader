@@ -13,7 +13,14 @@ import XCTest
 /// Tests for the behaviour described in spec/Rules.md.
 final class SpecTests: XCTestCase {
     private func sampleFiles() -> [URL] {
-        return (Bundle.module.urls(forResourcesWithExtension: "rwz", subdirectory: nil) ?? [])
+        // Enumerated rather than using Bundle.urls(forResourcesWithExtension:), which returns [NSURL] on Linux.
+        guard let resources = Bundle.module.resourceURL,
+              let enumerator = FileManager.default.enumerator(at: resources, includingPropertiesForKeys: nil) else {
+            return []
+        }
+
+        return enumerator.compactMap { $0 as? URL }
+            .filter { $0.pathExtension == "rwz" }
             .sorted { $0.lastPathComponent < $1.lastPathComponent }
     }
 
@@ -75,9 +82,11 @@ final class SpecTests: XCTestCase {
         var rules = file.rules
         rules[0].hasRunError = true
         var changed = OutputDataStream()
-        rules[0].write(to: &changed, index: 0, version: .outlook98)
+        var classDeclared = ClassDeclaration()
+        rules[0].write(to: &changed, version: .outlook98, versionStamp: nil, classDeclared: &classDeclared)
         var dataStream = DataStream(changed.data)
-        let rule = try Rule(dataStream: &dataStream, index: 0, version: .outlook98)
+        classDeclared = ClassDeclaration()
+        let rule = try Rule(dataStream: &dataStream, version: .outlook98, classDeclared: &classDeclared)
         XCTAssertTrue(rule.hasRunError)
         file = try OutlookRules(data: data)
         XCTAssertEqual(data, file.getData())
@@ -309,7 +318,9 @@ final class SpecTests: XCTestCase {
     /// Signature 970102 is Outlook 97's profile copy of the rules: the Outlook 98 layout without rule flags
     /// (added in 970812) or the folder's secondary-store field (added in 970718) (spec §4.1).
     func testOutlook97Profile() throws {
-        let file = try OutlookRules(data: try getData(name: "Outlook2007_MoveToFolder_Default", fileExtension: "rwz"))
+        // Not an Outlook 2007 sample: its rule has "on this computer only" (0x00EF), which Outlook 97 and 98 can't
+        // store, so writing it to those formats leaves the rule out (spec §5.5).
+        let file = try OutlookRules(data: try getData(name: "Outlook98_MoveToFolder", fileExtension: "rwz"))
         XCTAssertEqual(1, file.rules.count)
 
         let profile = file.getData(version: .outlook97Profile)
@@ -366,7 +377,7 @@ final class SpecTests: XCTestCase {
             eventFlags: .afterReceived,
             name: "Rule",
             conditions: [RuleElement(identifier: .throughSpecifiedAccountCondition, parameter: AccountParameter(accountName: "Work", accountStamp: "12345"))],
-            actions: [RuleElement(identifier: .automaticReply, parameter: TemplateParameter(messageEntryId: folder.folderEntryId, name: "Reply"))]
+            actions: [RuleElement(identifier: .serverReplyAction, parameter: TemplateParameter(messageEntryId: try XCTUnwrap(folder.folderEntryId), name: "Reply"))]
         )
         let file = OutlookRules(rules: [rule])
 
@@ -536,40 +547,6 @@ final class SpecTests: XCTestCase {
         XCTAssertTrue(file.rules[0].exceptions[0].parameters.isEmpty)
         XCTAssertEqual(data, file.getData())
     }
-
-    static var allTests = [
-        ("testAllSamplesRoundTrip", testAllSamplesRoundTrip),
-        ("testFromAnyRSSFeedReservedParameter", testFromAnyRSSFeedReservedParameter),
-        ("testSignatureZeroOmitsVersionedFields", testSignatureZeroOmitsVersionedFields),
-        ("testRuleWithoutElementList", testRuleWithoutElementList),
-        ("testOutlook2003Actions", testOutlook2003Actions),
-        ("testParameterDataSizeMatchesWrittenSize", testParameterDataSizeMatchesWrittenSize),
-        ("testRuleHeaderFieldsPreserved", testRuleHeaderFieldsPreserved),
-        ("testNetFolders", testNetFolders),
-        ("testRunError", testRunError),
-        ("testHeaderExtraData", testHeaderExtraData),
-        ("testRuleWithOlderVersionStamp", testRuleWithOlderVersionStamp),
-        ("testEmptyOutlook97Stream", testEmptyOutlook97Stream),
-        ("testSignatureZeroHeader", testSignatureZeroHeader),
-        ("testWriterVersion", testWriterVersion),
-        ("testLongStrings", testLongStrings),
-        ("testClassDescriptorWrittenOnce", testClassDescriptorWrittenOnce),
-        ("testTemplateName", testTemplateName),
-        ("testItemTypes", testItemTypes),
-        ("testAddressParameterMatchAnyAndCc", testAddressParameterMatchAnyAndCc),
-        ("testFlagIsCondition", testFlagIsCondition),
-        ("testServerRule", testServerRule),
-        ("testHeaderSettings", testHeaderSettings),
-        ("testHeaderWithInboxAssistantAnswerNo", testHeaderWithInboxAssistantAnswerNo),
-        ("testDocumentPropertyMatchIfMissing", testDocumentPropertyMatchIfMissing),
-        ("testEvaluatorOnlyElements", testEvaluatorOnlyElements),
-        ("testOutlook97Profile", testOutlook97Profile),
-        ("testVersionStampRanges", testVersionStampRanges),
-        ("testHeaderUnknownsAccepted", testHeaderUnknownsAccepted),
-        ("testAnsiAccountAndTemplateNames", testAnsiAccountAndTemplateNames),
-        ("testLegacyJunkCondition", testLegacyJunkCondition),
-        ("testOutlook2000SaveVersion", testOutlook2000SaveVersion),
-    ]
 }
 
 private extension Data {

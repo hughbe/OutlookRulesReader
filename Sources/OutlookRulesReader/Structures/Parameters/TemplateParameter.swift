@@ -10,11 +10,17 @@ import MAPI
 
 public struct TemplateParameter: RuleParameter {
     public var reserved: UInt32 = 0
-    public var messageEntryId: EntryID
+    /// The entry ID of the message to reply with, exactly as stored. Always written back unchanged.
+    public var messageEntryIdBytes: [UInt8]
+    /// The entry ID of the message to reply with, decoded; nil if `MAPI` can't decode it. Setting it replaces `messageEntryIdBytes`.
+    public var messageEntryId: EntryID? {
+        get { RawEntryID.decode(messageEntryIdBytes) }
+        set { messageEntryIdBytes = newValue.map(RawEntryID.encode) ?? [] }
+    }
     public var name: String
     
     public init(messageEntryId: EntryID, name: String) {
-        self.messageEntryId = messageEntryId
+        self.messageEntryIdBytes = RawEntryID.encode(messageEntryId)
         self.name = name
     }
     
@@ -23,7 +29,7 @@ public struct TemplateParameter: RuleParameter {
         self.reserved = try dataStream.read(endianess: .littleEndian)
 
         /// Message Entry Id (variable)
-        self.messageEntryId = try FlatEntry(dataStream: &dataStream).entryID
+        self.messageEntryIdBytes = try RawEntryID.read(from: &dataStream)
         
         /// Name (variable)
         self.name = try VersionedString.read(from: &dataStream, version: version)
@@ -34,7 +40,7 @@ public struct TemplateParameter: RuleParameter {
         dataStream.write(reserved, endianess: .littleEndian)
         
         /// Message Entry Id (variable)
-        FlatEntry(entryID: messageEntryId).write(to: &dataStream)
+        RawEntryID.write(messageEntryIdBytes, to: &dataStream)
         
         /// Name (variable)
         VersionedString.write(name, to: &dataStream, version: version)
