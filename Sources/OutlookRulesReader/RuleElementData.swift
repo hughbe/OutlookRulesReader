@@ -8,7 +8,7 @@
 import DataStream
 
 /// A rule element's parameter. Every parameter starts with a 4-byte Reserved field, which Outlook writes as 0 and
-/// never otherwise reads or changes (spec §6).
+/// never otherwise reads or changes (spec §8).
 public protocol RuleParameter {
     /// The number of bytes the parameter occupies when written in the Unicode (Outlook 2002 and later) format.
     var dataSize: UInt32 { get }

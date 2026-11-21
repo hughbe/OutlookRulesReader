@@ -7,7 +7,7 @@
 
 import DataStream
 
-/// The parameter of "which is an <Alert E-mail>" (0x00F3). See spec §6.18.
+/// The parameter of "which is an <Alert E-mail>" (0x00F3). See spec §8.18.
 public struct AlertParameter: RuleParameter {
     public var reserved: UInt32 = 0
     public var name: String
@@ -21,7 +21,7 @@ public struct AlertParameter: RuleParameter {
         self.name = displayName + "\u{1}" + identifier
     }
 
-    /// The alert's name as Outlook shows it: `name` up to the last U+0001 (spec §6.18).
+    /// The alert's name as Outlook shows it: `name` up to the last U+0001 (spec §8.18).
     public var displayName: String {
         guard let separator = name.lastIndex(of: "\u{1}") else {
             return name
@@ -31,7 +31,7 @@ public struct AlertParameter: RuleParameter {
     }
 
     /// The text after the last U+0001 in `name`, such as the alert's GUID. Outlook 2003 matches messages from the
-    /// alert by looking for it in their transport headers (spec §6.18). nil if `name` has no separator.
+    /// alert by looking for it in their transport headers (spec §8.18). nil if `name` has no separator.
     public var identifier: String? {
         guard let separator = name.lastIndex(of: "\u{1}") else {
             return nil

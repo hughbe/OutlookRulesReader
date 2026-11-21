@@ -9,7 +9,7 @@ import Foundation
 
 public extension RuleElementIdentifier {
     /// How Outlook's Rules Wizard words the element, with its value in asterisks, such as "from *people or public
-    /// group*" (spec §5). Exceptions use the wording of their condition.
+    /// group*" (spec §7). Exceptions use the wording of their condition.
     var textTemplate: String {
         switch self {
         case .eventFlags: return "apply this rule *after the message arrives*"
@@ -210,7 +210,7 @@ public extension RuleElement {
         case let parameter as ScriptParameter:
             return parameter.name
         case let parameter as FlagColorParameter:
-            /// `PR_FLAG_ICON` values (spec §6.29).
+            /// `PR_FLAG_ICON` values (spec §8.29).
             let colors = ["no", "a purple", "an orange", "a green", "a yellow", "a blue", "a red"]
             return colors.element(at: parameter.color).map { "\($0) flag" } ?? "flag colour \(parameter.color)"
         case let parameter as FlagForFollowUpParameter:

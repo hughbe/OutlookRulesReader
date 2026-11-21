@@ -7,7 +7,7 @@
 
 import DataStream
 
-/// The "add to relevance" action (0x0145; spec §6.24).
+/// The "add to relevance" action (0x0145; spec §8.24).
 public struct RelevanceParameter: RuleParameter {
     public var reserved: UInt32 = 0
     /// The number to add to the message's relevance.

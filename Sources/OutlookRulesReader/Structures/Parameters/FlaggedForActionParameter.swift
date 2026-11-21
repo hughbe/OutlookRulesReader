@@ -8,7 +8,7 @@
 import DataStream
 
 /// The "flagged for <action>" condition and exception. Outlook stores it with the same layout as the
-/// flag action (`FlagParameter`), with `isCondition` set (spec §6.5).
+/// flag action (`FlagParameter`), with `isCondition` set (spec §8.5).
 public struct FlaggedForActionParameter: RuleParameter {
     public var reserved: UInt32 = 0
     /// The days field shared with the flag action. Unused by this condition; always 0.

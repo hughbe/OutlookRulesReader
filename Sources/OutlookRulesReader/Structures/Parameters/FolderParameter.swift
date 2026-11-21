@@ -87,7 +87,7 @@ public struct FolderParameter: RuleParameter {
         }
     }
 
-    /// The secondary-store field was added in version 970718 (spec §6.19), so Outlook 97's formats and the
+    /// The secondary-store field was added in version 970718 (spec §8.19), so Outlook 97's formats and the
     /// version-0 format (signature zero) don't have it.
     static func hasSecondaryStore(_ version: OutlookRulesVersion) -> Bool {
         return version != .outlook97 && version != .outlook97Profile && version != .signatureZero

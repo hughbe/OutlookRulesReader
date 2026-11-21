@@ -180,7 +180,7 @@ final class ExportTests: XCTestCase {
             // Write using the version that the file was read with.
             XCTAssertEqual(expected, summary(of: try OutlookRules(data: original.getData())), url.lastPathComponent)
 
-            // Write using every other version. Like Outlook, rules with elements the version can't store are left out (spec §5.5).
+            // Write using every other version. Like Outlook, rules with elements the version can't store are left out (spec §9.4).
             for version in writableVersions {
                 var supported = original
                 supported.rules = original.rules.filter { $0.isSupported(in: version) }

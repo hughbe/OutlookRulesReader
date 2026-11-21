@@ -7,7 +7,7 @@
 
 import DataStream
 
-/// The "flag message for <action> within <n> days" action (spec §6.21).
+/// The "flag message for <action> within <n> days" action (spec §8.21).
 public struct FlagParameter: RuleParameter {
     public var reserved: UInt32 = 0
     public var days: UInt32

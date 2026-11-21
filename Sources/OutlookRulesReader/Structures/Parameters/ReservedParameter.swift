@@ -9,7 +9,7 @@ import DataStream
 
 /// A parameter with nothing but the Reserved field. Outlook 2007 gives "from any RSS feed" (0x00F7) and its exception
 /// (0x021B) a parameter kind whose class has no data of its own, so a stream may hold one of these even though Outlook
-/// normally writes those elements with no parameter (spec §5.2).
+/// normally writes those elements with no parameter (spec §7.3).
 public struct ReservedParameter: RuleParameter {
     public var reserved: UInt32 = 0
 

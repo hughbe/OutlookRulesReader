@@ -48,9 +48,9 @@ public struct DocumentProperty {
     public var numberMatchType: DocumentPropertyNumberMatchType? {
         return DocumentPropertyNumberMatchType(rawValue: rawNumberMatchType)
     }
-    /// The value compared with 16-bit (PT_I2) properties (spec §6.9).
+    /// The value compared with 16-bit (PT_I2) properties (spec §8.9).
     public var numberValue1: Int32
-    /// The value compared with 32-bit (PT_LONG) properties (spec §6.9).
+    /// The value compared with 32-bit (PT_LONG) properties (spec §8.9).
     public var numberValue2: Int32
 
     public var rawBoolMatchType: UInt32
@@ -59,7 +59,7 @@ public struct DocumentProperty {
         return DocumentPropertyBoolMatchType(rawValue: rawBoolMatchType)
     }
     
-    /// Unknown. Outlook 97 defaults it to 1 and never reads it (spec §6.9).
+    /// Unknown. Outlook 97 defaults it to 1 and never reads it (spec §8.9).
     public var unknown1: UInt32 = 1
     public var rawDateMatchType: UInt32
     /// The match type, or nil if `rawDateMatchType` isn't a known value.
@@ -67,7 +67,7 @@ public struct DocumentProperty {
         return DocumentPropertyDateMatchType(rawValue: rawDateMatchType)
     }
     public var dateValue: OleDateTime
-    /// Whether a message that does not have the property is tested against the next property instead (spec §6.9.1).
+    /// Whether a message that does not have the property is tested against the next property instead (spec §8.9.1).
     /// Outlook 2003 and 2007 set this on an Office document property chosen in the Document Properties dialog, and add
     /// a second property for the same document property's other name with this off. Outlook 98 and later test for exactly
     /// 1, so this is true only when `rawMatchIfMissing` is 1. Not stored in version-0 (signature zero) streams.
@@ -173,7 +173,7 @@ public struct DocumentProperty {
         /// Date Value (12 bytes)
         self.dateValue = try OleDateTime(dataStream: &dataStream)
         
-        /// Match If Missing (4 bytes), from version 970102 (spec §6.9.1). Version-0 streams don't have it.
+        /// Match If Missing (4 bytes), from version 970102 (spec §8.9.1). Version-0 streams don't have it.
         if version != .signatureZero {
             self.rawMatchIfMissing = try dataStream.read(endianess: .littleEndian)
         }
@@ -221,7 +221,7 @@ public struct DocumentProperty {
         /// Date Value (12 bytes)
         dateValue.write(to: &dataStream)
         
-        /// Match If Missing (4 bytes), from version 970102 (spec §6.9.1). Version-0 streams don't have it.
+        /// Match If Missing (4 bytes), from version 970102 (spec §8.9.1). Version-0 streams don't have it.
         if version != .signatureZero {
             dataStream.write(rawMatchIfMissing, endianess: .littleEndian)
         }

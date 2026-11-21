@@ -13,7 +13,7 @@ public struct Rule: CustomDebugStringConvertible {
     public var name: String
 
     /// The name of the Rules Wizard template the rule was created from, such as "Build as I go".
-    /// Outlook 97 stores it after the rule name, separated by a tab (spec §4.3.1); nil if the stored name has no tab.
+    /// Outlook 97 stores it after the rule name, separated by a tab (spec §5.1); nil if the stored name has no tab.
     public var templateName: String?
 
     public var enabled: Bool {
@@ -22,7 +22,7 @@ public struct Rule: CustomDebugStringConvertible {
     }
 
     /// The stored Enabled value. Any non-zero value means enabled; it is kept so that the file round-trips exactly
-    /// (spec §4.3.1).
+    /// (spec §5.1).
     internal var rawEnabled: UInt32 = 1
 
     /// When the rule runs: the parameter of the mandatory 0x0190 element.
@@ -31,7 +31,7 @@ public struct Rule: CustomDebugStringConvertible {
     /// The kinds of item the rule applies to: the parameter of the mandatory 0x0064 "For each <message>" element.
     public var itemTypes: RuleItemTypes = .message
 
-    /// Whether the rule has been saved to the Exchange server's rules table (spec §4.3.1).
+    /// Whether the rule has been saved to the Exchange server's rules table (spec §5.1).
     public var isServerRule: Bool {
         get { rawServerRule != 0 }
         set { if newValue != isServerRule { rawServerRule = newValue ? 1 : 0 } }
@@ -40,7 +40,7 @@ public struct Rule: CustomDebugStringConvertible {
     /// The stored ServerRule value. Any non-zero value means true; it is kept so that the file round-trips exactly.
     internal var rawServerRule: UInt32 = 0
 
-    /// Rule flags (spec §4.3.1.1). Empty for rules the user creates; Outlook 2000 uses them to mark the rules
+    /// Rule flags (spec §5.2). Empty for rules the user creates; Outlook 2000 uses them to mark the rules
     /// its junk-mail feature creates. Added in version 970812 (Outlook 98), so not stored in Outlook 97 or
     /// signature-0 files.
     public var flags: RuleFlags = []
@@ -49,7 +49,7 @@ public struct Rule: CustomDebugStringConvertible {
     /// When the rule is written, those two are regenerated from `eventFlags` and `itemTypes`.
     public var elements: [RuleElement] = []
 
-    /// Whether the rule failed while Outlook was running it on the client (RuleHeader RunError, spec §4.3.1).
+    /// Whether the rule failed while Outlook was running it on the client (RuleHeader RunError, spec §5.1).
     /// Outlook 2000 and later set it to 1, and disable the rule, when one of the rule's actions fails; Outlook 98
     /// stores the failing action's HRESULT instead, so any non-zero value means an error.
     public var hasRunError: Bool {
@@ -61,15 +61,15 @@ public struct Rule: CustomDebugStringConvertible {
     internal var runError: UInt32 = 0
 
     /// The ID Outlook gave the rule's copy on the Exchange server (RuleHeader ServerRuleId, Outlook 2002 and later;
-    /// spec §4.3.1). 0 if the rule has never been saved to the server. Not stored in older formats.
+    /// spec §5.1). 0 if the rule has never been saved to the server. Not stored in older formats.
     public var serverRuleId: UInt32 = 0
 
     /// The rule's own version stamp and the format it was read from, so that a rule whose stamp differs from the
-    /// stream's keeps it when written back in the same format (spec §4.3.1).
+    /// stream's keeps it when written back in the same format (spec §5.1).
     internal var versionStamp: UInt32?
     internal var sourceVersion: OutlookRulesVersion?
 
-    /// False for a rule read with DataSize 0, which stores no element list (spec §4.3.1). Such a rule is written
+    /// False for a rule read with DataSize 0, which stores no element list (spec §5.5). Such a rule is written
     /// back the same way in the Outlook 2002 and later formats while it still has no elements.
     internal var hasElementList: Bool = true
 
@@ -80,7 +80,7 @@ public struct Rule: CustomDebugStringConvertible {
         /// is written again on output, since whether it declares the `CRuleElement` class depends on rule order.
         var data: Data
         var reason: OutlookRulesReadError
-        /// The layout of `data`: the rule's own version, which may be older than the stream's (spec §4.3.1).
+        /// The layout of `data`: the rule's own version, which may be older than the stream's (spec §9.2).
         var contentVersion: OutlookRulesVersion
     }
 
@@ -93,13 +93,13 @@ public struct Rule: CustomDebugStringConvertible {
     /// Why the rule's elements couldn't be read, or nil if they were. A rule from an Outlook 2002 or later format
     /// whose elements this library doesn't understand, such as one using an element added by a later version of
     /// Outlook, is kept rather than failing the whole file: it is skipped using its DataSize, as Outlook 2002 does
-    /// with rules from newer versions (spec §4.3.1). Its `elements` are empty and its elements are written back
+    /// with rules from newer versions (spec §5.5). Its `elements` are empty and its elements are written back
     /// unchanged, in the same format only. Setting `elements` discards the stored elements.
     public var unparsedReason: OutlookRulesReadError? {
         unparsedElements?.reason
     }
 
-    /// The oldest format that can store the rule: the newest `minimumVersion` of its elements (spec §5.5).
+    /// The oldest format that can store the rule: the newest `minimumVersion` of its elements (spec §9.4).
     public var minimumVersion: OutlookRulesVersion {
         if let unparsed = unparsedElements, elements.isEmpty {
             return unparsed.contentVersion
@@ -108,7 +108,7 @@ public struct Rule: CustomDebugStringConvertible {
         return elements.map { $0.identifier.minimumVersion }.max() ?? .outlook97
     }
 
-    /// Whether a file in the format of `version` can store every element of the rule (spec §5.5).
+    /// Whether a file in the format of `version` can store every element of the rule (spec §9.4).
     /// A rule whose elements couldn't be read can only be written in the format it was read from.
     public func isSupported(in version: OutlookRulesVersion) -> Bool {
         if unparsedElements != nil && elements.isEmpty {
@@ -160,7 +160,7 @@ public struct Rule: CustomDebugStringConvertible {
         let contentVersion = RuleHeader.contentVersion(streamVersion: version, versionStamp: header.versionStamp)
 
         /// Data Size counts the Number of Elements field (2 bytes), which the header has already read, and everything
-        /// after it (spec §4.3.1). Outlook writes it exactly, so a rule whose elements end anywhere else was misread.
+        /// after it (spec §5.1). Outlook writes it exactly, so a rule whose elements end anywhere else was misread.
         let elementsStart = dataStream.position
         if let dataSize = header.dataSize, header.hasElementList {
             guard dataSize >= 2, Int(dataSize - 2) <= dataStream.remainingCount else {
@@ -226,7 +226,7 @@ public struct Rule: CustomDebugStringConvertible {
         self.minimumVersionAtRead = elements.map { $0.identifier.minimumVersion }.max() ?? .outlook97
 
         if !header.hasElementList {
-            /// Outlook 2003 stores the Download Options rule without elements (spec §4.3.1).
+            /// Outlook 2003 stores the Download Options rule without elements (spec §5.1).
             self.eventFlags = []
             return
         }
@@ -243,7 +243,7 @@ public struct Rule: CustomDebugStringConvertible {
         }
     }
 
-    /// Splits a stored name into the rule name and the template name (spec §4.3.1).
+    /// Splits a stored name into the rule name and the template name (spec §5.1).
     private static func splitName(_ storedName: String) -> (String, String?) {
         guard let tab = storedName.firstIndex(of: "\t") else {
             return (storedName, nil)
@@ -290,13 +290,13 @@ public struct Rule: CustomDebugStringConvertible {
         if RuleHeader.contentVersion(streamVersion: version, versionStamp: ruleStamp) < minimumVersion
             && (sourceVersion != version || minimumVersion > minimumVersionAtRead) {
             /// The rule kept an older stamp but now has an element that needs a newer one. Raise it to the stream's,
-            /// as Outlook does when the user accepts its prompt that the rule needs a newer version (spec §4.3.1).
+            /// as Outlook does when the user accepts its prompt that the rule needs a newer version (spec §9.2).
             ruleStamp = versionStamp ?? RulesHeader.defaultVersionStamp(for: version)
         }
         let contentVersion = RuleHeader.contentVersion(streamVersion: version, versionStamp: ruleStamp)
 
         if let unparsed = unparsedElements, elements.isEmpty, sourceVersion == version {
-            /// Elements this library couldn't read, written back as they were (spec §4.3.1).
+            /// Elements this library couldn't read, written back as they were (spec §5.1).
             var elementsStream = OutputDataStream()
             ObjectTag.write(to: &elementsStream, classDeclared: &classDeclared)
             elementsStream.write(unparsed.data)
@@ -313,7 +313,7 @@ public struct Rule: CustomDebugStringConvertible {
         }
 
         if !hasElementList && self.elements.isEmpty && contentVersion >= .outlook2002 {
-            /// Data Size 0, with no element list (spec §4.3.1)
+            /// Data Size 0, with no element list (spec §5.5)
             var header = RuleHeader(name: storedName, rawEnabled: rawEnabled, numberOfElements: 0, dataSize: 0)
             header.hasElementList = false
             header.versionStamp = ruleStamp

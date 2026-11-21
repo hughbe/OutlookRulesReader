@@ -8,34 +8,34 @@
 import DataStream
 import Foundation
 
-/// The header at the start of a rules stream. See spec §4.2.
+/// The header at the start of a rules stream. See spec §4.
 internal struct RulesHeader {
     let version: OutlookRulesVersion
 
-    /// The version stamp of the stream's format (spec §4.1), called the versionStamp in older notes.
+    /// The version stamp of the stream's format (spec §3.3), called the versionStamp in older notes.
     /// Absent in Outlook 97 exports; 0 in versionStamp-0 streams.
     var versionStamp: UInt32?
 
     /// Present from Outlook 2002. Bits 0-23 are the version stamp of the writing application; bits 24-31 are an
-    /// index into the table of version stamps (spec §4.1).
+    /// index into the table of version stamps (spec §3.3).
     var writerVersion: UInt32?
     var unknown1: UInt32? = 0
     var unknown2: UInt32? = 0
     var unknown3: UInt32? = 0
     /// Flags; bit 0x1 records that Outlook 2007 has created its "Clear categories on mail (recommended)" rule, so it
-    /// isn't created again (spec §4.2). Formerly `unknown4`.
+    /// isn't created again (spec §4). Formerly `unknown4`.
     var clearCategoriesRuleCreated: UInt32? = 0
 
-    /// 1 when the copy of the rules on the Exchange server is out of date (spec §4.2).
+    /// 1 when the copy of the rules on the Exchange server is out of date (spec §4).
     var serverRulesOutOfDate: UInt32? = 0
-    /// how the server copy is updated: 0 = not set, 1 = manually, 2 = automatically (spec §4.2).
+    /// how the server copy is updated: 0 = not set, 1 = manually, 2 = automatically (spec §4).
     var serverUpdateMode: UInt32? = 0
-    /// 1 to prompt to convert Exchange Inbox Assistant rules (spec §4.2).
+    /// 1 to prompt to convert Exchange Inbox Assistant rules (spec §4).
     var promptToConvertInboxAssistantRules: UInt32? = 1
-    /// the last answer to that prompt: 1 = convert (spec §4.2).
+    /// the last answer to that prompt: 1 = convert (spec §4).
     var convertInboxAssistantRules: UInt32? = 1
     /// Outlook 2002 and later: a byte count (the field once called Unknown9) followed by that many bytes, which
-    /// Outlook 2002 only loads and saves (spec §4.2). Always empty in the samples. nil before Outlook 2002.
+    /// Outlook 2002 only loads and saves (spec §4). Always empty in the samples. nil before Outlook 2002.
     var extraData: Data? = Data()
     var numberOfRules: UInt32
 
@@ -129,7 +129,7 @@ internal struct RulesHeader {
             self.writerVersion = nil
         }
 
-        /// Unknown1-3 are always 0 in samples, but Outlook only preserves them, so any value is accepted (spec §4.2).
+        /// Unknown1-3 are always 0 in samples, but Outlook only preserves them, so any value is accepted (spec §4).
         /// Unknown1 (4 bytes)
         self.unknown1 = try dataStream.read(endianess: .littleEndian)
 

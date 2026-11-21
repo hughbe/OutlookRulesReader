@@ -14,14 +14,14 @@ public struct TimeParameter: RuleParameter {
         get { rawHasAfter != 0 }
         set { if newValue != hasAfter { rawHasAfter = newValue ? 1 : 0 } }
     }
-    /// The stored value of `hasAfter`. Any non-zero value means true (spec §6.11); it is kept so that the file round-trips exactly.
+    /// The stored value of `hasAfter`. Any non-zero value means true (spec §8.11); it is kept so that the file round-trips exactly.
     public var rawHasAfter: UInt32
     public var after: OleDateTime
     public var hasBefore: Bool {
         get { rawHasBefore != 0 }
         set { if newValue != hasBefore { rawHasBefore = newValue ? 1 : 0 } }
     }
-    /// The stored value of `hasBefore`. Any non-zero value means true (spec §6.11); it is kept so that the file round-trips exactly.
+    /// The stored value of `hasBefore`. Any non-zero value means true (spec §8.11); it is kept so that the file round-trips exactly.
     public var rawHasBefore: UInt32
     public var before: OleDateTime
 

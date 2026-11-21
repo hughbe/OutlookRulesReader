@@ -74,7 +74,7 @@ internal enum VersionedString {
 
 /// A count written by MFC's `CArchive::WriteCount`: two bytes if the count is less than 0xFFFF, otherwise 0xFFFF
 /// followed by four bytes. Used for the number of rules, a rule's number of elements and a form's number of
-/// document properties (spec §4.3.1, §6.9).
+/// document properties (spec §5.1, §8.9).
 internal enum ArchiveCount {
     static func read(from dataStream: inout DataStream) throws -> UInt32 {
         /// Count (2 bytes)

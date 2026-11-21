@@ -12,7 +12,9 @@ OutlookRulesReader reads and writes Outlook rules (.rwz) files, the files made b
 - **Tested** on macOS and Linux against 330 sample files exported from real versions of Outlook.
 
 ## Outlook Rules Wizard File (.rwz) Specification
-The specification for Outlook rules (.rwz) files is in [spec/Rules.md](spec/Rules.md). It records which details have been verified against the sample files in `Tests/OutlookRulesReaderTests/Resources`, which are inferred, and which are still unknown. Earlier experimental notes are in [docs/RWZ Format.pdf](docs/RWZ%20Format.pdf).
+The specification for Outlook rules (.rwz) files is in [spec/Rules.md](spec/Rules.md). It explains the format from the ground up, with a worked example, and records how each version of Outlook from Outlook 97 to Outlook 2013 reads, writes and uses it. It says which details have been verified against the sample files in `Tests/OutlookRulesReaderTests/Resources`, which are inferred, and which are still unknown.
+
+The evidence from Outlook's own code, with the address of every function cited, is in [spec/Decompilation.md](spec/Decompilation.md). Earlier experimental notes are in [docs/RWZ Format.pdf](docs/RWZ%20Format.pdf).
 
 ## Installation
 

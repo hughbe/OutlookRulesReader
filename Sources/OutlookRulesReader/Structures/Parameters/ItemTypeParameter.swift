@@ -7,7 +7,7 @@
 
 import DataStream
 
-/// The kinds of item a rule applies to (spec §6.2).
+/// The kinds of item a rule applies to (spec §8.2).
 public struct RuleItemTypes: OptionSet {
     public let rawValue: UInt32
     
@@ -19,7 +19,7 @@ public struct RuleItemTypes: OptionSet {
     public static let message = RuleItemTypes(rawValue: 0x1)
 }
 
-/// The parameter of the mandatory "For each <message>" element (0x0064). See spec §6.2.
+/// The parameter of the mandatory "For each <message>" element (0x0064). See spec §8.2.
 public struct ItemTypeParameter: RuleParameter {
     public var reserved: UInt32 = 0
     public var itemTypes: RuleItemTypes

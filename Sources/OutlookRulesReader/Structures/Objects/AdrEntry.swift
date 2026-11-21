@@ -9,7 +9,7 @@ import DataStream
 import Foundation
 import MAPI
 
-/// A serialized MAPI `ADRENTRY` whose `SPropValue` array has its pointers replaced by offsets (spec §6.4).
+/// A serialized MAPI `ADRENTRY` whose `SPropValue` array has its pointers replaced by offsets (spec §8.4).
 internal struct AdrEntry {
     /// A single property, retaining everything needed to write it back byte-for-byte.
     struct Property {
@@ -122,7 +122,7 @@ internal struct AdrEntry {
         /// Number of Properties (4 bytes)
         let numberOfProperties: UInt32 = try dataStream.read(endianess: .littleEndian)
         
-        /// Block Size (4 bytes): the size of the SPropValue array and the data it points to, as produced by MAPI ScCopyProps (spec §6.4)
+        /// Block Size (4 bytes): the size of the SPropValue array and the data it points to, as produced by MAPI ScCopyProps (spec §8.4)
         let propertyBlockDataSize: UInt32 = try dataStream.read(endianess: .littleEndian)
         guard propertyBlockDataSize <= dataStream.remainingCount,
               UInt64(numberOfProperties) * UInt64(SPropValue.dataSize) <= UInt64(propertyBlockDataSize) else {
@@ -198,14 +198,14 @@ internal struct AdrEntry {
         /// Number of Properties (4 bytes)
         dataStream.write(UInt32(propertyValues.count), endianess: .littleEndian)
 
-        /// Block Size (4 bytes): the size of the SPropValue array and the data it points to (spec §6.4)
+        /// Block Size (4 bytes): the size of the SPropValue array and the data it points to (spec §8.4)
         dataStream.write(UInt32(block.count), endianess: .littleEndian)
 
         /// Property Block (variable)
         dataStream.write(block)
     }
 
-    /// The SPropValue array followed by the data block, laid out as MAPI ScCopyProps does (spec §6.4).
+    /// The SPropValue array followed by the data block, laid out as MAPI ScCopyProps does (spec §8.4).
     private func canonicalBlock() -> [UInt8] {
         var dataStream = OutputDataStream()
         // Property headers are followed by a data block that holds strings and binary values.

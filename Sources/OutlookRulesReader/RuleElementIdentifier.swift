@@ -46,7 +46,7 @@ public enum RuleElementIdentifier: UInt32 {
     case sensitivityCondition = 0x000000D3
     
     /// "where my name is in the To box and it is a meeting". Never created by the Rules Wizard, but Outlook 97's
-    /// rule evaluator supports it (spec Appendix D.4). Takes no parameters.
+    /// rule evaluator supports it (spec §7.6). Takes no parameters.
     case nameInToBoxMeetingCondition = 0x000000D4
 
     /// "where my name is not in the To box and it is a meeting". See `nameInToBoxMeetingCondition`.
@@ -56,7 +56,7 @@ public enum RuleElementIdentifier: UInt32 {
     case assignedToCategoryCondition = 0x000000D7
     
     /// "sent to <people or public group>" as Cc recipients. Never created by the Rules Wizard, but Outlook 97's
-    /// rule evaluator supports it (spec Appendix D.4).
+    /// rule evaluator supports it (spec §7.6).
     case sentToAsCcCondition = 0x000000DA
 
     /// "sent to <people or public group>": the same test as `sentToCondition`. Never created by the Rules Wizard.
@@ -107,7 +107,7 @@ public enum RuleElementIdentifier: UInt32 {
     case exceptionListCondition = 0x000000E9
     
     /// An older identifier for `junkCondition`, probably from pre-release Outlook 98 builds. Outlook 2000 reads it as
-    /// `junkCondition` (0x00EB) (spec §5.2). Takes the same parameter.
+    /// `junkCondition` (0x00EB) (spec §7.3). Takes the same parameter.
     case legacyJunkCondition = 0x000000EA
 
     /// "suspected to be junk-email or from <Junk Senders>"
@@ -254,10 +254,10 @@ public enum RuleElementIdentifier: UInt32 {
     case markAsReadAction = 0x0000014C
 
     /// “have server reply using <a specific message>”: a hidden variant of 0x0146 that Outlook 2003 defines for
-    /// another kind of rule and drops when it loads a rule (spec §5.3).
+    /// another kind of rule and drops when it loads a rule (spec §7.4).
     case hiddenServerReplyAction = 0x0000014D
 
-    /// “notify me using a .NET notification”: hidden in Outlook 2003, which drops it when it loads a rule (spec §5.3).
+    /// “notify me using a .NET notification”: hidden in Outlook 2003, which drops it when it loads a rule (spec §7.4).
     case dotNetNotificationAction = 0x0000014E
 
     /// “display a Desktop alert”
@@ -380,7 +380,7 @@ public enum RuleElementIdentifier: UInt32 {
     /// “except from any RSS Feed”
     case fromAnyRSSFeedException = 0x0000021B
 
-    /// The type of the element's parameters, or nil if the element takes none (spec §5 and §6).
+    /// The type of the element's parameters, or nil if the element takes none (spec §7 and §8).
     public var parameterType: RuleParameter.Type? {
         switch self {
         case .eventFlags:
@@ -467,10 +467,10 @@ public enum RuleElementIdentifier: UInt32 {
         }
     }
 
-    /// The oldest format that can store this element: the first version of Outlook that defines it (spec §5.2–§5.4).
+    /// The oldest format that can store this element: the first version of Outlook that defines it (spec §7.3–§7.5).
     /// An exception is defined in the same versions as its condition.
     ///
-    /// Outlook 2003's own export table (spec §5.5) agrees, except that it only exports the account condition and
+    /// Outlook 2003's own export table (spec §9.4) agrees, except that it only exports the account condition and
     /// exception (`0x00EE`, `0x0214`) for Outlook 2002 and later, although Outlook 2000 defines them.
     public var minimumVersion: OutlookRulesVersion {
         switch rawValue {
@@ -492,7 +492,7 @@ public enum RuleElementIdentifier: UInt32 {
     }
 
     /// Whether a file in the format of `version` can store this element, so that the version of Outlook that reads
-    /// it can load it. Outlook fails to load a whole file that contains an element it doesn't define (spec §5.2).
+    /// it can load it. Outlook fails to load a whole file that contains an element it doesn't define (spec §7.3).
     public func isSupported(in version: OutlookRulesVersion) -> Bool {
         switch self {
         case .hiddenServerReplyAction, .dotNetNotificationAction:
@@ -505,7 +505,7 @@ public enum RuleElementIdentifier: UInt32 {
         }
 
         /// Version-0 streams are written by Outlook 2003, which keeps the Outlook 98 elements in them but drops
-        /// anything that needs version 980413 or later (spec §3, §5.5).
+        /// anything that needs version 980413 or later (spec §3, §9.4).
         let effectiveVersion: OutlookRulesVersion = version == .signatureZero ? .outlook98 : version
         return minimumVersion <= effectiveVersion
     }

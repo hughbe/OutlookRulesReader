@@ -5,7 +5,7 @@
 //  Created by Hugh Bellamy on 09/11/2026.
 //
 
-/// The flags in a rule's header (spec §4.3.1.1). Rules the user creates have none. Outlook 2000 sets them on the
+/// The flags in a rule's header (spec §5.2). Rules the user creates have none. Outlook 2000 sets them on the
 /// rules it creates itself (junk mail, Download Options), and finds those rules again by their flag rather than by name.
 /// Outlook 2003 deletes the junk-mail rules (0x08, 0x10 and 0x20) whenever it saves.
 /// Present from version 970812 (Outlook 98); 0 in older formats.
