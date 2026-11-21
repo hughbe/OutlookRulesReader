@@ -119,7 +119,7 @@ Each statement was established in one of these ways:
 
 | Evidence | Meaning |
 |---|---|
-| *(no marker)* | **Verified.** Checked against every sample file in `Tests/OutlookRulesReaderTests/Resources` by an independent parser. The 330 samples were written by Outlook 97, 98, 2000, 2003, 2007 and 2019. |
+| *(no marker)* | **Verified.** Checked against every one of 330 sample files written by Outlook 97, 98, 2000, 2003, 2007 and 2019. |
 | An Outlook version | **Traced.** Read from that version's code. A statement such as "Outlook 2002–2013 discard Unknown1" means that the code of every version studied in that range was checked and behaves the same way. The addresses are in [Decompilation notes](Decompilation.md). |
 | **[Inferred]** | Consistent with all samples and code, but the *meaning* comes from interpretation (for example, a match with an MFC or MAPI structure), not observation. |
 | **[Unknown]** | The field's layout is known but its meaning is not. Observed values are listed. |
@@ -198,7 +198,7 @@ The oldest layout, Outlook 97's exports, has no header or footer, only the rule 
 
 Parameter objects all derive from one base class, whose `Serialize` writes a Reserved field ([§8](#8-parameters)). Each element's definition says which parameter class to create, so the class is never written: parameters carry no class tag. Most string parameters (words, categories, paths, messages) share a single "Reserved + CString" class in Outlook 97. Class names such as `CWordParameter` and `CFolderParameter` come from Outlook's binaries (`docs/Rules Sever Side.xlsx`).
 
-**An example.** The smallest Outlook 2010 stream holds one enabled rule named `RULENAME`, applied "after the message arrives". This one was written by this library (`ExportTests.testEmptyRule`):
+**An example.** The smallest Outlook 2010 stream holds one enabled rule named `RULENAME`, applied "after the message arrives":
 
 ```
 00 00 14 00                         VersionStamp        0x00140000 (v14)
@@ -373,12 +373,12 @@ How Outlook handles tags:
 
 The format has four layouts, called *generations* in this document:
 
-| Generation | First u32 | Written by | Strings | Library (`OutlookRulesVersion`) |
-|---|---|---|---|---|
-| **G0** (Outlook 97 export) | anything not listed below | Outlook 97's Export Rules | ANSI | `.outlook97` |
-| **G0s** (version stamp 0) | `0x00000000` | Outlook 2003's Export Rules, when the rules were last saved by a newer Outlook ([§3.5](#35-version-0-streams-g0s)) | ANSI | `.signatureZero` |
-| **G1** (ANSI) | `970102`, `970812`, `980413` | Outlook 97's profile copy; Outlook 98; Outlook 2000 (usually as `970812`, [§9.5](#95-how-outlook-2000-chooses-the-stamp)); Outlook 2002 and later exporting "for Outlook 98/2000" | ANSI | `.outlook97Profile`, `.outlook98`, `.outlook2000` |
-| **G2** (Unicode) | `1000000`, `1100000`, `1200000`, `0x00140000` | Outlook 2002 and later | UTF-16 | `.outlook2002`, `.outlook2003`, `.outlook2007`, `.outlook2010` |
+| Generation | First u32 | Written by | Strings |
+|---|---|---|---|
+| **G0** (Outlook 97 export) | anything not listed below | Outlook 97's Export Rules | ANSI |
+| **G0s** (version stamp 0) | `0x00000000` | Outlook 2003's Export Rules, when the rules were last saved by a newer Outlook ([§3.5](#35-version-0-streams-g0s)) | ANSI |
+| **G1** (ANSI) | `970102`, `970812`, `980413` | Outlook 97's profile copy; Outlook 98; Outlook 2000 (usually as `970812`, [§9.5](#95-how-outlook-2000-chooses-the-stamp)); Outlook 2002 and later exporting "for Outlook 98/2000" | ANSI |
+| **G2** (Unicode) | `1000000`, `1100000`, `1200000`, `0x00140000` | Outlook 2002 and later | UTF-16 |
 
 **G0** has no version stamp. Its first 2 bytes are the rule count ([§2.1](#21-count)), and its next byte is the first rule name's length. Every Outlook 97 sample starts `01 00` (one rule). G0 is Outlook 97's **Export Rules** format: the exporter writes the rule count with `CArchive::WriteCount` and then each rule, with no header or footer. The rules Outlook 97 keeps for itself use the G1 layout with version stamp 970102 ([§3.3](#33-version-stamps)).
 
@@ -516,7 +516,7 @@ The header is 38 bytes in G0s and G1, 46 bytes plus ExtraDataSize in G2, and 2 b
 
 ### 4.2 Unknown1–3
 
-Always `0` in the samples, but hughbe/OutlookRulesReader#2 reports fields like these being `1` in the copy of the rules stored in the mailbox. No version studied gives them a meaning:
+Always `0` in the samples, but values of `1` have been seen in the copy of the rules stored in the mailbox. No version studied gives them a meaning:
 
 * **Outlook 97, 98 and 2000** load and save Unknown1–3 unchanged. Nothing else reads or writes them, and new profiles start with `0`.
 * **Outlook 2002–2013** discard Unknown1 when loading and always write `0`. They still load and save Unknown2 and Unknown3 unchanged.
@@ -606,7 +606,7 @@ Rule := RuleHeader  Element[RuleHeader.NumberOfElements]
 | DataSize | 4 | G2 | Number of bytes from the end of this field to the end of the rule: NumberOfElements, every object tag, and every element. Matched exactly in all 116 G2 rules. `0` means the rule has **no element list** ([§5.5](#55-rules-from-newer-versions)). Readers MUST accept a DataSize of `0`. |
 | NumberOfElements | 2 (or 6) | all | Number of elements in this rule, as a Count ([§2.1](#21-count)): Outlook 97 writes the element list, a `CObList`, with `CObList::Serialize`. Absent when DataSize is `0`. |
 
-**Name and template.** Outlook 97 writes `<rule name>` TAB `<template name>`, where the template is the wizard template the rule was made from, for example `Forward within 20 days\tBuild as I go`. Every Outlook 97 sample has the tab, and samples from later versions sometimes do. Outlook 98–2013 split the name at the first tab when loading and save only the part before it, so they drop the template name. (Outlook 98 still keeps it in memory.) The library exposes it as `Rule.templateName`.
+**Name and template.** Outlook 97 writes `<rule name>` TAB `<template name>`, where the template is the wizard template the rule was made from, for example `Forward within 20 days\tBuild as I go`. Every Outlook 97 sample has the tab, and samples from later versions sometimes do. Outlook 98–2013 split the name at the first tab when loading and save only the part before it, so they drop the template name. (Outlook 98 still keeps it in memory.)
 
 **RunError.** How it is set has changed over time:
 
@@ -697,7 +697,7 @@ In G2, DataSize lets an older version keep rules it can't read:
 
 Outlook doesn't run a rule it keeps unparsed ([§11.3.2](#1132-processing-the-rules)) and doesn't upload it to the server.
 
-Readers SHOULD do the same: keep a rule whose version is newer than they support, or that contains an element they don't know, as bytes, and write it back unchanged. The library does this, and records why in `Rule.unparsedReason`.
+Readers SHOULD do the same: keep a rule whose version is newer than they support, or that contains an element they don't know, as bytes, and write it back unchanged.
 
 **No element list.** When DataSize is `0`, NumberOfElements and the elements are absent and the next rule follows at once:
 
@@ -969,7 +969,7 @@ Observed values: `0x01` (272 rules) and `0x04` (6 rules).
 Outlook 98–2013 read and write this parameter the same way. What each bit means was traced only in Outlook 97. Outlook 98's resources still offer all three choices, including "after the server receives the message". Outlook 2003–2013 offer only "after the message arrives" and "after I send the message" (Outlook 2010 and 2013 name their blank-rule templates "Apply rule on messages I receive" and "Apply rule on messages I send"). When Outlook 2003–2013 run rules, `0x01` matches received messages and `0x04` sent ones ([§11.3.1](#1131-when-rules-run)).
 
 ### 8.2 ItemTypeParameter
-Used by `0x0064` ("For each %s"). `ItemTypeParameter` in the library; `Rule.itemTypes` holds its value.
+Used by `0x0064` ("For each %s").
 
 | Field | Size | Description |
 |---|---|---|
@@ -1027,7 +1027,7 @@ This is a serialized MAPI `ADRLIST`. For each `ADRENTRY`, Outlook 97 writes `ulR
 | Type | Value encoding |
 |---|---|
 | `PT_LONG` (`0x0003`), `PT_ERROR` (`0x000A`) | `u32` in bytes 0–3. Bytes 4–7 are uninitialised. |
-| `PT_BOOLEAN` (`0x000B`) | **[Inferred]** `u16` in bytes 0–1; the rest is uninitialised. Supported by the library but never observed. |
+| `PT_BOOLEAN` (`0x000B`) | **[Inferred]** `u16` in bytes 0–1; the rest is uninitialised. Never observed. |
 | `PT_UNICODE` (`0x001F`) | Bytes 0–3: offset to a NUL-terminated UTF-16 string in Data. |
 | `PT_STRING8` (`0x001E`) | Bytes 0–3: offset to a NUL-terminated ANSI string in Data. |
 | `PT_BINARY` (`0x0102`) | Bytes 0–3: `cb`. Bytes 4–7: offset to `cb` bytes in Data. |
@@ -1267,7 +1267,7 @@ Used by `0x00F3`.
 |---|---|---|
 | Name | variable | String: UTF-16 in every format that can hold `0x00F3`, which needs version 1100000. The alert's name, a U+0001 character, and the text that identifies messages from the alert. |
 
-Outlook splits Name at the last U+0001. It shows the part before it as the alert's name, and looks for the part after it in the message's transport headers (`PR_TRANSPORT_MESSAGE_HEADERS`) (Outlook 2003–2013). On the client, Outlook 2010 and 2013 use `wcsstr`, which is case-sensitive; on the server, Outlook 2003 uses a substring test that ignores case ([§11.2.3](#1123-server-forms-of-elements)). In the sample (`Conditions/AlertCondition`) the second part is a GUID: `Alert from "Home" about "Documents (All Changes)"` U+0001 `{1D7EAA7A-B10A-485D-A8E9-5B3D611597E1}`. The library exposes the two parts as `AlertParameter.displayName` and `identifier`.
+Outlook splits Name at the last U+0001. It shows the part before it as the alert's name, and looks for the part after it in the message's transport headers (`PR_TRANSPORT_MESSAGE_HEADERS`) (Outlook 2003–2013). On the client, Outlook 2010 and 2013 use `wcsstr`, which is case-sensitive; on the server, Outlook 2003 uses a substring test that ignores case ([§11.2.3](#1123-server-forms-of-elements)). In the sample (`Conditions/AlertCondition`) the second part is a GUID: `Alert from "Home" about "Documents (All Changes)"` U+0001 `{1D7EAA7A-B10A-485D-A8E9-5B3D611597E1}`.
 
 ### 8.19 FolderParameter
 `CFolderParameter`. Used by `0x012C` and `0x0139`.
@@ -1383,7 +1383,7 @@ Used by `0x0153`.
 New in Outlook 2010. The serializer writes Reserved, the 16-byte GUID and then Name as a String (so String8 below version 1000000, though `0x0153` itself needs `0x140000`). In memory the parameter also holds a retention period, which isn't written: Outlook fills it in from the policy. The action sets the message's `PR_POLICY_TAG` (`0x30190102`) to PolicyId and `PR_RETENTION_PERIOD` (`0x301A0003`) to that period. On the server it is two `OP_TAG` actions for the same two properties ([§11.2.3](#1123-server-forms-of-elements)). The UI text is "apply retention policy: %s", with the placeholder "retention policy". Outlook 2010's later updates also look the policy up by its GUID when loading. Outlook 2013 is the same as Outlook 2010.
 
 ### 8.29 FlagColorParameter
-Used by `0x0150`. `FlagColorParameter` in the library.
+Used by `0x0150`.
 
 | Field | Size | Description |
 |---|---|---|
@@ -2079,7 +2079,7 @@ The details of each search are in [Decompilation notes](Decompilation.md#appendi
 3. **Whether versions after Outlook 2013 give the parameter Reserved field a meaning.** Outlook 2007's, 2010's and 2013's base parameter classes still only set it to `0` and serialize it ([§8](#8-parameters)). (Outlook 2003 writes MatchIfMissing `1` for document properties, [§8.9](#89-formparameter).)
 4. **Whether `PidTagRwRulesStream` differs from an exported `.rwz`.** Answered for Outlook 2003, 2010 and 2013: the same code writes both, in different modes, and at the same version they differ only in the rules' VersionStamps ([§9.2](#92-a-rules-own-version)). Versions after Outlook 2013 weren't checked.
 5. **DocumentProperty Unknown1.** Always `1`. Every constructor in Outlook 97–2013 sets it, and only the serializer and copy routine use it ([§8.9](#89-formparameter)).
-6. **Whether stamp `0x150000` changes the layout.** Stamp `0x140000` doesn't: Outlook 2010 reads and writes it with the Outlook 2002 layout. Outlook 2013 doesn't write `0x150000` at all: it still writes `0x140000`, reads a stream stamped `0x150000` with the Outlook 2002 layout, and keeps a rule stamped `0x150000` unparsed ([§3.3](#33-version-stamps)). So no version studied gives `0x150000` a layout, and the library is right to read it as G2.
+6. **Whether stamp `0x150000` changes the layout.** Stamp `0x140000` doesn't: Outlook 2010 reads and writes it with the Outlook 2002 layout. Outlook 2013 doesn't write `0x150000` at all: it still writes `0x140000`, reads a stream stamped `0x150000` with the Outlook 2002 layout, and keeps a rule stamped `0x150000` unparsed ([§3.3](#33-version-stamps)). So no version studied gives `0x150000` a layout, and readers can treat it as G2.
 7. **Rule Flags bits `0x1` and `0x2`.** Outlook 97–2013 never set them (in Outlook 2013 the whole `OUTLOOK.EXE` was searched). Outlook 2010 and 2013 can still take them from offset `0x18` of an Outlook 98 or 2000 server rule's provider data; Outlook 2003–2013 forgive errors in single rules that have them; and every version from 98 to 2013 clears all the flags when the user edits such a rule ([§5.2](#52-rule-flags-and-outlooks-own-rules)). That supports the guess that they mark errors, but nothing studied writes them.
 8. **The two extra flags in each element definition.** Outlook 97's definitions have two flags that no code in Outlook 97, 98 or 2000 reads ([Decompilation §3.1](Decompilation.md#31-element-definitions)). The first is now answered: in Outlook 2010 and 2013 it means "the wizard may offer this element" ([§7.7](#77-element-definitions)). The second is still unexplained. Outlook 97–2003 never read it, Outlook 2003 and later no longer copy it into their definitions, and although Outlook 2010 changes it for 41 elements, it still has no effect.
 9. **The field Outlook 2002 added to its definitions.** Answered for Outlook 2010 and 2013: it marks redirect and server reply, which the wizard hides when the store has no Exchange server rules ([§7.7](#77-element-definitions)). Outlook 2002 and 2003 never use it.
