@@ -11,7 +11,7 @@ import WindowsDataTypes
 
 internal struct RulesFooter {
     var templateDirectory: String = ""
-    /// Probably the time the rules were last saved (spec §4.4). Usually null.
+    /// Probably the time the rules were last saved (spec §6). Usually null.
     var timestamp: OleDateTime = OleDateTime()
     var unknown: UInt32 = 0
     /// Any bytes after the footer. Outlook doesn't write any, but they are kept so that the file round-trips.

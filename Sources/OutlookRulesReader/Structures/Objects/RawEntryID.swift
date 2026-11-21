@@ -8,7 +8,7 @@
 import DataStream
 import MAPI
 
-/// A MAPI entry ID stored as a `FlatEntry`: its size, then its bytes (spec §6). Parameters keep the bytes exactly as
+/// A MAPI entry ID stored as a `FlatEntry`: its size, then its bytes (spec §8). Parameters keep the bytes exactly as
 /// read, so an entry ID always writes back unchanged, even when it is of a kind `MAPI` can't decode, or holds a path
 /// `MAPI` can't encode again (such as a PST path with non-ASCII characters).
 internal enum RawEntryID {

@@ -8,7 +8,7 @@
 import DataStream
 import Foundation
 
-/// The Rules Wizard's "Update server" option (spec §4.2).
+/// The Rules Wizard's "Update server" option (spec §4).
 public struct ServerUpdateMode: RawRepresentable, Equatable {
     public let rawValue: UInt32
 
@@ -43,26 +43,26 @@ public struct OutlookRules: CustomDebugStringConvertible {
         }
     }
     
-    /// Whether the copy of the rules on the Exchange server is out of date and should be updated (spec §4.2).
+    /// Whether the copy of the rules on the Exchange server is out of date and should be updated (spec §4).
     /// Always false for Outlook 97 exports, which have no header.
     public var serverRulesOutOfDate: Bool {
         get { (header.serverRulesOutOfDate ?? 0) != 0 }
         set { header.serverRulesOutOfDate = newValue ? 1 : 0 }
     }
 
-    /// How the copy of the rules on the Exchange server is updated: the Rules Wizard's "Update server" option (spec §4.2).
+    /// How the copy of the rules on the Exchange server is updated: the Rules Wizard's "Update server" option (spec §4).
     public var serverUpdateMode: ServerUpdateMode {
         get { ServerUpdateMode(rawValue: header.serverUpdateMode ?? 0) }
         set { header.serverUpdateMode = newValue.rawValue }
     }
 
-    /// Whether Outlook prompts to convert Exchange Inbox Assistant rules into Rules Wizard rules (spec §4.2).
+    /// Whether Outlook prompts to convert Exchange Inbox Assistant rules into Rules Wizard rules (spec §4).
     public var promptToConvertInboxAssistantRules: Bool {
         get { (header.promptToConvertInboxAssistantRules ?? 1) != 0 }
         set { header.promptToConvertInboxAssistantRules = newValue ? 1 : 0 }
     }
 
-    /// The last answer to the Inbox Assistant conversion prompt: true = convert (spec §4.2).
+    /// The last answer to the Inbox Assistant conversion prompt: true = convert (spec §4).
     public var convertInboxAssistantRules: Bool {
         get { (header.convertInboxAssistantRules ?? 1) != 0 }
         set { header.convertInboxAssistantRules = newValue ? 1 : 0 }
@@ -119,14 +119,14 @@ public struct OutlookRules: CustomDebugStringConvertible {
         }
     }
     
-    /// The rules that `getData(version:)` leaves out because the format can't store one of their elements (spec §5.5).
+    /// The rules that `getData(version:)` leaves out because the format can't store one of their elements (spec §9.4).
     public func unsupportedRules(in version: OutlookRulesVersion) -> [Rule] {
         rules.filter { !$0.isSupported(in: version) }
     }
 
     /// Writes the rules in the format of `version`, or the format they were read from.
     /// Like Outlook's Export Rules, this leaves out every rule containing an element the format can't store, since
-    /// that version of Outlook would fail to load the whole file (spec §5.5). See `unsupportedRules(in:)`.
+    /// that version of Outlook would fail to load the whole file (spec §9.4). See `unsupportedRules(in:)`.
     public func getData(version: OutlookRulesVersion? = nil) -> Data {
         let version = version ?? self.header.version
         /// A rule read from this format is kept as it is, even if it has an element the format doesn't define.

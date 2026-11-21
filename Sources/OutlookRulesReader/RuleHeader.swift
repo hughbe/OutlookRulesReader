@@ -7,26 +7,26 @@
 
 import DataStream
 
-/// The header of an individual rule. See spec §4.3.1.
+/// The header of an individual rule. See spec §5.1.
 internal struct RuleHeader {
     /// The rule's own version stamp (Outlook 2002 and later formats only). Normally the stream's stamp; a rule with
-    /// an older stamp keeps that older layout inside a newer stream (spec §4.3.1).
+    /// an older stamp keeps that older layout inside a newer stream (spec §9.2).
     var versionStamp: UInt32?
     var name: String
-    /// Any non-zero value means enabled (spec §4.3.1).
+    /// Any non-zero value means enabled (spec §5.1).
     var rawEnabled: UInt32
-    /// 1 after the rule failed while running on the client (Outlook 2000; spec §4.3.1).
+    /// 1 after the rule failed while running on the client (Outlook 2000; spec §5.1).
     var runError: UInt32 = 0
-    /// 1 once the rule has been saved to the Exchange server's rules table (spec §4.3.1).
+    /// 1 once the rule has been saved to the Exchange server's rules table (spec §5.1).
     var serverRule: UInt32 = 0
-    /// Rule flags (Outlook 98 and later). See `RuleFlags` and spec §4.3.1.1.
+    /// Rule flags (Outlook 98 and later). See `RuleFlags` and spec §5.2.
     var flags: UInt32? = 0
-    /// The ID of the rule's copy on the Exchange server (Outlook 2002 and later; spec §4.3.1).
+    /// The ID of the rule's copy on the Exchange server (Outlook 2002 and later; spec §5.1).
     var serverRuleId: UInt32? = 0
     /// The number of bytes from the end of this field to the end of the rule (Outlook 2002 and later only).
     var dataSize: UInt32?
     /// Whether NumberOfElements and the elements follow. In the Outlook 2002 and later formats, a DataSize of 0 means
-    /// the rule stores no element list at all, not even its count (Outlook 2003; spec §4.3.1).
+    /// the rule stores no element list at all, not even its count (Outlook 2003; spec §5.1).
     var hasElementList: Bool = true
     var numberOfElements: UInt32
 
@@ -37,7 +37,7 @@ internal struct RuleHeader {
         self.numberOfElements = numberOfElements
     }
 
-    /// The format the rule's contents use: the stream's, or the rule's own stamp if that is older (spec §4.3.1).
+    /// The format the rule's contents use: the stream's, or the rule's own stamp if that is older (spec §5.1).
     static func contentVersion(streamVersion: OutlookRulesVersion, versionStamp: UInt32?) -> OutlookRulesVersion {
         guard streamVersion >= .outlook2002, let stamp = versionStamp.map({ $0 & 0x00FFFFFF }), stamp >= 960706 else {
             return streamVersion

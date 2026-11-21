@@ -5,7 +5,7 @@
 //  Created by Hugh Bellamy on 29/01/2021.
 //
 
-/// The format of a rules stream, identified by its signature (spec §3 and §4.1).
+/// The format of a rules stream, identified by its signature (spec §3 and §3.3).
 public enum OutlookRulesVersion: Comparable {
     /// Outlook 97's Export Rules format: no signature, header or footer. The stream starts with the number of rules.
     case outlook97

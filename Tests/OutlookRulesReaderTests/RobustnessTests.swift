@@ -36,7 +36,7 @@ final class RobustnessTests: XCTestCase {
         data.replaceSubrange(range, with: (1...255).map { UInt8($0) })
 
         let file = try OutlookRules(data: data)
-        // Byte 0x09 is a tab, which separates the rule name from the template name (spec §4.3.1).
+        // Byte 0x09 is a tab, which separates the rule name from the template name (spec §5.1).
         XCTAssertEqual(255, file.rules[0].storedName.unicodeScalars.count)
         XCTAssertEqual(data, file.getData())
     }
@@ -140,7 +140,7 @@ final class RobustnessTests: XCTestCase {
         XCTAssertEqual(data, try OutlookRules(data: data).getData())
     }
 
-    /// A rule whose DataSize doesn't match its elements was misread (spec §4.3.1).
+    /// A rule whose DataSize doesn't match its elements was misread (spec §5.1).
     func testRuleDataSizeMismatchThrows() throws {
         var data = OutlookRules(rules: [Rule(eventFlags: .afterReceived, name: "R")]).getData(version: .outlook2010)
         XCTAssertNoThrow(try OutlookRules(data: data))
@@ -205,7 +205,7 @@ final class RobustnessTests: XCTestCase {
     }
 
     /// In Outlook 2002 and later formats, a rule with elements this library can't read is kept, using its DataSize,
-    /// instead of failing the whole file (spec §4.3.1).
+    /// instead of failing the whole file (spec §5.1).
     func testRuleWithUnknownElementIsKept() throws {
         let original = OutlookRules(rules: [
             Rule(eventFlags: .afterReceived, name: "Future", actions: [RuleElement(identifier: .deleteAction)]),
@@ -296,7 +296,7 @@ final class RobustnessTests: XCTestCase {
 
     // MARK: - Counts
 
-    /// MFC's CArchive::WriteCount: two bytes below 0xFFFF, otherwise 0xFFFF and four bytes (spec §4.3.1).
+    /// MFC's CArchive::WriteCount: two bytes below 0xFFFF, otherwise 0xFFFF and four bytes (spec §5.1).
     func testArchiveCount() throws {
         for (count, size) in [(0, 2), (0xFFFE, 2), (0xFFFF, 6), (70_000, 6)] as [(UInt32, Int)] {
             var output = OutputDataStream()
@@ -385,7 +385,7 @@ final class RobustnessTests: XCTestCase {
         XCTAssertFalse(RuleElementIdentifier.hiddenServerReplyAction.isSupported(in: .outlook2010))
     }
 
-    /// Like Outlook's Export Rules, writing to an older format leaves out rules it can't store (spec §5.5).
+    /// Like Outlook's Export Rules, writing to an older format leaves out rules it can't store (spec §9.4).
     func testWritingToOlderFormatsLeavesOutUnsupportedRules() throws {
         let file = OutlookRules(rules: [
             Rule(eventFlags: .afterReceived, name: "Script", actions: [

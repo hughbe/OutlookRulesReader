@@ -8,7 +8,7 @@
 import DataStream
 import MAPI
 
-/// A serialized MAPI `SPropValue` (spec §6.4): the property propTag, `dwAlignPad` (`alignPad`, uninitialised memory)
+/// A serialized MAPI `SPropValue` (spec §8.4): the property propTag, `dwAlignPad` (`alignPad`, uninitialised memory)
 /// and the 8-byte value union (`valueLow` and `valueHigh`).
 internal struct SPropValue {
     static let dataSize: UInt32 = 16

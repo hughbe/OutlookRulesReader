@@ -8,7 +8,7 @@
 import DataStream
 import MAPI
 
-/// People or public groups, stored as a serialized MAPI `ADRLIST` (spec §6.4).
+/// People or public groups, stored as a serialized MAPI `ADRLIST` (spec §8.4).
 public struct AddressParameter: RuleParameter, CustomDebugStringConvertible {
     public var reserved: UInt32 = 0
     internal var lists: [AdrEntry] = []
@@ -44,20 +44,20 @@ public struct AddressParameter: RuleParameter, CustomDebugStringConvertible {
         return "AddressParameter(" + addresses.joined(separator: matchAny ? " or " : " and ") + (isCc ? ", cc" : "") + ")"
     }
 
-    /// How the addresses are combined (spec §6.4): true = "from A or B" (Outlook's choice for conditions and
+    /// How the addresses are combined (spec §8.4): true = "from A or B" (Outlook's choice for conditions and
     /// exceptions), false = "forward to A and B" (its choice for actions).
     public var matchAny: Bool {
         get { rawMatchAny != 0 }
         set { if newValue != matchAny { rawMatchAny = newValue ? 1 : 0 } }
     }
-    /// The stored value of `matchAny`. Any non-zero value means true (spec §6.4); it is kept so that the file round-trips exactly.
+    /// The stored value of `matchAny`. Any non-zero value means true (spec §8.4); it is kept so that the file round-trips exactly.
     public var rawMatchAny: UInt32
-    /// True only for the "Cc the message to" action (spec §6.4).
+    /// True only for the "Cc the message to" action (spec §8.4).
     public var isCc: Bool {
         get { rawIsCc != 0 }
         set { if newValue != isCc { rawIsCc = newValue ? 1 : 0 } }
     }
-    /// The stored value of `isCc`. Any non-zero value means true (spec §6.4); it is kept so that the file round-trips exactly.
+    /// The stored value of `isCc`. Any non-zero value means true (spec §8.4); it is kept so that the file round-trips exactly.
     public var rawIsCc: UInt32
 
     /// Creates an address parameter. Outlook uses `matchAny: true` for conditions and exceptions,
@@ -112,7 +112,7 @@ public struct AddressParameter: RuleParameter, CustomDebugStringConvertible {
     }
 }
 
-/// One address of an `AddressParameter`: a person or public group, as a set of MAPI properties (spec §6.4).
+/// One address of an `AddressParameter`: a person or public group, as a set of MAPI properties (spec §8.4).
 public struct Recipient {
     /// Every property of the address, keyed by property ID.
     public let properties: [UInt16: Any]
