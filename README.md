@@ -1,6 +1,15 @@
 # OutlookRulesReader
 
-OutlookRulesReader is a reader of Outlook rules (rwz) files.
+OutlookRulesReader reads and writes Outlook rules (.rwz) files, the files made by Outlook's **Export Rules**.
+
+## Features
+
+- **Every format:** Outlook 97 through Outlook 2019 and Microsoft 365, which still writes the Outlook 2010 format. Files can be converted between formats; like Outlook, converting to an older format leaves out rules that format can't store.
+- **Every condition, action and exception** Outlook defines (115 kinds), with typed parameters.
+- **Readable rules:** `rule.text` describes a rule in the Rules Wizard's own words.
+- **Exact round trips:** every file that reads is written back byte for byte, so rules can be edited without disturbing anything else.
+- **Safe on any input:** malformed files throw a specific error and never crash. This is checked by fuzzing every sample file. Rules from newer versions of Outlook that the library can't read are kept rather than failing the file.
+- **Tested** on macOS and Linux against 330 sample files exported from real versions of Outlook.
 
 ## Outlook Rules Wizard File (.rwz) Specification
 The specification for Outlook rules (.rwz) files is in [spec/Rules.md](spec/Rules.md). It records which details have been verified against the sample files in `Tests/OutlookRulesReaderTests/Resources`, which are inferred, and which are still unknown. Earlier experimental notes are in [docs/RWZ Format.pdf](docs/RWZ%20Format.pdf).
